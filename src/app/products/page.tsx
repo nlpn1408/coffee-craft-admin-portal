@@ -81,7 +81,7 @@ const Products = () => {
             >
               <div className="flex flex-col items-center">
                 <Image
-                  src={`https://s3-coffee-craft.s3.ap-southeast-1.amazonaws.com${
+                  src={`https://s3-coffee-craft.s3.ap-southeast-1.amazonaws.com/${
                     Math.floor(Math.random() * 3) + 1
                   }.png`}
                   alt={product.name}
