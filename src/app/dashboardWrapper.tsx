@@ -4,6 +4,9 @@ import React, { useEffect } from "react";
 import Navbar from "@/app/(components)/Navbar";
 import Sidebar from "@/app/(components)/Sidebar";
 import StoreProvider, { useAppSelector } from "./redux";
+// import Notification from "./(components)/Notification/Notification";
+// import ErrorNotification from "./(components)/Notification/ErrorNotification";
+// import SuccessNotification from "./(components)/Notification/SuccessNotification";
 
 const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const isSidebarCollapsed = useAppSelector(
@@ -42,6 +45,7 @@ const DashboardWrapper = ({ children }: { children: React.ReactNode }) => {
   return (
     <StoreProvider>
       <DashboardLayout>{children}</DashboardLayout>
+      {/* <Notification /> */}
     </StoreProvider>
   );
 };

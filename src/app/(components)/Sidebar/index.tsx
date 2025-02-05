@@ -2,7 +2,10 @@
 
 import { useAppDispatch, useAppSelector } from "@/app/redux";
 import { setIsSidebarCollapsed } from "@/state";
+import { SimpleTreeView, TreeItem } from "@mui/x-tree-view";
 import {
+  Gem,
+  Layers2,
   Archive,
   CircleDollarSign,
   Clipboard,
@@ -22,6 +25,7 @@ interface SidebarLinkProps {
   icon: LucideIcon;
   label: string;
   isCollapsed: boolean;
+  isRoot?: boolean;
 }
 
 const SidebarLink = ({
@@ -29,34 +33,39 @@ const SidebarLink = ({
   icon: Icon,
   label,
   isCollapsed,
+  isRoot = false,
 }: SidebarLinkProps) => {
   const pathname = usePathname();
   const isActive =
     pathname === href || (pathname === "/" && href === "/dashboard");
 
-  return (
-    <Link href={href}>
-      <div
-        className={`cursor-pointer flex items-center ${
-          isCollapsed ? "justify-center py-4" : "justify-start px-8 py-4"
-        }
-        hover:text-blue-500 hover:bg-blue-100 gap-3 transition-colors ${
-          isActive ? "bg-blue-200 text-white" : ""
-        }
-      }`}
-      >
-        <Icon className="w-6 h-6 !text-gray-700" />
+  const content = (
+    <div
+      className={`cursor-pointer flex items-center ${
+        isCollapsed
+          ? "justify-center py-4"
+          : isRoot
+          ? "justify-start py-4"
+          : "justify-start px-8 py-4"
+      }
+  hover:text-blue-500 hover:bg-blue-100 gap-3 transition-colors ${
+    isActive && !isRoot ? "bg-blue-200 text-white" : ""
+  }
+}`}
+    >
+      <Icon className="w-6 h-6 !text-gray-700" />
 
-        <span
-          className={`${
-            isCollapsed ? "hidden" : "block"
-          } font-medium text-gray-700`}
-        >
-          {label}
-        </span>
-      </div>
-    </Link>
+      <span
+        className={`${
+          isCollapsed ? "hidden" : "block"
+        } font-medium text-gray-700`}
+      >
+        {label}
+      </span>
+    </div>
   );
+
+  return isRoot ? content : <Link href={href}>{content}</Link>;
 };
 
 const Sidebar = () => {
@@ -112,12 +121,40 @@ const Sidebar = () => {
           label="Dashboard"
           isCollapsed={isSidebarCollapsed}
         />
-        <SidebarLink
-          href="/inventory"
-          icon={Archive}
-          label="Inventory"
-          isCollapsed={isSidebarCollapsed}
-        />
+
+        <SimpleTreeView multiSelect>
+          <TreeItem
+            itemId="grid"
+            label={
+              <SidebarLink
+                href="/"
+                icon={Archive}
+                label="Categories"
+                isCollapsed={isSidebarCollapsed}
+                isRoot={true}
+              />
+            }
+          >
+            <SidebarLink
+              href="/category"
+              icon={Archive}
+              label="Categories"
+              isCollapsed={isSidebarCollapsed}
+            />
+            <SidebarLink
+              href="/subcategory"
+              icon={Layers2}
+              label="Subcategories"
+              isCollapsed={isSidebarCollapsed}
+            />
+            <SidebarLink
+              href="/brand"
+              icon={Gem}
+              label="Brands"
+              isCollapsed={isSidebarCollapsed}
+            />
+          </TreeItem>
+        </SimpleTreeView>
         <SidebarLink
           href="/products"
           icon={Clipboard}
