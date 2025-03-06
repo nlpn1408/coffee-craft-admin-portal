@@ -1,14 +1,7 @@
 import { useRef } from "react";
 import { combineReducers, configureStore } from "@reduxjs/toolkit";
-import {
-  TypedUseSelectorHook,
-  useDispatch,
-  useSelector,
-  Provider,
-} from "react-redux";
-
+import { Provider } from "react-redux";
 import { setupListeners } from "@reduxjs/toolkit/query";
-
 import {
   persistStore,
   persistReducer,
@@ -72,8 +65,6 @@ export const makeStore = () => {
 export type AppStore = ReturnType<typeof makeStore>;
 export type RootState = ReturnType<AppStore["getState"]>;
 export type AppDispatch = AppStore["dispatch"];
-export const useAppDispatch = () => useDispatch<AppDispatch>();
-export const useAppSelector: TypedUseSelectorHook<RootState> = useSelector;
 
 /* PROVIDER */
 export default function StoreProvider({
@@ -95,4 +86,4 @@ export default function StoreProvider({
       </PersistGate>
     </Provider>
   );
-}
+} 

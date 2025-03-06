@@ -3,10 +3,9 @@
 import { useCreateProductMutation, useGetProductsQuery } from "@/state/api";
 import { PlusCircleIcon, SearchIcon } from "lucide-react";
 import { useState } from "react";
-import Header from "@/app/(components)/Header";
-import Rating from "@/app/(components)/Rating";
 import CreateProductModal from "./CreateProductModal";
-import Image from "next/image";
+import Header from "@/components/Header";
+import Rating from "@/components/ui/Rating";
 
 type ProductFormData = {
   name: string;
@@ -80,7 +79,7 @@ const Products = () => {
               className="border shadow rounded-md p-4 max-w-full w-full mx-auto"
             >
               <div className="flex flex-col items-center">
-                <Image
+                {/* <Image
                   src={`https://s3-coffee-craft.s3.ap-southeast-1.amazonaws.com/product${
                     Math.floor(Math.random() * 3) + 1
                   }.png`}
@@ -88,11 +87,11 @@ const Products = () => {
                   width={150}
                   height={150}
                   className="mb-3 rounded-2xl w-36 h-36"
-                />
+                /> */}
                 <h3 className="text-lg text-gray-900 font-semibold">
                   {product.name}
                 </h3>
-                <p className="text-gray-800">${product.price.toFixed(2)}</p>
+                <p className="text-gray-800">${product.price}</p>
                 <div className="text-sm text-gray-600 mt-1">
                   Stock: {product.stockQuantity}
                 </div>

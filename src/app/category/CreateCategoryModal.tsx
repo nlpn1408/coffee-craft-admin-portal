@@ -1,5 +1,5 @@
+import Header from "@/components/Header";
 import React, { ChangeEvent, FormEvent, useEffect, useState } from "react";
-import Header from "@/app/(components)/Header";
 
 type CategoryFormData = {
   name: string;

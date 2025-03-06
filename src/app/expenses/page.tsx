@@ -1,11 +1,9 @@
 "use client";
 
-import {
-  ExpenseByCategorySummary,
-  useGetExpensesByCategoryQuery,
-} from "@/state/api";
+import { useGetExpensesByCategoryQuery } from "@/state/api";
+import { ExpenseByCategorySummary } from "@/types";
 import { useMemo, useState } from "react";
-import Header from "@/app/(components)/Header";
+import Header from "@/components/Header";
 import {
   Cell,
   Legend,

@@ -1,11 +1,11 @@
 "use client";
 
 import { useCreateCategoryMutation, useGetCategoriesQuery } from "@/state/api";
-import Header from "@/app/(components)/Header";
 import { DataGrid, GridColDef } from "@mui/x-data-grid";
 import { PlusCircleIcon } from "lucide-react";
 import { useState } from "react";
 import CreateCategoryModal from "./CreateCategoryModal";
+import Header from "@/components/Header";
 
 const columns: GridColDef[] = [
   { field: "id", headerName: "ID", width: 90 },

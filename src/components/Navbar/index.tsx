@@ -1,6 +1,6 @@
 "use client";
 
-import { useAppDispatch, useAppSelector } from "@/app/redux";
+import { useAppDispatch, useAppSelector } from "@/lib/hooks/redux";
 import { setIsDarkMode, setIsSidebarCollapsed } from "@/state";
 import { Bell, Menu, Moon, Settings, Sun } from "lucide-react";
 import Image from "next/image";
@@ -66,13 +66,13 @@ const Navbar = () => {
           </div>
           <hr className="w-0 h-7 border border-solid border-l border-gray-300 mx-3" />
           <div className="flex items-center gap-3 cursor-pointer">
-            <Image
+            {/* <Image
               src="https://s3-coffee-craft.s3.ap-southeast-1.amazonaws.com/profile.jpg"
               alt="Profile"
               width={50}
               height={50}
               className="rounded-full h-full object-cover"
-            />
+            /> */}
             <span className="font-semibold">Admin</span>
           </div>
         </div>

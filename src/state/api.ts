@@ -5,104 +5,22 @@ import {
   fetchBaseQuery,
   FetchBaseQueryError,
 } from "@reduxjs/toolkit/query/react";
-
-export interface Product {
-  productId: string;
-  name: string;
-  price: number;
-  rating?: number;
-  stockQuantity: number;
-}
-
-export interface NewProduct {
-  name: string;
-  price: number;
-  rating?: number;
-  stockQuantity: number;
-}
-
-export interface Category {
-  id: string;
-  name: string;
-  description: number;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface NewCategory {
-  name: string;
-  description: string;
-}
-
-export interface Subcategory {
-  id: string;
-  name: string;
-  categoryId: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface NewSubcategory {
-  name: string;
-  categoryId: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface Brand {
-  id: string;
-  name: string;
-  categoryId: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface NewBrand {
-  name: string;
-  categoryId: string;
-  createdAt: string;
-  updatedAt: string;
-}
-export interface SalesSummary {
-  salesSummaryId: string;
-  totalValue: number;
-  changePercentage?: number;
-  date: string;
-}
-
-export interface PurchaseSummary {
-  purchaseSummaryId: string;
-  totalPurchased: number;
-  changePercentage?: number;
-  date: string;
-}
-
-export interface ExpenseSummary {
-  expenseSummaryId: string;
-  totalExpenses: number;
-  date: string;
-}
-
-export interface ExpenseByCategorySummary {
-  expenseByCategorySummaryId: string;
-  category: string;
-  amount: string;
-  date: string;
-}
-
-export interface DashboardMetrics {
-  popularProducts: Product[];
-  salesSummary: SalesSummary[];
-  purchaseSummary: PurchaseSummary[];
-  expenseSummary: ExpenseSummary[];
-  expenseByCategorySummary: ExpenseByCategorySummary[];
-}
-
-export interface User {
-  userId: string;
-  name: string;
-  email: string;
-}
+import {
+  Brand,
+  Category,
+  DashboardMetrics,
+  ExpenseByCategorySummary,
+  ExpenseSummary,
+  NewBrand,
+  NewCategory,
+  NewProduct,
+  NewSubcategory,
+  Product,
+  PurchaseSummary,
+  SalesSummary,
+  User,
+} from "@/types";
+import { API_ENDPOINTS } from "@/lib/constants/api";
 
 export const api = createApi({
   baseQuery: fetchBaseQuery({ baseUrl: process.env.NEXT_PUBLIC_API_BASE_URL }),
@@ -113,75 +31,60 @@ export const api = createApi({
     "Users",
     "Expenses",
     "Categories",
-    "Subcategories",
     "Brands",
   ],
   endpoints: (build) => ({
     getDashboardMetrics: build.query<DashboardMetrics, void>({
-      query: () => "/home",
+      query: () => API_ENDPOINTS.DASHBOARD,
       providesTags: ["DashboardMetrics"],
     }),
     getProducts: build.query<Product[], string | void>({
       query: (search) => ({
-        url: "/products",
+        url: API_ENDPOINTS.PRODUCTS,
         params: search ? { search } : {},
       }),
       providesTags: ["Products"],
     }),
     createProduct: build.mutation<Product, NewProduct>({
       query: (newProduct) => ({
-        url: "/products",
+        url: API_ENDPOINTS.PRODUCTS,
         method: "POST",
         body: newProduct,
       }),
       invalidatesTags: ["Products"],
     }),
     getUsers: build.query<User[], void>({
-      query: () => "/users",
+      query: () => API_ENDPOINTS.USERS,
       providesTags: ["Users"],
     }),
     getExpensesByCategory: build.query<ExpenseByCategorySummary[], void>({
-      query: () => "/expenses",
+      query: () => API_ENDPOINTS.EXPENSES,
       providesTags: ["Expenses"],
     }),
     getCategories: build.query<Category[], string | void>({
       query: (search) => ({
-        url: "/product-service/categories",
+        url: API_ENDPOINTS.CATEGORIES,
         params: search ? { search } : {},
       }),
       providesTags: ["Categories"],
     }),
     createCategory: build.mutation<Category, NewCategory>({
       query: (newCategory) => ({
-        url: "/product-service/categories",
+        url: API_ENDPOINTS.CATEGORIES,
         method: "POST",
         body: newCategory,
       }),
       invalidatesTags: ["Categories"],
     }),
-    getSubcategories: build.query<Subcategory[], string | void>({
-      query: (search) => ({
-        url: "/product-service/subcategories",
-      }),
-      providesTags: ["Subcategories"],
-    }),
-    createSubcategory: build.mutation<Subcategory, NewSubcategory>({
-      query: (newSubcategory) => ({
-        url: "/product-service/subcategories",
-        method: "POST",
-        body: newSubcategory,
-      }),
-      invalidatesTags: ["Subcategories"],
-    }),
     getBrands: build.query<Brand[], string | void>({
       query: (search) => ({
-        url: "/product-service/brands",
+        url: API_ENDPOINTS.BRANDS,
       }),
       providesTags: ["Brands"],
     }),
     createBrand: build.mutation<Brand, NewBrand>({
       query: (newBrand) => ({
-        url: "/product-service/brands",
+        url: API_ENDPOINTS.BRANDS,
         method: "POST",
         body: newBrand,
       }),
@@ -197,9 +100,7 @@ export const {
   useGetUsersQuery,
   useGetExpensesByCategoryQuery,
   useGetCategoriesQuery,
-  useGetSubcategoriesQuery,
   useGetBrandsQuery,
   useCreateCategoryMutation,
-  useCreateSubcategoryMutation,
   useCreateBrandMutation,
 } = api;
