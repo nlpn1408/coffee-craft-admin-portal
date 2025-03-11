@@ -1,33 +1,160 @@
 "use client";
 
-import { useCreateProductMutation, useGetProductsQuery } from "@/state/api";
-import { PlusCircleIcon, SearchIcon } from "lucide-react";
-import { useState } from "react";
+import { NewProduct, Product } from "@/types";
+import { 
+  useCreateProductMutation, 
+  useDeleteProductMutation,
+  useGetProductsQuery, 
+  useUpdateProductMutation 
+} from "@/state/api";
+import { useRef, useState } from "react";
 import CreateProductModal from "./CreateProductModal";
 import Header from "@/components/Header";
-import Rating from "@/components/ui/Rating";
-
-type ProductFormData = {
-  name: string;
-  price: number;
-  stockQuantity: number;
-  rating: number;
-};
+import { ColumnDef } from "@tanstack/react-table";
+import { DataTable } from "@/components/data-table/data-table";
+import { DeleteDialog } from "@/components/ui/delete-dialog";
+import { ActionColumn } from "@/components/TableActionRow/ActionColumn";
+import { handleApiError, showSuccessToast } from "@/lib/api-utils";
 
 const Products = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [productToDelete, setProductToDelete] = useState<string | null>(null);
+  const [sortConfig, setSortConfig] = useState<{ sortBy?: string; sortOrder?: 'asc' | 'desc' }>({});
 
   const {
     data: products,
     isLoading,
     isError,
-  } = useGetProductsQuery(searchTerm);
+  } = useGetProductsQuery({ 
+    search: searchTerm || undefined,
+    ...sortConfig
+  });
 
   const [createProduct] = useCreateProductMutation();
-  const handleCreateProduct = async (productData: ProductFormData) => {
-    await createProduct(productData);
+  const [updateProduct] = useUpdateProductMutation();
+  const [deleteProduct] = useDeleteProductMutation();
+
+  const handleCreateProduct = async (productData: NewProduct) => {
+    try {
+      const formData = new FormData();
+      Object.entries(productData).forEach(([key, value]) => {
+        if (value !== null && value !== undefined) {
+          formData.append(key, value.toString());
+        }
+      });
+      await createProduct(formData).unwrap();
+      showSuccessToast("Product created successfully");
+      setIsModalOpen(false);
+    } catch (error) {
+      handleApiError(error);
+    }
   };
+
+  const handleUpdateProduct = async (id: string, data: NewProduct) => {
+    try {
+      const formData = new FormData();
+      Object.entries(data).forEach(([key, value]) => {
+        if (value !== null && value !== undefined) {
+          formData.append(key, value.toString());
+        }
+      });
+      await updateProduct({ id, formData }).unwrap();
+      showSuccessToast("Product updated successfully");
+      setIsModalOpen(false);
+      setEditingProduct(null);
+    } catch (error) {
+      handleApiError(error);
+    }
+  };
+
+  const handleEdit = (product: Product) => {
+    setEditingProduct(product);
+    setIsModalOpen(true);
+  };
+
+  const handleDelete = (id: string) => {
+    setProductToDelete(id);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (productToDelete) {
+      try {
+        await deleteProduct(productToDelete).unwrap();
+        showSuccessToast("Product deleted successfully");
+        setProductToDelete(null);
+        setDeleteDialogOpen(false);
+      } catch (error) {
+        handleApiError(error);
+      }
+    }
+  };
+
+  const handleSort = (field: string, order: 'asc' | 'desc') => {
+    setSortConfig({ sortBy: field, sortOrder: order });
+  };
+
+  const columns: ColumnDef<Product>[] = [
+    {
+      accessorKey: "id",
+      header: "ID",
+      sortingFn: "alphanumeric"
+    },
+    {
+      accessorKey: "name",
+      header: "Name",
+      sortingFn: "alphanumeric"
+    },
+    {
+      accessorKey: "description",
+      header: "Description",
+      cell: ({ row }) => row.getValue("description") || "N/A",
+      sortingFn: "alphanumeric"
+    },
+    {
+      accessorKey: "price",
+      header: "Price",
+      cell: ({ row }) => `$${row.getValue("price")}`,
+      sortingFn: "basic"
+    },
+    {
+      accessorKey: "stock",
+      header: "Stock",
+      sortingFn: "basic"
+    },
+    {
+      accessorKey: "avgRating",
+      header: "Rating",
+      cell: ({ row }) => {
+        const rating = row.getValue("avgRating") as number;
+        return rating > 0 ? rating.toFixed(1) : "N/A";
+      },
+      sortingFn: "basic"
+    },
+    {
+      accessorKey: "active",
+      header: "Status",
+      cell: ({ row }) => (row.getValue("active") ? "Active" : "Inactive"),
+      sortingFn: "basic"
+    },
+    {
+      id: "actions",
+      header: "Actions",
+      cell: ({ row }) => {
+        const product = row.original;
+        return (
+          <ActionColumn
+            onEdit={() => handleEdit(product)}
+            onDelete={() => handleDelete(product.id)}
+          />
+        );
+      },
+      enableSorting: false
+    },
+  ];
 
   if (isLoading) {
     return <div className="py-4">Loading...</div>;
@@ -43,74 +170,45 @@ const Products = () => {
 
   return (
     <div className="mx-auto pb-5 w-full">
-      {/* SEARCH BAR */}
-      <div className="mb-6">
-        <div className="flex items-center border-2 border-gray-200 rounded">
-          <input
-            className="w-full py-2 px-4 rounded bg-white"
-            placeholder="Search products..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-          <SearchIcon className="w-5 h-5 text-gray-500 m-2" />
-        </div>
-      </div>
-
-      {/* HEADER BAR */}
       <div className="flex justify-between items-center mb-6">
         <Header name="Products" />
-        <button
-          className="flex items-center bg-blue-500 hover:bg-blue-700 text-gray-200 font-bold py-2 px-4 rounded"
-          onClick={() => setIsModalOpen(true)}
-        >
-          <PlusCircleIcon className="w-5 h-5 mr-2 !text-gray-200" /> Create
-          Product
-        </button>
       </div>
 
-      {/* BODY PRODUCTS LIST */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg-grid-cols-3 gap-10 justify-between">
-        {isLoading ? (
-          <div>Loading...</div>
-        ) : (
-          products?.map((product) => (
-            <div
-              key={product.productId}
-              className="border shadow rounded-md p-4 max-w-full w-full mx-auto"
-            >
-              <div className="flex flex-col items-center">
-                {/* <Image
-                  src={`https://s3-coffee-craft.s3.ap-southeast-1.amazonaws.com/product${
-                    Math.floor(Math.random() * 3) + 1
-                  }.png`}
-                  alt={product.name}
-                  width={150}
-                  height={150}
-                  className="mb-3 rounded-2xl w-36 h-36"
-                /> */}
-                <h3 className="text-lg text-gray-900 font-semibold">
-                  {product.name}
-                </h3>
-                <p className="text-gray-800">${product.price}</p>
-                <div className="text-sm text-gray-600 mt-1">
-                  Stock: {product.stockQuantity}
-                </div>
-                {product.rating && (
-                  <div className="flex items-center mt-2">
-                    <Rating rating={product.rating} />
-                  </div>
-                )}
-              </div>
-            </div>
-          ))
-        )}
+      <div className="mt-5">
+        <DataTable
+          columns={columns}
+          data={products}
+          searchField="name"
+          onCreate={() => {
+            setEditingProduct(null);
+            setIsModalOpen(true);
+          }}
+          createButtonLabel="Create Product"
+          onSort={handleSort}
+          enableClientSort={false}
+        />
       </div>
 
-      {/* MODAL */}
       <CreateProductModal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onCreate={handleCreateProduct}
+        onClose={() => {
+          setIsModalOpen(false);
+          setEditingProduct(null);
+        }}
+        onCreate={
+          editingProduct
+            ? (data) => handleUpdateProduct(editingProduct.id, data)
+            : handleCreateProduct
+        }
+        initialData={editingProduct}
+      />
+
+      <DeleteDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        onConfirm={handleConfirmDelete}
+        title="Delete Product"
+        description="Are you sure you want to delete this product? This action cannot be undone."
       />
     </div>
   );

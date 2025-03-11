@@ -90,7 +90,7 @@ const Sidebar = () => {
           isSidebarCollapsed ? "px-5" : "px-8"
         }`}
       >
-          {/* <Image
+        {/* <Image
             src="https://s3-coffee-craft.s3.ap-southeast-1.amazonaws.com/logo.png"
             alt="COFFEE CRAFT-logo"
             width={27}
@@ -122,7 +122,7 @@ const Sidebar = () => {
           isCollapsed={isSidebarCollapsed}
         />
 
-        <SimpleTreeView multiSelect>
+        {/* <SimpleTreeView multiSelect>
           <TreeItem
             itemId="grid"
             label={
@@ -134,21 +134,14 @@ const Sidebar = () => {
                 isRoot={true}
               />
             }
-          >
-            <SidebarLink
-              href="/category"
-              icon={Archive}
-              label="Categories"
-              isCollapsed={isSidebarCollapsed}
-            />
-            <SidebarLink
-              href="/brand"
-              icon={Gem}
-              label="Brands"
-              isCollapsed={isSidebarCollapsed}
-            />
-          </TreeItem>
-        </SimpleTreeView>
+          ></TreeItem>
+        </SimpleTreeView> */}
+        <SidebarLink
+          href="/categories"
+          icon={Layers2}
+          label="Categories"
+          isCollapsed={isSidebarCollapsed}
+        />
         <SidebarLink
           href="/products"
           icon={Clipboard}
@@ -185,4 +178,4 @@ const Sidebar = () => {
   );
 };
 
-export default Sidebar; 
+export default Sidebar;
