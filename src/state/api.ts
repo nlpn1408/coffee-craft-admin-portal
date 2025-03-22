@@ -1,7 +1,4 @@
-import {
-  createApi,
-  fetchBaseQuery,
-} from "@reduxjs/toolkit/query/react";
+import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import {
   Brand,
   Category,
@@ -20,10 +17,12 @@ import { API_ENDPOINTS } from "@/lib/constants/api";
 const baseQueryWithAuth = fetchBaseQuery({
   baseUrl: process.env.NEXT_PUBLIC_API_BASE_URL,
   prepareHeaders: (headers) => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem("token");
     if (token) {
-      headers.set('authorization', `Bearer ${token}`);
+      headers.set("authorization", `Bearer ${token}`);
     }
+
+    // headers.set("Content-Type", "application/json");
     return headers;
   },
 });
@@ -45,9 +44,18 @@ export const api = createApi({
       query: () => API_ENDPOINTS.DASHBOARD,
       providesTags: ["DashboardMetrics"],
     }),
-    
+
     // Product endpoints
-    getProducts: build.query<Product[], { search?: string, categoryId?: string, brandId?: string, sortBy?: string, sortOrder?: 'asc' | 'desc' }>({
+    getProducts: build.query<
+      Product[],
+      {
+        search?: string;
+        categoryId?: string;
+        brandId?: string;
+        sortBy?: string;
+        sortOrder?: "asc" | "desc";
+      }
+    >({
       query: (params) => ({
         url: API_ENDPOINTS.PRODUCTS,
         params,
@@ -58,7 +66,7 @@ export const api = createApi({
       query: (id) => `${API_ENDPOINTS.PRODUCTS}/${id}`,
       providesTags: (result, error, id) => [{ type: "Products", id }],
     }),
-    createProduct: build.mutation<Product, FormData>({
+    createProduct: build.mutation<Product, NewProduct>({
       query: (formData) => ({
         url: API_ENDPOINTS.PRODUCTS,
         method: "POST",
@@ -66,7 +74,10 @@ export const api = createApi({
       }),
       invalidatesTags: ["Products"],
     }),
-    updateProduct: build.mutation<Product, { id: string; formData: FormData }>({
+    updateProduct: build.mutation<
+      Product,
+      { id: string; formData: NewProduct }
+    >({
       query: ({ id, formData }) => ({
         url: `${API_ENDPOINTS.PRODUCTS}/${id}`,
         method: "PUT",
@@ -84,7 +95,7 @@ export const api = createApi({
       }),
       invalidatesTags: ["Products"],
     }),
-    
+
     // User endpoints
     getUsers: build.query<User[], void>({
       query: () => API_ENDPOINTS.USERS,
@@ -94,18 +105,21 @@ export const api = createApi({
       query: (id) => `${API_ENDPOINTS.USERS}/${id}`,
       providesTags: (result, error, id) => [{ type: "Users", id }],
     }),
-    
+
     // Expense endpoints
     getExpensesByCategory: build.query<ExpenseByCategorySummary[], void>({
       query: () => API_ENDPOINTS.EXPENSES,
       providesTags: ["Expenses"],
     }),
-    
+
     // Category endpoints
-    getCategories: build.query<Category[], { search?: string, sortBy?: string, sortOrder?: 'asc' | 'desc' }>({
-      query: (params) => ({
+    getCategories: build.query<
+      Category[],
+      { search?: string; sortBy?: string; sortOrder?: "asc" | "desc" } | void
+    >({
+      query: (params?) => ({
         url: API_ENDPOINTS.CATEGORIES,
-        params,
+        params: params || {},
       }),
       providesTags: ["Categories"],
     }),
@@ -121,7 +135,10 @@ export const api = createApi({
       }),
       invalidatesTags: ["Categories"],
     }),
-    updateCategory: build.mutation<Category, { id: string; category: NewCategory }>({
+    updateCategory: build.mutation<
+      Category,
+      { id: string; category: NewCategory }
+    >({
       query: ({ id, category }) => ({
         url: `${API_ENDPOINTS.CATEGORIES}/${id}`,
         method: "PUT",
@@ -159,12 +176,15 @@ export const api = createApi({
         responseHandler: (response) => response.blob(),
       }),
     }),
-    
+
     // Brand endpoints
-    getBrands: build.query<Brand[], { search?: string, sortBy?: string, sortOrder?: 'asc' | 'desc' }>({
+    getBrands: build.query<
+      Brand[],
+      { search?: string; sortBy?: string; sortOrder?: "asc" | "desc" } | void
+    >({
       query: (params) => ({
         url: API_ENDPOINTS.BRANDS,
-        params,
+        params: params || {},
       }),
       providesTags: ["Brands"],
     }),
@@ -225,21 +245,21 @@ export const api = createApi({
 export const {
   // Dashboard hooks
   useGetDashboardMetricsQuery,
-  
+
   // Product hooks
   useGetProductsQuery,
   useGetProductQuery,
   useCreateProductMutation,
   useUpdateProductMutation,
   useDeleteProductMutation,
-  
+
   // User hooks
   useGetUsersQuery,
   useGetUserQuery,
-  
+
   // Expense hooks
   useGetExpensesByCategoryQuery,
-  
+
   // Category hooks
   useGetCategoriesQuery,
   useGetCategoryQuery,
@@ -249,7 +269,7 @@ export const {
   useExportCategoriesQuery,
   useImportCategoriesMutation,
   useGetCategoryTemplateQuery,
-  
+
   // Brand hooks
   useGetBrandsQuery,
   useGetBrandQuery,

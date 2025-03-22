@@ -1,20 +1,22 @@
 "use client";
 
 import { NewProduct, Product } from "@/types";
-import { 
-  useCreateProductMutation, 
+import {
+  useCreateProductMutation,
   useDeleteProductMutation,
-  useGetProductsQuery, 
-  useUpdateProductMutation 
+  useGetProductsQuery,
+  useUpdateProductMutation,
 } from "@/state/api";
 import { useRef, useState } from "react";
-import CreateProductModal from "./CreateProductModal";
+import CreateProductModal from "./components/CreateProductModal";
 import Header from "@/components/Header";
 import { ColumnDef } from "@tanstack/react-table";
 import { DataTable } from "@/components/data-table/data-table";
 import { DeleteDialog } from "@/components/ui/delete-dialog";
 import { ActionColumn } from "@/components/TableActionRow/ActionColumn";
 import { handleApiError, showSuccessToast } from "@/lib/api-utils";
+import Image from "next/image";
+import { object } from "zod";
 
 const Products = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -22,15 +24,18 @@ const Products = () => {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState<string | null>(null);
-  const [sortConfig, setSortConfig] = useState<{ sortBy?: string; sortOrder?: 'asc' | 'desc' }>({});
+  const [sortConfig, setSortConfig] = useState<{
+    sortBy?: string;
+    sortOrder?: "asc" | "desc";
+  }>({});
 
   const {
     data: products,
     isLoading,
     isError,
-  } = useGetProductsQuery({ 
+  } = useGetProductsQuery({
     search: searchTerm || undefined,
-    ...sortConfig
+    ...sortConfig,
   });
 
   const [createProduct] = useCreateProductMutation();
@@ -39,13 +44,7 @@ const Products = () => {
 
   const handleCreateProduct = async (productData: NewProduct) => {
     try {
-      const formData = new FormData();
-      Object.entries(productData).forEach(([key, value]) => {
-        if (value !== null && value !== undefined) {
-          formData.append(key, value.toString());
-        }
-      });
-      await createProduct(formData).unwrap();
+      await createProduct(productData).unwrap();
       showSuccessToast("Product created successfully");
       setIsModalOpen(false);
     } catch (error) {
@@ -53,15 +52,9 @@ const Products = () => {
     }
   };
 
-  const handleUpdateProduct = async (id: string, data: NewProduct) => {
+  const handleUpdateProduct = async (id: string, productData: NewProduct) => {
     try {
-      const formData = new FormData();
-      Object.entries(data).forEach(([key, value]) => {
-        if (value !== null && value !== undefined) {
-          formData.append(key, value.toString());
-        }
-      });
-      await updateProduct({ id, formData }).unwrap();
+      await updateProduct({ id, formData: productData }).unwrap();
       showSuccessToast("Product updated successfully");
       setIsModalOpen(false);
       setEditingProduct(null);
@@ -93,37 +86,60 @@ const Products = () => {
     }
   };
 
-  const handleSort = (field: string, order: 'asc' | 'desc') => {
+  const handleSort = (field: string, order: "asc" | "desc") => {
     setSortConfig({ sortBy: field, sortOrder: order });
   };
 
   const columns: ColumnDef<Product>[] = [
     {
-      accessorKey: "id",
-      header: "ID",
-      sortingFn: "alphanumeric"
+      accessorKey: "mainImageUrl",
+      header: "Image",
+      cell: ({ row }) => {
+        const imageUrl = row.getValue("mainImageUrl") as string;
+        return imageUrl ? (
+          <div className="relative w-20 h-20">
+            <Image
+              src={imageUrl}
+              alt={row.getValue("name") as string}
+              fill
+              className="object-cover rounded-md"
+              sizes="80px"
+            />
+          </div>
+        ) : (
+          <div className="w-20 h-20 bg-gray-200 rounded-md flex items-center justify-center">
+            No image
+          </div>
+        );
+      },
+      enableSorting: false,
     },
+    // {
+    //   accessorKey: "id",
+    //   header: "ID",
+    //   sortingFn: "alphanumeric"
+    // },
     {
       accessorKey: "name",
       header: "Name",
-      sortingFn: "alphanumeric"
+      sortingFn: "alphanumeric",
     },
     {
       accessorKey: "description",
       header: "Description",
       cell: ({ row }) => row.getValue("description") || "N/A",
-      sortingFn: "alphanumeric"
+      sortingFn: "alphanumeric",
     },
     {
       accessorKey: "price",
       header: "Price",
       cell: ({ row }) => `$${row.getValue("price")}`,
-      sortingFn: "basic"
+      sortingFn: "basic",
     },
     {
       accessorKey: "stock",
       header: "Stock",
-      sortingFn: "basic"
+      sortingFn: "basic",
     },
     {
       accessorKey: "avgRating",
@@ -132,13 +148,13 @@ const Products = () => {
         const rating = row.getValue("avgRating") as number;
         return rating > 0 ? rating.toFixed(1) : "N/A";
       },
-      sortingFn: "basic"
+      sortingFn: "basic",
     },
     {
       accessorKey: "active",
       header: "Status",
       cell: ({ row }) => (row.getValue("active") ? "Active" : "Inactive"),
-      sortingFn: "basic"
+      sortingFn: "basic",
     },
     {
       id: "actions",
@@ -152,7 +168,7 @@ const Products = () => {
           />
         );
       },
-      enableSorting: false
+      enableSorting: false,
     },
   ];
 
@@ -200,7 +216,7 @@ const Products = () => {
             ? (data) => handleUpdateProduct(editingProduct.id, data)
             : handleCreateProduct
         }
-        initialData={editingProduct}
+        initialData={editingProduct || undefined}
       />
 
       <DeleteDialog

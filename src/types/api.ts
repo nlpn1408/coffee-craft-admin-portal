@@ -1,7 +1,7 @@
 export enum UserRole {
   CUSTOMER = "CUSTOMER",
   STAFF = "STAFF",
-  ADMIN = "ADMIN"
+  ADMIN = "ADMIN",
 }
 
 export enum OrderStatus {
@@ -9,24 +9,24 @@ export enum OrderStatus {
   CONFIRMED = "CONFIRMED",
   SHIPPED = "SHIPPED",
   DELIVERED = "DELIVERED",
-  CANCELED = "CANCELED"
+  CANCELED = "CANCELED",
 }
 
 export enum PaymentMethod {
   COD = "COD",
   CREDIT_CARD = "CREDIT_CARD",
-  PAYPAL = "PAYPAL"
+  PAYPAL = "PAYPAL",
 }
 
 export enum VoucherType {
   PERCENT = "PERCENT",
-  FIXED = "FIXED"
+  FIXED = "FIXED",
 }
 
 export interface Product {
   id: string;
   name: string;
-  description: string | null;
+  description: string;
   price: number;
   categoryId: string;
   brandId: string;
@@ -39,13 +39,14 @@ export interface Product {
 }
 
 export interface ProductImage {
-  id: string;
+  id?: string;
   productId: string;
-  url: string;
-  order: number | null;
+  url?: string;
+  order?: number | null;
+  file?: File;
   isThumbnail: boolean;
-  createdAt: string;
-  updatedAt: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface NewProduct {
@@ -55,7 +56,7 @@ export interface NewProduct {
   categoryId: string;
   brandId: string;
   stock: number;
-  active?: boolean;
+  active: boolean;
 }
 
 export interface Category {
@@ -275,4 +276,4 @@ export interface ImportResult {
   message: string;
   success: number;
   errors: string[];
-} 
+}
