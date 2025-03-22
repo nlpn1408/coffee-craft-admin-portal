@@ -10,7 +10,15 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { useGetBrandsQuery, useGetCategoriesQuery } from "@/state/api";
+import {
+  useCreateProductMutation,
+  useDeleteProductMutation,
+  useGetBrandsQuery,
+  useGetCategoriesQuery,
+  useGetProductQuery,
+  useGetProductsQuery,
+  useUploadProductImageMutation,
+} from "@/state/api";
 import {
   Select,
   SelectContent,
@@ -20,11 +28,60 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "antd";
+import { dummyProduct } from "./dummyProduct";
+import { Button } from "@/components/ui/button";
 
 export const ProductFormFields = () => {
   const { control } = useFormContext();
   const { data: categories } = useGetCategoriesQuery();
   const { data: brands } = useGetBrandsQuery();
+  const { data: products } = useGetProductsQuery({});
+
+  const [createProduct] = useCreateProductMutation();
+  const [uploadProductImage] = useUploadProductImageMutation();
+  const [deleteProduct] = useDeleteProductMutation();
+
+  const createDummy = async () => {
+    const formattedDummy = dummyProduct.map((item) => {
+      return {
+        name: item.name,
+        description: item.slug,
+        price: item.priceVAT,
+        categoryId:
+          categories?.find(
+            (category) => category.name === item.productCategory.categoryName
+          )?.id || "uuid-3",
+        brandId: "uuid-15",
+        stock: item.quantity,
+        active: true,
+        images: item.imageLanguage.map((img, index) => {
+          return {
+            url: img.image.secure_url,
+            isThumbnail: index === 0,
+          };
+        }),
+      };
+    });
+
+    for (let i = 0; i < formattedDummy.length; i++) {
+      const { images, ...data } = formattedDummy[i];
+      const product = await createProduct(data);
+      await uploadProductImage({
+        productId: product?.data?.id || "",
+        images,
+        isUpload: false,
+      });
+    }
+  };
+
+  const deleteDuplicate = () => {
+    const duplicateProd = products?.data.filter((product, index) => {
+      return products?.data.findIndex((p) => p.name === product.name) !== index;
+    });
+    duplicateProd?.forEach(async (product) => {
+      await deleteProduct(product.id);
+    });
+  };
 
   return control ? (
     <div className="space-y-4">
@@ -174,6 +231,12 @@ export const ProductFormFields = () => {
           />
         </div>
       </div>
+      {/* <Button type="button" onClick={createDummy}>
+        Create Dummy Product
+      </Button>
+      <Button type="button" onClick={deleteDuplicate}>
+        Delete Duplicate
+      </Button> */}
     </div>
   ) : null;
 };

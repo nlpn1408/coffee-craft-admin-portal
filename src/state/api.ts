@@ -9,6 +9,7 @@ import {
   NewCategory,
   NewProduct,
   Product,
+  ProductImage,
   User,
 } from "@/types";
 import { API_ENDPOINTS } from "@/lib/constants/api";
@@ -47,7 +48,7 @@ export const api = createApi({
 
     // Product endpoints
     getProducts: build.query<
-      Product[],
+      { data: Product[]; total: number },
       {
         search?: string;
         categoryId?: string;
@@ -238,6 +239,15 @@ export const api = createApi({
         responseHandler: (response) => response.blob(),
       }),
     }),
+
+    // Product Image Endpoint
+    uploadProductImage: build.mutation<any, any>({
+      query: (body) => ({
+        url: `${API_ENDPOINTS.PRODUCT_IMAGES}`,
+        method: "POST",
+        body,
+      }),
+    }),
   }),
 });
 
@@ -279,4 +289,7 @@ export const {
   useExportBrandsQuery,
   useImportBrandsMutation,
   useGetBrandTemplateQuery,
+
+  // Product Image hooks
+  useUploadProductImageMutation,
 } = api;

@@ -22,7 +22,14 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Download, PlusCircle, Upload, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import {
+  Download,
+  PlusCircle,
+  Upload,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+} from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 
@@ -30,6 +37,7 @@ interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
   title?: string;
+  total?: number;
   searchField?: string;
   onRowSelectionChange?: (selectedRows: string[]) => void;
   getRowId?: (row: TData) => string;
@@ -42,7 +50,7 @@ interface DataTableProps<TData, TValue> {
   onDeleteSelected?: () => void;
   importRef?: React.RefObject<HTMLInputElement>;
   onImportChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  onSort?: (field: string, order: 'asc' | 'desc') => void;
+  onSort?: (field: string, order: "asc" | "desc") => void;
   enableClientSort?: boolean;
 }
 
@@ -50,6 +58,7 @@ export function DataTable<TData, TValue>({
   columns,
   data,
   title,
+  total,
   searchField,
   onRowSelectionChange,
   getRowId,
@@ -76,12 +85,13 @@ export function DataTable<TData, TValue>({
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     onSortingChange: (updater) => {
-      const newSorting = typeof updater === 'function' ? updater(sorting) : updater;
+      const newSorting =
+        typeof updater === "function" ? updater(sorting) : updater;
       setSorting(newSorting);
-      
+
       if (!enableClientSort && onSort && newSorting.length > 0) {
         const { id, desc } = newSorting[0];
-        onSort(id, desc ? 'desc' : 'asc');
+        onSort(id, desc ? "desc" : "asc");
       }
     },
     getSortedRowModel: enableClientSort ? getSortedRowModel() : undefined,
@@ -114,7 +124,9 @@ export function DataTable<TData, TValue>({
         <div className="flex items-center">
           <Input
             placeholder="Search..."
-            value={(table.getColumn(searchField)?.getFilterValue() as string) ?? ""}
+            value={
+              (table.getColumn(searchField)?.getFilterValue() as string) ?? ""
+            }
             onChange={(event) =>
               table.getColumn(searchField)?.setFilterValue(event.target.value)
             }
@@ -124,10 +136,7 @@ export function DataTable<TData, TValue>({
       )}
       <div className="flex items-center gap-2">
         {onCreate && (
-          <Button
-            className="flex items-center"
-            onClick={onCreate}
-          >
+          <Button className="flex items-center" onClick={onCreate}>
             <PlusCircle className="w-5 h-5 mr-2" /> {createButtonLabel}
           </Button>
         )}
@@ -195,6 +204,9 @@ export function DataTable<TData, TValue>({
     <div className="space-y-4">
       {renderToolbar()}
 
+      <div>
+        Total: <b>{total || 0}</b>
+      </div>
       <div className="rounded-md border">
         <Table>
           <TableHeader>
@@ -203,7 +215,7 @@ export function DataTable<TData, TValue>({
                 {headerGroup.headers.map((header) => {
                   const isSortable = header.column.getCanSort();
                   return (
-                    <TableHead 
+                    <TableHead
                       key={header.id}
                       className={cn(isSortable && "cursor-pointer select-none")}
                       onClick={header.column.getToggleSortingHandler()}
@@ -215,7 +227,8 @@ export function DataTable<TData, TValue>({
                               header.column.columnDef.header,
                               header.getContext()
                             )}
-                        {isSortable && renderSortingIndicator(header.column.getIsSorted())}
+                        {isSortable &&
+                          renderSortingIndicator(header.column.getIsSorted())}
                       </div>
                     </TableHead>
                   );
@@ -273,4 +286,4 @@ export function DataTable<TData, TValue>({
       </div>
     </div>
   );
-} 
+}

@@ -8,27 +8,7 @@ import { Form } from "@/components/ui/form";
 import { ProductFormFields } from "./ProductFormFields";
 
 const formSchema = z.object({
-  name: z.string({
-    required_error: "Name is required",
-  }),
-  description: z.string({
-    required_error: "Description is required",
-  }),
-  price: z.coerce.number({
-    required_error: " Price is required",
-    invalid_type_error: "Price must be a number",
-  }),
-  categoryId: z.string({
-    required_error: "Category is required",
-  }),
-  brandId: z.string({
-    required_error: "Brand is required",
-  }),
-  stock: z.coerce.number({
-    required_error: "Stock is required",
-    invalid_type_error: "Stock must be a number",
-  }),
-  active: z.boolean(),
+  // file: z.
 });
 
 type ProductFormData = z.infer<typeof formSchema>;
@@ -39,7 +19,7 @@ type Props = {
   isLoading: boolean;
 };
 
-export const ProductForm = ({ onSave, isLoading, product }: Props) => {
+export const UploadImageForm = ({ onSave, isLoading, product }: Props) => {
   const form = useForm<ProductFormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -61,7 +41,8 @@ export const ProductForm = ({ onSave, isLoading, product }: Props) => {
   }, [form, product]);
 
   const onSubmit = (formDataJson: ProductFormData) => {
-    onSave(formDataJson);
+    console.log("🚀 ~ onSubmit ~ formDataJson:", formDataJson);
+    // onSave(formDataJson);
   };
 
   return (

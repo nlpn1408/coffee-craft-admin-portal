@@ -33,14 +33,16 @@ export interface Product {
   stock: number;
   active: boolean;
   avgRating: number;
-  images?: ProductImage[];
+  brand: Brand;
+  category: Category;
+  images: ProductImage[];
   createdAt: string;
   updatedAt: string;
 }
 
 export interface ProductImage {
   id?: string;
-  productId: string;
+  // productId: string;
   url?: string;
   order?: number | null;
   file?: File;
@@ -277,3 +279,4 @@ export interface ImportResult {
   success: number;
   errors: string[];
 }
+

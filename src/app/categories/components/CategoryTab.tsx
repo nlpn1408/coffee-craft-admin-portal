@@ -1,103 +1,104 @@
 "use client";
 
-import type { Brand } from "@/types";
-import { NewBrand } from "@/types";
+import type { Category } from "@/types";
+import { NewCategory } from "@/types";
 import {
-  useCreateBrandMutation,
-  useDeleteBrandMutation,
-  useExportBrandsQuery,
-  useGetBrandsQuery,
-  useGetBrandTemplateQuery,
-  useImportBrandsMutation,
-  useUpdateBrandMutation,
+  useCreateCategoryMutation,
+  useDeleteCategoryMutation,
+  useExportCategoriesQuery,
+  useGetCategoriesQuery,
+  useGetCategoryTemplateQuery,
+  useImportCategoriesMutation,
+  useUpdateCategoryMutation,
 } from "@/state/api";
 import { useRef, useState } from "react";
+import CreateCategoryModal from "@/components/modals/CreateCategoryModal";
 import { ColumnDef } from "@tanstack/react-table";
 import { DeleteDialog } from "@/components/ui/delete-dialog";
 import { ActionColumn } from "@/components/TableActionRow/ActionColumn";
 import { handleApiError, showSuccessToast } from "@/lib/api-utils";
 import { DataTable } from "@/components/data-table/data-table";
-import CreateBrandModal from "@/components/modals/CreateBrandModal";
+import { dummyData } from "./dummy";
 
-const BrandTab = () => {
+const CategoryTab = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [sortConfig, setSortConfig] = useState<{ sortBy?: string; sortOrder?: 'asc' | 'desc' }>({});
   
-  const { data: brands, isError, isLoading } = useGetBrandsQuery({
+  const { data: categories, isError, isLoading } = useGetCategoriesQuery({
     search: searchTerm,
     ...sortConfig
   });
-  const [createBrand, status] = useCreateBrandMutation();
-  const [deleteBrand] = useDeleteBrandMutation();
-  const [updateBrand] = useUpdateBrandMutation();
-  const [importBrands] = useImportBrandsMutation();
-  const { data: exportData, refetch: refetchExport } = useExportBrandsQuery(
+  const [createCategory, status] = useCreateCategoryMutation();
+  const [deleteCategory] = useDeleteCategoryMutation();
+  const [updateCategory] = useUpdateCategoryMutation();
+  const [importCategories] = useImportCategoriesMutation();
+  const { data: exportData, refetch: refetchExport } = useExportCategoriesQuery(
     undefined,
     {
       skip: true,
     }
   );
   const { data: templateData, refetch: refetchTemplate } =
-    useGetBrandTemplateQuery(undefined, {
+    useGetCategoryTemplateQuery(undefined, {
       skip: true,
     });
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
-  const [editingBrand, setEditingBrand] = useState<Brand | null>(null);
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [brandToDelete, setBrandToDelete] = useState<string | null>(null);
+  const [categoryToDelete, setCategoryToDelete] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (isLoading) {
     return <div className="py-4">Loading...</div>;
   }
 
-  if (isError || !brands) {
+  if (isError || !categories) {
     return (
       <div className="text-center text-red-500 py-4">
-        Failed to fetch brands
+        Failed to fetch categories
       </div>
     );
   }
 
-  const handleCreateBrand = async (brandData: NewBrand) => {
+  const handleCreateCategory = async (categoryData: NewCategory) => {
     try {
-      await createBrand(brandData).unwrap();
-      showSuccessToast("Brand created successfully");
+      await createCategory(categoryData).unwrap();
+      showSuccessToast("Category created successfully");
       setIsModalOpen(false);
     } catch (error) {
       handleApiError(error);
     }
   };
 
-  const handleUpdateBrand = async (id: string, data: NewBrand) => {
+  const handleUpdateCategory = async (id: string, data: NewCategory) => {
     try {
-      await updateBrand({ id, brand: data }).unwrap();
-      showSuccessToast("Brand updated successfully");
+      await updateCategory({ id, category: data }).unwrap();
+      showSuccessToast("Category updated successfully");
       setIsModalOpen(false);
-      setEditingBrand(null);
+      setEditingCategory(null);
     } catch (error) {
       handleApiError(error);
     }
   };
 
-  const handleEdit = (brand: Brand) => {
-    setEditingBrand(brand);
+  const handleEdit = (category: Category) => {
+    setEditingCategory(category);
     setIsModalOpen(true);
   };
 
   const handleDelete = (id: string) => {
-    setBrandToDelete(id);
+    setCategoryToDelete(id);
     setDeleteDialogOpen(true);
   };
 
   const handleConfirmDelete = async () => {
-    if (brandToDelete) {
+    if (categoryToDelete) {
       try {
-        await deleteBrand(brandToDelete).unwrap();
-        showSuccessToast("Brand deleted successfully");
-        setBrandToDelete(null);
+        await deleteCategory(categoryToDelete).unwrap();
+        showSuccessToast("Category deleted successfully");
+        setCategoryToDelete(null);
         setDeleteDialogOpen(false);
       } catch (error) {
         handleApiError(error);
@@ -108,14 +109,14 @@ const BrandTab = () => {
   const handleDeleteSelected = async () => {
     if (
       window.confirm(
-        `Are you sure you want to delete ${selectedRows.length} brands?`
+        `Are you sure you want to delete ${selectedRows.length} categories?`
       )
     ) {
       try {
         for (const id of selectedRows) {
-          await deleteBrand(id).unwrap();
+          await deleteCategory(id).unwrap();
         }
-        showSuccessToast(`${selectedRows.length} brands deleted successfully`);
+        showSuccessToast(`${selectedRows.length} categories deleted successfully`);
         setSelectedRows([]);
       } catch (error) {
         handleApiError(error);
@@ -129,7 +130,7 @@ const BrandTab = () => {
       const url = window.URL.createObjectURL(result.data);
       const a = document.createElement("a");
       a.href = url;
-      a.download = "brands.xlsx";
+      a.download = "categories.xlsx";
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -142,7 +143,7 @@ const BrandTab = () => {
       const url = window.URL.createObjectURL(result.data);
       const a = document.createElement("a");
       a.href = url;
-      a.download = "brand_template.xlsx";
+      a.download = "category_template.xlsx";
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -159,8 +160,8 @@ const BrandTab = () => {
       try {
         const formData = new FormData();
         formData.append("file", file);
-        await importBrands(formData).unwrap();
-        showSuccessToast("Brands imported successfully");
+        await importCategories(formData).unwrap();
+        showSuccessToast("Categories imported successfully");
         if (fileInputRef.current) {
           fileInputRef.current.value = "";
         }
@@ -174,7 +175,7 @@ const BrandTab = () => {
     setSortConfig({ sortBy: field, sortOrder: order });
   };
 
-  const columns: ColumnDef<Brand>[] = [
+  const columns: ColumnDef<Category>[] = [
     {
       accessorKey: "id",
       header: "ID",
@@ -192,6 +193,12 @@ const BrandTab = () => {
       sortingFn: "alphanumeric"
     },
     {
+      accessorKey: "parentId",
+      header: "Parent Category",
+      cell: ({ row }) => row.getValue("parentId") || "None",
+      sortingFn: "alphanumeric"
+    },
+    {
       accessorKey: "createdAt",
       header: "Created At",
       cell: ({ row }) => new Date(row.getValue("createdAt")).toLocaleDateString(),
@@ -201,11 +208,11 @@ const BrandTab = () => {
       id: "actions",
       header: "Actions",
       cell: ({ row }) => {
-        const brand = row.original;
+        const category = row.original;
         return (
           <ActionColumn
-            onEdit={() => handleEdit(brand)}
-            onDelete={() => handleDelete(brand.id)}
+            onEdit={() => handleEdit(category)}
+            onDelete={() => handleDelete(category.id)}
           />
         );
       },
@@ -213,17 +220,32 @@ const BrandTab = () => {
     },
   ];
 
+  const createDummy = async () => {
+    try {
+      const formattedData = dummyData.map((item) => ({
+        name: item.name,
+        description: item.slug,
+      }));
+      for (const item of formattedData) {
+        await createCategory(item).unwrap();
+      }
+      showSuccessToast("Dummy Categories created successfully");
+    } catch (error) {
+      handleApiError(error);
+    }
+  };
+
   return (
     <div className="flex flex-col">
       <div className="mt-5">
         <DataTable
           columns={columns}
-          data={brands}
+          data={categories}
           onRowSelectionChange={setSelectedRows}
           getRowId={(row) => row.id}
           searchField="name"
           onCreate={() => {
-            setEditingBrand(null);
+            setEditingCategory(null);
             setIsModalOpen(true);
           }}
           onExport={handleExport}
@@ -239,30 +261,33 @@ const BrandTab = () => {
         />
       </div>
 
-      <CreateBrandModal
+      <button onClick={createDummy}> Create Dummy </button>
+
+      <CreateCategoryModal
         isOpen={isModalOpen}
         onClose={() => {
           setIsModalOpen(false);
-          setEditingBrand(null);
+          setEditingCategory(null);
         }}
         onCreate={
-          editingBrand
-            ? (data) => handleUpdateBrand(editingBrand.id, data)
-            : handleCreateBrand
+          editingCategory
+            ? (data) => handleUpdateCategory(editingCategory.id, data)
+            : handleCreateCategory
         }
         isSuccess={status.isSuccess}
-        initialData={editingBrand}
+        parentCategories={categories}
+        initialData={editingCategory}
       />
 
       <DeleteDialog
         open={deleteDialogOpen}
         onOpenChange={setDeleteDialogOpen}
         onConfirm={handleConfirmDelete}
-        title="Delete Brand"
-        description="Are you sure you want to delete this brand? This action cannot be undone."
+        title="Delete Category"
+        description="Are you sure you want to delete this category? This action cannot be undone."
       />
     </div>
   );
 };
 
-export default BrandTab; 
+export default CategoryTab;

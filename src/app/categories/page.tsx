@@ -3,8 +3,8 @@
 import Header from "@/components/Header";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useState } from "react";
-import BrandTab from "./BrandTab";
-import CategoryTab from "./CategoryTab";
+import BrandTab from "./components/BrandTab";
+import CategoryTab from "./components/CategoryTab";
 
 const CategoriesPage = () => {
   const [activeTab, setActiveTab] = useState("categories");
@@ -32,4 +32,4 @@ const CategoriesPage = () => {
   );
 };
 
-export default CategoriesPage; 
+export default CategoriesPage;

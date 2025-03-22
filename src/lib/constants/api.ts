@@ -16,4 +16,5 @@ export const API_ENDPOINTS = {
   BLOGS: '/blogs',
   REVIEWS: '/reviews',
   SHIPPING_ADDRESSES: '/shipping-addresses',
+  PRODUCT_IMAGES: '/products/image',
 }; 
