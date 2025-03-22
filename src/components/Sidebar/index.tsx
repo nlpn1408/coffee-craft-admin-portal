@@ -2,7 +2,6 @@
 
 import { useAppDispatch, useAppSelector } from "@/lib/hooks/redux";
 import { setIsSidebarCollapsed } from "@/state";
-import { SimpleTreeView, TreeItem } from "@mui/x-tree-view";
 import {
   Gem,
   Layers2,
