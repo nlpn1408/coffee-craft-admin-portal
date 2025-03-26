@@ -3,8 +3,8 @@
 import { useState } from "react";
 import Header from "@/components/Header";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import ProductTab from "./components/ProductTab";
-import ProductImageTab from "./components/ProductImageTab";
+import ProductTab from "./ProductTab/ProductTab";
+import ProductImageTab from "./ProductImageTab/ProductImageTab";
 
 const Products = () => {
   const [activeTab, setActiveTab] = useState("products");

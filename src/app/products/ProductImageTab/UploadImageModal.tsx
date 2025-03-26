@@ -6,15 +6,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { ProductForm } from "./ProductForm";
-import { NewProduct, Product } from "@/types";
-import { Button } from "@/components/ui/button";
+import { NewProduct, NewProductImage, Product, ProductImage } from "@/types";
+import { UploadImageForm } from "./UploadImageForm";
 
 interface UploadImageModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onCreate: (newProduct: NewProduct) => void;
-  initialData?: Product;
+  onCreate: (newProductImage: NewProductImage) => void;
+  initialData?: ProductImage;
 }
 
 const UploadImageModal = ({
@@ -31,9 +30,9 @@ const UploadImageModal = ({
             {initialData ? "Edit Image" : "Upload New Image"}
           </DialogTitle>
         </DialogHeader>
-        <ProductForm
+        <UploadImageForm
           onSave={onCreate}
-          product={initialData}
+          productImage={initialData}
           isLoading={false}
         />
       </DialogContent>

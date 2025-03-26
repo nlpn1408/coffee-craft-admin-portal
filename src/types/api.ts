@@ -41,14 +41,14 @@ export interface Product {
 }
 
 export interface ProductImage {
-  id?: string;
-  // productId: string;
-  url?: string;
-  order?: number | null;
-  file?: File;
+  id: string;
+  productId: string;
+  url: string;
+  order: number | null;
+  // file?: File;
   isThumbnail: boolean;
-  createdAt?: string;
-  updatedAt?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface NewProduct {
@@ -59,6 +59,13 @@ export interface NewProduct {
   brandId: string;
   stock: number;
   active: boolean;
+}
+
+export interface NewProductImage {
+  productId: string;
+  url: string;
+  isThumbnail: boolean;
+  order: number | null;
 }
 
 export interface Category {
@@ -279,4 +286,3 @@ export interface ImportResult {
   success: number;
   errors: string[];
 }
-

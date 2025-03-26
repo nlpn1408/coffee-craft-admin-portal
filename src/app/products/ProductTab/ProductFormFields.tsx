@@ -10,15 +10,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import {
-  useCreateProductMutation,
-  useDeleteProductMutation,
-  useGetBrandsQuery,
-  useGetCategoriesQuery,
-  useGetProductQuery,
-  useGetProductsQuery,
-  useUploadProductImageMutation,
-} from "@/state/api";
+
 import {
   Select,
   SelectContent,
@@ -28,7 +20,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "antd";
-import { dummyProduct } from "./dummyProduct";
+import { dummyProduct } from "../components/dummyProduct";
+import {
+  useCreateProductMutation,
+  useDeleteProductMutation,
+  useGetBrandsQuery,
+  useGetCategoriesQuery,
+  useGetProductsQuery,
+  useUploadProductImageMutation,
+} from "@/state/api";
 import { Button } from "@/components/ui/button";
 
 export const ProductFormFields = () => {
@@ -48,9 +48,12 @@ export const ProductFormFields = () => {
         description: item.slug,
         price: item.priceVAT,
         categoryId:
-          categories?.find(
-            (category) => category.name === item.productCategory.categoryName
-          )?.id || "uuid-3",
+          (categories &&
+            categories.length > 0 &&
+            categories?.find(
+              (category) => category.name == item.productCategory.categoryName
+            )?.id) ||
+          "uuid-3",
         brandId: "uuid-15",
         stock: item.quantity,
         active: true,
@@ -231,12 +234,12 @@ export const ProductFormFields = () => {
           />
         </div>
       </div>
-      {/* <Button type="button" onClick={createDummy}>
+      <Button type="button" onClick={createDummy}>
         Create Dummy Product
       </Button>
       <Button type="button" onClick={deleteDuplicate}>
         Delete Duplicate
-      </Button> */}
+      </Button>
     </div>
   ) : null;
 };

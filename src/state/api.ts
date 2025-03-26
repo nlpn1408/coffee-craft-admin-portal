@@ -8,6 +8,7 @@ import {
   NewBrand,
   NewCategory,
   NewProduct,
+  NewProductImage,
   Product,
   ProductImage,
   User,
@@ -38,6 +39,7 @@ export const api = createApi({
     "Expenses",
     "Categories",
     "Brands",
+    "ProductImages",
   ],
   endpoints: (build) => ({
     // Dashboard endpoints
@@ -248,6 +250,28 @@ export const api = createApi({
         body,
       }),
     }),
+    getProductImages: build.query<any, { productId: string }>({
+      query: (params) => ({
+        url: `${API_ENDPOINTS.PRODUCT_IMAGES}`,
+        method: "GET",
+        params,
+      }),
+      providesTags: ["ProductImages"],
+    }),
+    updateProductImage: build.mutation<
+      any,
+      { id: string; productImageData: NewProductImage }
+    >({
+      query: ({ id, productImageData: body }) => ({
+        url: `${API_ENDPOINTS.PRODUCT_IMAGES}/${id}`,
+        method: "PUT",
+        body,
+      }),
+      invalidatesTags: (result, error, { id }) => [
+        { type: "ProductImages", id },
+        "ProductImages",
+      ],
+    }),
   }),
 });
 
@@ -292,4 +316,6 @@ export const {
 
   // Product Image hooks
   useUploadProductImageMutation,
+  useGetProductImagesQuery,
+  useUpdateProductImageMutation,
 } = api;
