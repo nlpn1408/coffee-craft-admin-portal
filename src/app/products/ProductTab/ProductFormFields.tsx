@@ -59,6 +59,8 @@ export const ProductFormFields = () => {
           return {
             url: img.image.secure_url,
             isThumbnail: index === 0,
+            order: index,
+            productId: "",
           };
         }),
       };
@@ -67,11 +69,12 @@ export const ProductFormFields = () => {
     for (let i = 0; i < formattedDummy.length; i++) {
       const { images, ...data } = formattedDummy[i];
       const product = await createProduct(data);
-      await uploadProductImage({
-        productId: product?.data?.id || "",
-        images,
-        isUpload: false,
-      });
+      await uploadProductImage(
+        images.map((img) => ({
+          ...img,
+          productId: product?.data?.id || "",
+        }))
+      );
     }
   };
 

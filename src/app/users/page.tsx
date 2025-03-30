@@ -16,6 +16,7 @@ import {
   DropdownMenuTrigger,
 } from "@radix-ui/react-dropdown-menu";
 import { User as ApiUser } from "@/types/api";
+import LoadingScreen from "@/components/LoadingScreen";
 
 interface User extends ApiUser {
   status: "active" | "inactive";
@@ -110,7 +111,7 @@ const Users = () => {
   const { data: users, isError, isLoading } = useGetUsersQuery();
 
   if (isLoading) {
-    return <div className="py-4">Loading...</div>;
+    return <LoadingScreen />;
   }
 
   if (isError || !users) {

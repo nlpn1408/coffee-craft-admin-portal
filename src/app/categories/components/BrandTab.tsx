@@ -18,14 +18,22 @@ import { ActionColumn } from "@/components/TableActionRow/ActionColumn";
 import { handleApiError, showSuccessToast } from "@/lib/api-utils";
 import { DataTable } from "@/components/data-table/data-table";
 import CreateBrandModal from "@/components/modals/CreateBrandModal";
+import LoadingScreen from "@/components/LoadingScreen";
 
 const BrandTab = () => {
   const [searchTerm, setSearchTerm] = useState("");
-  const [sortConfig, setSortConfig] = useState<{ sortBy?: string; sortOrder?: 'asc' | 'desc' }>({});
-  
-  const { data: brands, isError, isLoading } = useGetBrandsQuery({
+  const [sortConfig, setSortConfig] = useState<{
+    sortBy?: string;
+    sortOrder?: "asc" | "desc";
+  }>({});
+
+  const {
+    data: brands,
+    isError,
+    isLoading,
+  } = useGetBrandsQuery({
     search: searchTerm,
-    ...sortConfig
+    ...sortConfig,
   });
   const [createBrand, status] = useCreateBrandMutation();
   const [deleteBrand] = useDeleteBrandMutation();
@@ -50,7 +58,7 @@ const BrandTab = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (isLoading) {
-    return <div className="py-4">Loading...</div>;
+    return <LoadingScreen />;
   }
 
   if (isError || !brands) {
@@ -170,7 +178,7 @@ const BrandTab = () => {
     }
   };
 
-  const handleSort = (field: string, order: 'asc' | 'desc') => {
+  const handleSort = (field: string, order: "asc" | "desc") => {
     setSortConfig({ sortBy: field, sortOrder: order });
   };
 
@@ -183,19 +191,20 @@ const BrandTab = () => {
     {
       accessorKey: "name",
       header: "Name",
-      sortingFn: "alphanumeric"
+      sortingFn: "alphanumeric",
     },
     {
       accessorKey: "description",
       header: "Description",
       cell: ({ row }) => row.getValue("description") || "N/A",
-      sortingFn: "alphanumeric"
+      sortingFn: "alphanumeric",
     },
     {
       accessorKey: "createdAt",
       header: "Created At",
-      cell: ({ row }) => new Date(row.getValue("createdAt")).toLocaleDateString(),
-      sortingFn: "datetime"
+      cell: ({ row }) =>
+        new Date(row.getValue("createdAt")).toLocaleDateString(),
+      sortingFn: "datetime",
     },
     {
       id: "actions",
@@ -209,7 +218,7 @@ const BrandTab = () => {
           />
         );
       },
-      enableSorting: false
+      enableSorting: false,
     },
   ];
 
@@ -265,4 +274,4 @@ const BrandTab = () => {
   );
 };
 
-export default BrandTab; 
+export default BrandTab;

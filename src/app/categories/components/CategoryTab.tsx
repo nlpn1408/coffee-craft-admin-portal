@@ -19,6 +19,7 @@ import { ActionColumn } from "@/components/TableActionRow/ActionColumn";
 import { handleApiError, showSuccessToast } from "@/lib/api-utils";
 import { DataTable } from "@/components/data-table/data-table";
 import { dummyData } from "./dummy";
+import LoadingScreen from "@/components/LoadingScreen";
 
 const CategoryTab = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -51,7 +52,7 @@ const CategoryTab = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (isLoading) {
-    return <div className="py-4">Loading...</div>;
+    return <LoadingScreen />;
   }
 
   if (isError || !categories) {
