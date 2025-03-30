@@ -2,6 +2,7 @@
 
 import { NewProductImage, ProductImage } from "@/types";
 import {
+  api,
   useDeleteProductImageMutation,
   useGetProductsQuery,
   useUpdateProductImageMutation,
@@ -36,7 +37,7 @@ const ProductImageTab = () => {
 
   const handleCreateProduct = async (imageData: NewProductImage) => {
     try {
-      await uploadProductImage(imageData).unwrap();
+      await uploadProductImage([imageData]).unwrap();
       showSuccessToast("Product created successfully");
       setIsModalOpen(false);
     } catch (error) {
@@ -76,15 +77,6 @@ const ProductImageTab = () => {
         showSuccessToast("Product deleted successfully");
         setProductImageToDelete(null);
         setDeleteDialogOpen(false);
-        // delete image from cloudinary
-        await axios.delete(
-          `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/destroy/${productImageToDelete}`,
-          // {
-          //   headers: {
-          //     Authorization: `Bearer ${process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY}`,
-          //   },
-          // }
-        );
       } catch (error) {
         handleApiError(error);
       }
