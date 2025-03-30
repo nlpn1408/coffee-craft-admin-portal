@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import 'antd/dist/reset.css'; // Import Ant Design CSS reset
 import "./globals.css";
 import DashboardWrapper from "./dashboardWrapper";
-import { Toaster } from "@/components/ui/toaster";
+import { Toaster } from "@/components/ui/toaster"; // Keep toaster for now, might replace later
+import { AuthProvider } from "@/contexts/AuthContext";
 // import LoginPage from "./login/page";
-// import { AuthProvider } from "@/contexts/AuthContext";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -22,12 +23,13 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        {/* <AuthProvider> */}
-        <DashboardWrapper>
-          {children}
-          <Toaster />
-        </DashboardWrapper>
-        {/* </AuthProvider> */}
+        <AuthProvider>
+          {/* DashboardWrapper might be conditionally rendered later based on auth state */}
+          <DashboardWrapper>
+            {children}
+            <Toaster />
+          </DashboardWrapper>
+        </AuthProvider>
       </body>
     </html>
   );

@@ -1,5 +1,6 @@
 "use client";
 
+import { useAuth } from "@/contexts/AuthContext";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks/redux";
 import { setIsDarkMode, setIsSidebarCollapsed } from "@/state";
 import { Bell, Menu, Moon, Settings, Sun } from "lucide-react";
@@ -9,6 +10,7 @@ import React from "react";
 
 const Navbar = () => {
   const dispatch = useAppDispatch();
+  const { user } = useAuth();
   const isSidebarCollapsed = useAppSelector(
     (state) => state.global.isSidebarCollapsed
   );
@@ -73,7 +75,7 @@ const Navbar = () => {
               height={50}
               className="rounded-full h-full object-cover"
             /> */}
-            <span className="font-semibold">Admin</span>
+            <span className="font-semibold">{user?.name || ""}</span>
           </div>
         </div>
         <Link href="/settings">

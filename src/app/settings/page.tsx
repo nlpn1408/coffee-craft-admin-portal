@@ -1,6 +1,9 @@
 "use client";
 
 import Header from "@/components/Header";
+import { useAuth } from "@/contexts/AuthContext";
+import { LogoutOutlined } from "@ant-design/icons";
+import { Button } from "antd";
 import React, { useState } from "react";
 
 type UserSetting = {
@@ -19,6 +22,7 @@ const mockSettings: UserSetting[] = [
 
 const Settings = () => {
   const [userSettings, setUserSettings] = useState<UserSetting[]>(mockSettings);
+  const { logout } = useAuth();
 
   const handleToggleChange = (index: number) => {
     const settingsCopy = [...userSettings];
@@ -79,6 +83,11 @@ const Settings = () => {
             ))}
           </tbody>
         </table>
+        <div className="flex justify-end mt-4 p-4">
+          <Button icon={<LogoutOutlined />} onClick={logout} danger>
+            Logout
+          </Button>
+        </div>
       </div>
     </div>
   );

@@ -17,4 +17,7 @@ export const API_ENDPOINTS = {
   REVIEWS: '/reviews',
   SHIPPING_ADDRESSES: '/shipping-addresses',
   PRODUCT_IMAGES: '/products/image',
+  LOGIN: '/auth/login',
+  LOGOUT: '/auth/logout',
+  CHECK_AUTH: '/auth/me',
 }; 
