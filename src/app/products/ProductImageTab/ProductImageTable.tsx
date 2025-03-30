@@ -1,16 +1,8 @@
 import { ActionColumn } from "@/components/TableActionRow/ActionColumn";
 import { TableToolbar } from "@/components/TableToolbar/TableToolbar";
-import { handleApiError, showSuccessToast } from "@/lib/api-utils";
-import {
-  useCreateProductMutation,
-  useDeleteProductMutation,
-  useGetProductImagesQuery,
-  useGetProductsQuery,
-  useUpdateProductMutation,
-} from "@/state/api";
-import { NewProduct, NewProductImage, ProductImage } from "@/types";
+import { useGetProductImagesQuery, useGetProductsQuery } from "@/state/api";
+import { NewProductImage, ProductImage } from "@/types";
 import { Switch, Table, TableColumnsType } from "antd";
-import { useState } from "react";
 
 type Props = {
   selectedProductId?: string;

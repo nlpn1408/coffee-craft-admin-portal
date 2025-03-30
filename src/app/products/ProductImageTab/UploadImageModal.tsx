@@ -6,10 +6,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { NewProduct, NewProductImage, Product, ProductImage } from "@/types";
+import { NewProductImage, ProductImage } from "@/types"; // Removed unused NewProduct, Product
 import { UploadImageForm } from "./UploadImageForm";
 
 interface UploadImageModalProps {
+  productId: string; // Added productId
   isOpen: boolean;
   onClose: () => void;
   onCreate: (newProductImage: NewProductImage) => void;
@@ -17,6 +18,7 @@ interface UploadImageModalProps {
 }
 
 const UploadImageModal = ({
+  productId, // Destructure productId
   isOpen,
   onClose,
   onCreate,
@@ -31,9 +33,10 @@ const UploadImageModal = ({
           </DialogTitle>
         </DialogHeader>
         <UploadImageForm
+          productId={productId} // Pass productId down
           onSave={onCreate}
           productImage={initialData}
-          isLoading={false}
+          isLoading={false} // Assuming isLoading comes from a mutation hook in the parent
         />
       </DialogContent>
     </Dialog>

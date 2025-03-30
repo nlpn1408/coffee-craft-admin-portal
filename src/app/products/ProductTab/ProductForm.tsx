@@ -2,10 +2,10 @@ import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { NewProduct, Product } from "@/types";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form } from "@/components/ui/form";
 import { ProductFormFields } from "../ProductTab/ProductFormFields";
+import { NewProduct, Product } from "@/types";
 
 const formSchema = z.object({
   name: z.string({

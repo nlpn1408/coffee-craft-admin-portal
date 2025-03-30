@@ -1,43 +1,21 @@
 "use client";
 
+import { NewProductImage, ProductImage } from "@/types";
 import {
-  Brand,
-  Category,
-  NewProduct,
-  NewProductImage,
-  Product,
-  ProductImage,
-} from "@/types";
-import {
-  useCreateProductMutation,
-  useDeleteProductMutation,
-  useGetBrandQuery,
-  useGetBrandsQuery,
-  useGetCategoriesQuery,
-  useGetProductImagesQuery,
+  useDeleteProductImageMutation,
   useGetProductsQuery,
   useUpdateProductImageMutation,
-  useUpdateProductMutation,
   useUploadProductImageMutation,
 } from "@/state/api";
-import { useEffect, useRef, useState } from "react";
-import { ColumnDef } from "@tanstack/react-table";
-import { DataTable } from "@/components/data-table/data-table";
+import { useState } from "react";
 import { DeleteDialog } from "@/components/ui/delete-dialog";
-import { ActionColumn } from "@/components/TableActionRow/ActionColumn";
 import { handleApiError, showSuccessToast } from "@/lib/api-utils";
-import Image from "next/image";
-import { object } from "zod";
-import CreateProductModal from "../ProductTab/CreateProductModal";
-import { Carousel, Select, Table, TableColumnsType } from "antd";
-import { DataSourceItemType } from "antd/es/auto-complete/AutoComplete";
-import { TableToolbar } from "@/components/TableToolbar/TableToolbar";
-import { formatCurrency } from "@/utils/utils";
+import { Select } from "antd";
 import { ProductImageTable } from "./ProductImageTable";
 import UploadImageModal from "./UploadImageModal";
+import axios from "axios";
 
 const ProductImageTab = () => {
-  const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<ProductImage | null>(
     null
@@ -46,13 +24,15 @@ const ProductImageTab = () => {
     null
   );
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [productToDelete, setProductToDelete] = useState<string | null>(null);
+  const [productImageToDelete, setProductImageToDelete] = useState<
+    string | null
+  >(null);
 
   const { data: products, isLoading, isError } = useGetProductsQuery({});
 
   const [uploadProductImage] = useUploadProductImageMutation();
   const [updateProductImage] = useUpdateProductImageMutation();
-  const [deleteProduct] = useDeleteProductMutation();
+  const [deleteProductImage] = useDeleteProductImageMutation();
 
   const handleCreateProduct = async (imageData: NewProductImage) => {
     try {
@@ -85,26 +65,31 @@ const ProductImageTab = () => {
   };
 
   const handleDelete = (id: string) => {
-    setProductToDelete(id);
+    setProductImageToDelete(id);
     setDeleteDialogOpen(true);
   };
 
   const handleConfirmDelete = async () => {
-    if (productToDelete) {
+    if (productImageToDelete) {
       try {
-        await deleteProduct(productToDelete).unwrap();
+        await deleteProductImage(productImageToDelete).unwrap();
         showSuccessToast("Product deleted successfully");
-        setProductToDelete(null);
+        setProductImageToDelete(null);
         setDeleteDialogOpen(false);
+        // delete image from cloudinary
+        await axios.delete(
+          `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/destroy/${productImageToDelete}`,
+          // {
+          //   headers: {
+          //     Authorization: `Bearer ${process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY}`,
+          //   },
+          // }
+        );
       } catch (error) {
         handleApiError(error);
       }
     }
   };
-
-  //   if (isLoading) {
-  //     return <div className="py-4">Loading...</div>;
-  //   }
 
   if (!isLoading && (isError || !products)) {
     return (
@@ -144,19 +129,23 @@ const ProductImageTab = () => {
         />
       ) : null}
 
-      <UploadImageModal
-        isOpen={isModalOpen}
-        onClose={() => {
-          setIsModalOpen(false);
-          setEditingProduct(null);
-        }}
-        onCreate={
-          editingProduct
-            ? (data) => handleUpdateProductImage(editingProduct.id, data)
-            : handleCreateProduct
-        }
-        initialData={editingProduct || undefined}
-      />
+      {/* Conditionally render modal only when a product is selected */}
+      {selectedProductId && (
+        <UploadImageModal
+          productId={selectedProductId}
+          isOpen={isModalOpen}
+          onClose={() => {
+            setIsModalOpen(false);
+            setEditingProduct(null);
+          }}
+          onCreate={
+            editingProduct
+              ? (data) => handleUpdateProductImage(editingProduct.id, data)
+              : handleCreateProduct
+          }
+          initialData={editingProduct || undefined}
+        />
+      )}
 
       <DeleteDialog
         open={deleteDialogOpen}

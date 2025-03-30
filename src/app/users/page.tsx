@@ -40,7 +40,11 @@ const columns: ColumnDef<User>[] = [
     cell: ({ row }) => {
       const role = row.getValue("role") as string;
       return (
-        <div className={`font-medium ${role === "admin" ? "text-red-600" : "text-gray-600"}`}>
+        <div
+          className={`font-medium ${
+            role === "admin" ? "text-red-600" : "text-gray-600"
+          }`}
+        >
           {role}
         </div>
       );
@@ -52,7 +56,11 @@ const columns: ColumnDef<User>[] = [
     cell: ({ row }) => {
       const status = row.getValue("status") as string;
       return (
-        <div className={`font-medium ${status === "active" ? "text-green-600" : "text-gray-600"}`}>
+        <div
+          className={`font-medium ${
+            status === "active" ? "text-green-600" : "text-gray-600"
+          }`}
+        >
           {status}
         </div>
       );
@@ -111,9 +119,9 @@ const Users = () => {
     );
   }
 
-  const usersWithStatus = users.map(user => ({
+  const usersWithStatus = users.map((user) => ({
     ...user,
-    status: "active" as const
+    status: "active" as const,
   }));
 
   return (

@@ -1,6 +1,4 @@
-import { ProductFormData } from "@/types/product-form";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useFormContext } from "react-hook-form";
 import {

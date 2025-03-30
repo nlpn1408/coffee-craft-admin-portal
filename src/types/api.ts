@@ -62,6 +62,7 @@ export interface NewProduct {
 }
 
 export interface NewProductImage {
+  id: string;
   productId: string;
   url: string;
   isThumbnail: boolean;

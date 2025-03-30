@@ -249,6 +249,7 @@ export const api = createApi({
         method: "POST",
         body,
       }),
+      invalidatesTags: ["ProductImages"],
     }),
     getProductImages: build.query<any, { productId: string }>({
       query: (params) => ({
@@ -271,6 +272,13 @@ export const api = createApi({
         { type: "ProductImages", id },
         "ProductImages",
       ],
+    }),
+    deleteProductImage: build.mutation<void, string>({
+      query: (id) => ({
+        url: `${API_ENDPOINTS.PRODUCT_IMAGES}/${id}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["ProductImages"],
     }),
   }),
 });
@@ -318,4 +326,5 @@ export const {
   useUploadProductImageMutation,
   useGetProductImagesQuery,
   useUpdateProductImageMutation,
+  useDeleteProductImageMutation,
 } = api;

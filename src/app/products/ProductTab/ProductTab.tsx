@@ -1,26 +1,20 @@
 "use client";
 
-import { Brand, Category, NewProduct, Product } from "@/types";
+import { NewProduct, Product } from "@/types";
 import {
   useCreateProductMutation,
   useDeleteProductMutation,
-  useGetBrandQuery,
   useGetBrandsQuery,
   useGetCategoriesQuery,
   useGetProductsQuery,
   useUpdateProductMutation,
 } from "@/state/api";
 import { useRef, useState } from "react";
-import { ColumnDef } from "@tanstack/react-table";
-import { DataTable } from "@/components/data-table/data-table";
 import { DeleteDialog } from "@/components/ui/delete-dialog";
 import { ActionColumn } from "@/components/TableActionRow/ActionColumn";
 import { handleApiError, showSuccessToast } from "@/lib/api-utils";
-import Image from "next/image";
-import { object } from "zod";
 import CreateProductModal from "./CreateProductModal";
 import { Carousel, Table, TableColumnsType } from "antd";
-import { DataSourceItemType } from "antd/es/auto-complete/AutoComplete";
 import { TableToolbar } from "@/components/TableToolbar/TableToolbar";
 import { formatCurrency } from "@/utils/utils";
 
