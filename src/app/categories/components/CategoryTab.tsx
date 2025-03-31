@@ -1,57 +1,38 @@
 "use client";
 
-import React, { useRef, useState, useMemo, useEffect } from "react"; // Added useEffect
+import React, { useRef, useState, useMemo, useEffect, Key } from "react";
 import type { Category, NewCategory } from "@/types";
 import {
   useCreateCategoryMutation,
   useDeleteCategoryMutation,
   useExportCategoriesQuery,
-  useGetCategoriesQuery, // Correct hook name
+  useGetCategoriesQuery,
   useGetCategoryTemplateQuery,
   useImportCategoriesMutation,
   useUpdateCategoryMutation,
 } from "@/state/api";
-import {
-  Button,
-  Input,
-  // Modal, // Will replace CreateCategoryModal later
-  Popconfirm,
-  Space,
-  Table,
-  Upload,
-  message,
-  Spin,
-} from "antd";
+import { Button, Input, Popconfirm, Space, message, InputRef } from "antd";
 import type { TableProps, UploadProps } from "antd";
+import type {
+  ColumnType,
+  FilterConfirmProps,
+  FilterDropdownProps,
+} from "antd/es/table/interface";
 import {
-  PlusOutlined,
-  ExportOutlined,
-  ImportOutlined,
-  DownloadOutlined,
   DeleteOutlined,
   EditOutlined,
   SearchOutlined,
-  FilterOutlined, // Added FilterOutlined
+  FilterOutlined,
 } from "@ant-design/icons";
 import CreateCategoryModal from "./CreateCategoryModal";
 import { handleApiError } from "@/lib/api-utils";
-import { dummyData } from "./dummy";
-import type { InputRef } from "antd"; // Import InputRef
-import type { ColumnType } from "antd/es/table"; // Corrected import for ColumnType
-import type {
-  FilterConfirmProps,
-  FilterDropdownProps,
-} from "antd/es/table/interface"; // Import FilterConfirmProps and FilterDropdownProps
-
-// Removed CategoriesResponse interface
+import { dummyData } from "./dummy"; // Keep for dummy data creation
+import { GenericDataTable } from "@/components/GenericDataTable/GenericDataTable"; // Import the new component
 
 // Define type for search input ref
 type DataIndex = keyof Category;
 
 const CategoryTab = () => {
-  // Removed searchTerm, debouncedSearchTerm, searchTimeoutRef, and client-side filtering logic
-  // Antd Table will handle filtering internally based on column definitions
-
   // Fetch ALL categories
   const {
     data: allCategories = [],
@@ -69,7 +50,7 @@ const CategoryTab = () => {
   const [
     updateCategory,
     { isLoading: isUpdating, isSuccess: isUpdateSuccess },
-  ] = useUpdateCategoryMutation(); // Added isSuccess
+  ] = useUpdateCategoryMutation();
   const [importCategories, { isLoading: isImporting }] =
     useImportCategoriesMutation();
   const { refetch: refetchExport } = useExportCategoriesQuery(undefined, {
@@ -80,15 +61,16 @@ const CategoryTab = () => {
   });
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
+  // Selected row keys state is now managed within GenericDataTable
+  // const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
 
   // Combined loading states
-  const isDataLoading = isLoading || isFetching; // Loading data for the table
-  const isActionLoading = isCreating || isDeleting || isUpdating || isImporting; // Loading during actions
+  const isDataLoading = isLoading || isFetching;
+  // Pass individual loading states to GenericDataTable
+  const isActionLoading = isCreating || isDeleting || isUpdating || isImporting;
 
   if (isError && !isLoading) {
-    // Show error only if not initial loading
     return (
       <div className="text-center text-red-500 py-4">
         Failed to fetch categories. Please try again later.
@@ -96,13 +78,14 @@ const CategoryTab = () => {
     );
   }
 
+  // Handlers remain mostly the same, but onDeleteSelected needs adjustment
   const handleCreateCategory = async (categoryData: NewCategory) => {
     try {
       await createCategory(categoryData).unwrap();
       message.success("Category created successfully");
       setIsModalOpen(false);
     } catch (error) {
-      handleApiError(error); // Corrected: Pass only error
+      handleApiError(error);
     }
   };
 
@@ -113,7 +96,7 @@ const CategoryTab = () => {
       setIsModalOpen(false);
       setEditingCategory(null);
     } catch (error) {
-      handleApiError(error); // Corrected: Pass only error
+      handleApiError(error);
     }
   };
 
@@ -126,32 +109,33 @@ const CategoryTab = () => {
     try {
       await deleteCategory(id).unwrap();
       message.success("Category deleted successfully");
-      setSelectedRowKeys((keys) => keys.filter((key) => key !== id)); // Update selection state
+      // Optionally trigger refetch or let cache invalidation handle update
     } catch (error) {
-      handleApiError(error); // Corrected: Pass only error
+      handleApiError(error);
     }
   };
 
-  const handleDeleteSelected = async () => {
+  // Adjusted to accept selectedIds from GenericDataTable
+  const handleDeleteSelected = async (selectedIds: React.Key[]) => {
     const key = "deleting_selected";
     try {
       message.loading({
-        content: `Deleting ${selectedRowKeys.length} categories...`,
+        content: `Deleting ${selectedIds.length} categories...`,
         key,
         duration: 0,
       });
-      // Consider batch delete API if available
-      for (const id of selectedRowKeys) {
+      for (const id of selectedIds) {
         await deleteCategory(id as string).unwrap();
       }
       message.success({
-        content: `${selectedRowKeys.length} categories deleted successfully`,
+        content: `${selectedIds.length} categories deleted successfully`,
         key,
       });
-      setSelectedRowKeys([]);
+      return true;
     } catch (error) {
       message.error({ content: `Failed to delete selected categories`, key });
-      handleApiError(error); // Corrected: Pass only error
+      handleApiError(error);
+      return false;
     }
   };
 
@@ -176,7 +160,6 @@ const CategoryTab = () => {
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : "Unknown error";
       message.error({ content: `Export failed: ${errorMsg}`, key });
-      // handleApiError(error); // Optionally log detailed error
     }
   };
 
@@ -201,11 +184,10 @@ const CategoryTab = () => {
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : "Unknown error";
       message.error({ content: `Template download failed: ${errorMsg}`, key });
-      // handleApiError(error); // Optionally log detailed error
     }
   };
 
-  // Antd Upload props
+  // Antd Upload props remain the same
   const uploadProps: UploadProps = {
     name: "file",
     accept: ".xlsx, .xls",
@@ -223,38 +205,32 @@ const CategoryTab = () => {
         formData.append("file", file as Blob);
         await importCategories(formData).unwrap();
         message.success({ content: "Categories imported successfully", key });
-        if (onSuccess) onSuccess({} /* response */, file as any); // Pass empty response, cast file
+        if (onSuccess) onSuccess({}, file as any);
       } catch (error) {
         const errorMsg =
           error instanceof Error ? error.message : "Unknown error";
         message.error({ content: `Import failed: ${errorMsg}`, key });
         if (onError) onError(error as Error);
-        // handleApiError(error); // Optionally log detailed error
       }
     },
     disabled: isImporting,
   };
 
-  // --- Column Search Logic ---
+  // --- Column Search & Filter Logic (remains the same) ---
   const searchInput = useRef<InputRef>(null);
-  // Removed searchText and searchedColumn state as they are not strictly needed for the filter logic itself
 
-  const handleSearch = (
+  const handleColumnSearch = (
     selectedKeys: string[],
     confirm: (param?: FilterConfirmProps) => void,
     dataIndex: DataIndex
   ) => {
     confirm();
-    // setSearchText(selectedKeys[0]); // Not needed
-    // setSearchedColumn(dataIndex); // Not needed
   };
 
-  const handleReset = (clearFilters: () => void) => {
+  const handleColumnReset = (clearFilters: () => void) => {
     clearFilters();
-    // setSearchText(''); // Not needed
   };
 
-  // Added explicit types for filterDropdown props
   const getColumnSearchProps = (
     dataIndex: DataIndex
   ): ColumnType<Category> => ({
@@ -267,14 +243,14 @@ const CategoryTab = () => {
     }: FilterDropdownProps) => (
       <div style={{ padding: 8 }} onKeyDown={(e) => e.stopPropagation()}>
         <Input
-          ref={searchInput} // Type is InputRef | null
-          placeholder={`Search ${String(dataIndex)}`} // Use String() for safety
+          ref={searchInput}
+          placeholder={`Search ${String(dataIndex)}`}
           value={selectedKeys[0]}
           onChange={(e) =>
             setSelectedKeys(e.target.value ? [e.target.value] : [])
           }
           onPressEnter={() =>
-            handleSearch(selectedKeys as string[], confirm, dataIndex)
+            handleColumnSearch(selectedKeys as string[], confirm, dataIndex)
           }
           style={{ marginBottom: 8, display: "block" }}
         />
@@ -282,7 +258,7 @@ const CategoryTab = () => {
           <Button
             type="primary"
             onClick={() =>
-              handleSearch(selectedKeys as string[], confirm, dataIndex)
+              handleColumnSearch(selectedKeys as string[], confirm, dataIndex)
             }
             icon={<SearchOutlined />}
             size="small"
@@ -291,7 +267,7 @@ const CategoryTab = () => {
             Search
           </Button>
           <Button
-            onClick={() => clearFilters && handleReset(clearFilters)} // Check if clearFilters exists
+            onClick={() => clearFilters && handleColumnReset(clearFilters)}
             size="small"
             style={{ width: 90 }}
           >
@@ -312,49 +288,40 @@ const CategoryTab = () => {
     filterIcon: (filtered: boolean) => (
       <SearchOutlined style={{ color: filtered ? "#1677ff" : undefined }} />
     ),
-    // Use React.Key and cast value to string for comparison
-    onFilter: (value, record) =>
-      record[dataIndex]
-        ? record[dataIndex]!.toString()
-            .toLowerCase()
-            .includes(String(value).toLowerCase())
-        : false,
-    // Added explicit type for onFilterDropdownOpenChange param
+    onFilter: (value: Key | boolean, record: Category) => {
+      const stringValue = String(value).toLowerCase();
+      const recordValue = record[dataIndex];
+      return recordValue
+        ? recordValue.toString().toLowerCase().includes(stringValue)
+        : false;
+    },
     onFilterDropdownOpenChange: (visible: boolean) => {
       if (visible) {
         setTimeout(() => searchInput.current?.select(), 100);
       }
     },
-    // Added explicit type for render param
     render: (text: any) => text,
   });
-  // --- End Column Search Logic ---
 
-  // --- Parent Category Filter Logic ---
   const parentCategoryFilters = useMemo(() => {
     const parents = new Map<string | null, string>();
-    parents.set(null, "None"); // Add 'None' option for root categories
+    parents.set(null, "None");
     allCategories.forEach((cat) => {
       if (cat.parentId && !parents.has(cat.parentId)) {
-        // Find the parent category's name (assuming parent is also in allCategories)
         const parentName = allCategories.find(
           (p) => p.id === cat.parentId
         )?.name;
-        if (parentName) {
-          parents.set(cat.parentId, parentName);
-        } else {
-          parents.set(cat.parentId, cat.parentId); // Fallback to ID if name not found
-        }
+        parents.set(cat.parentId, parentName || cat.parentId);
       }
     });
     return Array.from(parents.entries())
       .map(([value, text]) => ({
         text: text,
-        value: value ?? "none", // Use 'none' string for null value filter key
+        value: value ?? "none",
       }))
-      .sort((a, b) => a.text.localeCompare(b.text)); // Sort alphabetically
+      .sort((a, b) => a.text.localeCompare(b.text));
   }, [allCategories]);
-  // --- End Parent Category Filter Logic ---
+  // --- End Column Search & Filter Logic ---
 
   const columns: TableProps<Category>["columns"] = [
     // ID column removed
@@ -363,13 +330,13 @@ const CategoryTab = () => {
       dataIndex: "name",
       key: "name",
       sorter: (a, b) => a.name.localeCompare(b.name),
-      ...getColumnSearchProps("name"), // Add search to Name column
+      ...getColumnSearchProps("name"),
     },
     {
       title: "Description",
       dataIndex: "description",
       key: "description",
-      render: (text: string | null) => text || "N/A", // Added type
+      render: (text: string | null) => text || "N/A",
       sorter: (a, b) =>
         (a.description || "").localeCompare(b.description || ""),
     },
@@ -378,17 +345,15 @@ const CategoryTab = () => {
       dataIndex: "parentId",
       key: "parentId",
       render: (parentId: string | null) => {
-        // Added type
         if (!parentId) return "None";
         const parentName = allCategories.find((p) => p.id === parentId)?.name;
         return parentName || parentId;
       },
       sorter: (a, b) => (a.parentId || "").localeCompare(b.parentId || ""),
       filters: parentCategoryFilters,
-      // Use React.Key and cast value to string for comparison
-      onFilter: (value, record) => {
+      onFilter: (value: Key | boolean, record: Category) => {
         const recordParentId = record.parentId ?? "none";
-        return String(recordParentId) === String(value); // Compare as strings
+        return String(recordParentId) === String(value);
       },
       filterIcon: (filtered: boolean) => (
         <FilterOutlined style={{ color: filtered ? "#1677ff" : undefined }} />
@@ -398,7 +363,7 @@ const CategoryTab = () => {
       title: "Created At",
       dataIndex: "createdAt",
       key: "createdAt",
-      render: (text: string) => new Date(text).toLocaleDateString(), // Added type
+      render: (text: string) => new Date(text).toLocaleDateString(),
       sorter: (a, b) =>
         new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
       width: 120,
@@ -408,10 +373,7 @@ const CategoryTab = () => {
       key: "actions",
       align: "center",
       width: 100,
-      render: (
-        _: any,
-        record: Category // Added types
-      ) => (
+      render: (_: any, record: Category) => (
         <Space size="small">
           <Button
             icon={<EditOutlined />}
@@ -442,7 +404,7 @@ const CategoryTab = () => {
     },
   ];
 
-  // Re-added createDummy function
+  // createDummy function remains the same
   const createDummy = async () => {
     const key = "creating_dummy";
     try {
@@ -453,7 +415,7 @@ const CategoryTab = () => {
       });
       const formattedData = dummyData.map((item) => ({
         name: item.name,
-        description: item.slug,
+        description: item.slug, // Assuming slug maps to description for dummy data
       }));
       for (const item of formattedData) {
         await createCategory(item).unwrap();
@@ -468,114 +430,39 @@ const CategoryTab = () => {
         content: `Failed to create dummy categories: ${errorMsg}`,
         key,
       });
-      // handleApiError(error); // Optionally log detailed error
     }
   };
 
-  const rowSelection = {
-    selectedRowKeys,
-    onChange: (keys: React.Key[]) => {
-      setSelectedRowKeys(keys);
-    },
-  };
-
-  const hasSelected = selectedRowKeys.length > 0;
-
   return (
-    <div className="flex flex-col space-y-4 p-4">
-      {/* Toolbar - Removed global search Input */}
-      <div className="flex justify-end items-center flex-wrap gap-2">
+    // Removed outer div, GenericDataTable provides padding
+    <>
+      <GenericDataTable
+        columns={columns}
+        dataSource={allCategories} // Pass all data, filtering/sorting is internal to Antd Table
+        loading={isDataLoading}
+        entityName="Category"
+        uploadProps={uploadProps}
+        onCreate={() => {
+          setEditingCategory(null);
+          setIsModalOpen(true);
+        }}
+        onExport={handleExport}
+        onDownloadTemplate={handleDownloadTemplate}
+        onDeleteSelected={handleDeleteSelected}
+        isActionLoading={isActionLoading}
+        isDeleting={isDeleting}
+        isImporting={isImporting}
+      />
+
+      {/* Dummy data button - kept separate for now */}
+      <div className="p-4 pt-0">
         {" "}
-        {/* Changed justify-between to justify-end */}
-        {/* <Space> Removed Search Input Space </Space> */}
-        <Space wrap>
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => {
-              setEditingCategory(null);
-              setIsModalOpen(true);
-            }}
-            disabled={isActionLoading}
-          >
-            Create Category
-          </Button>
-          <Upload {...uploadProps}>
-            <Button
-              icon={<ImportOutlined />}
-              loading={isImporting}
-              disabled={isActionLoading}
-            >
-              Import
-            </Button>
-          </Upload>
-          <Button
-            icon={<ExportOutlined />}
-            onClick={handleExport}
-            disabled={isActionLoading}
-          >
-            Export
-          </Button>
-          <Button
-            icon={<DownloadOutlined />}
-            onClick={handleDownloadTemplate}
-            disabled={isActionLoading}
-          >
-            Template
-          </Button>
-          <Button onClick={createDummy} danger disabled={isActionLoading}>
-            {" "}
-            Create Dummy{" "}
-          </Button>
-        </Space>
+        {/* Add padding to match table */}
+        <Button onClick={createDummy} danger disabled={isActionLoading}>
+          {" "}
+          Create Dummy Categories{" "}
+        </Button>
       </div>
-
-      {/* Selected Rows Actions */}
-      {hasSelected && (
-        <div className="flex justify-start items-center space-x-2 p-2 bg-blue-50 border border-blue-200 rounded">
-          <span className="text-sm font-medium text-blue-700">
-            {selectedRowKeys.length} selected
-          </span>
-          <Popconfirm
-            title={`Delete ${selectedRowKeys.length} Categories`}
-            description="Are you sure you want to delete the selected categories?"
-            onConfirm={handleDeleteSelected}
-            okText="Yes"
-            cancelText="No"
-            okButtonProps={{ loading: isDeleting }} // Specific loading
-            disabled={!hasSelected || isActionLoading} // Disable during any action
-          >
-            <Button
-              icon={<DeleteOutlined />}
-              danger
-              size="small"
-              disabled={!hasSelected || isActionLoading}
-            >
-              Delete Selected
-            </Button>
-          </Popconfirm>
-        </div>
-      )}
-
-      {/* Table */}
-      <Spin spinning={isDataLoading}>
-        <Table
-          columns={columns}
-          dataSource={allCategories} // Use allCategories, filtering is internal
-          rowKey="id"
-          rowSelection={rowSelection}
-          pagination={{
-            showSizeChanger: true,
-            showTotal: (total, range) =>
-              `${range[0]}-${range[1]} of ${total} items`,
-            pageSizeOptions: ["10", "20", "50", "100"],
-          }}
-          // onChange removed, Antd handles client-side changes
-          loading={isDataLoading} // Pass loading state
-          scroll={{ x: "max-content" }}
-          size="small"
-        />
-      </Spin>
 
       {/* Create/Edit Modal */}
       {isModalOpen && (
@@ -585,19 +472,18 @@ const CategoryTab = () => {
             setIsModalOpen(false);
             setEditingCategory(null);
           }}
-          // Corrected prop name from onSubmit to onCreate
           onCreate={
             editingCategory
               ? (data) => handleUpdateCategory(editingCategory.id, data)
               : handleCreateCategory
           }
-          // Pass correct props including isSuccess
           isSuccess={isCreateSuccess || isUpdateSuccess}
-          parentCategories={allCategories} // Pass all categories for parent selection
+          parentCategories={allCategories}
           initialData={editingCategory}
+          isLoading={isCreating || isUpdating}
         />
       )}
-    </div>
+    </>
   );
 };
 

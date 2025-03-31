@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useState, useMemo, useEffect, Key } from "react"; // Import Key from React
+import React, { useRef, useState, useMemo, useEffect, Key } from "react";
 import type { Brand, NewBrand } from "@/types";
 import {
   useCreateBrandMutation,
@@ -16,20 +16,12 @@ import {
   Input,
   Popconfirm,
   Space,
-  Table,
-  Upload,
   message,
-  Spin,
   InputRef,
 } from "antd";
 import type { TableProps, UploadProps } from "antd";
-// Removed Key import from antd/es/_util/type
 import type { ColumnType, FilterConfirmProps, FilterDropdownProps } from 'antd/es/table/interface';
 import {
-  PlusOutlined,
-  ExportOutlined,
-  ImportOutlined,
-  DownloadOutlined,
   DeleteOutlined,
   EditOutlined,
   SearchOutlined,
@@ -37,6 +29,7 @@ import {
 // Ensure this path is correct for the refactored modal
 import CreateBrandModal from "@/components/modals/CreateBrandModal";
 import { handleApiError } from "@/lib/api-utils";
+import { GenericDataTable } from "@/components/GenericDataTable/GenericDataTable";
 
 // Define type for search input ref
 type DataIndex = keyof Brand;
@@ -58,11 +51,11 @@ const BrandTab = () => {
   const { refetch: refetchTemplate } = useGetBrandTemplateQuery(undefined, { skip: true });
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]); // Use React.Key
   const [editingBrand, setEditingBrand] = useState<Brand | null>(null);
 
   // Combined loading states
   const isDataLoading = isLoading || isFetching;
+  // Pass individual loading states to GenericDataTable
   const isActionLoading = isCreating || isDeleting || isUpdating || isImporting;
 
   if (isError && !isLoading) {
@@ -73,6 +66,7 @@ const BrandTab = () => {
     );
   }
 
+  // Handlers remain mostly the same, but onDeleteSelected needs adjustment
   const handleCreateBrand = async (brandData: NewBrand) => {
     try {
       await createBrand(brandData).unwrap();
@@ -103,24 +97,28 @@ const BrandTab = () => {
     try {
       await deleteBrand(id).unwrap();
       message.success("Brand deleted successfully");
-      setSelectedRowKeys(keys => keys.filter(key => key !== id));
+      // Optionally trigger refetch or let cache invalidation handle update
     } catch (error) {
       handleApiError(error);
     }
   };
 
-  const handleDeleteSelected = async () => {
+  // Adjusted to accept selectedIds from GenericDataTable
+  const handleDeleteSelected = async (selectedIds: React.Key[]): Promise<boolean> => {
     const key = "deleting_selected_brands";
     try {
-      message.loading({ content: `Deleting ${selectedRowKeys.length} brands...`, key, duration: 0 });
-      for (const id of selectedRowKeys) {
+      message.loading({ content: `Deleting ${selectedIds.length} brands...`, key, duration: 0 });
+      for (const id of selectedIds) {
         await deleteBrand(id as string).unwrap();
       }
-      message.success({ content: `${selectedRowKeys.length} brands deleted successfully`, key });
-      setSelectedRowKeys([]);
+      message.success({ content: `${selectedIds.length} brands deleted successfully`, key });
+      return true; // Indicate success
+      
+      // Selection state is managed internally by GenericDataTable, no need to reset here
     } catch (error) {
       message.error({ content: `Failed to delete selected brands`, key });
       handleApiError(error);
+      return false; // Indicate failure
     }
   };
 
@@ -172,7 +170,7 @@ const BrandTab = () => {
     }
   };
 
-  // Antd Upload props
+  // Antd Upload props remain the same
   const uploadProps: UploadProps = {
     name: "file",
     accept: ".xlsx, .xls",
@@ -196,10 +194,10 @@ const BrandTab = () => {
     disabled: isImporting,
   };
 
-  // --- Column Search Logic ---
+  // --- Column Search Logic (remains the same) ---
   const searchInput = useRef<InputRef>(null);
 
-  const handleSearch = (
+  const handleColumnSearch = (
     selectedKeys: string[],
     confirm: (param?: FilterConfirmProps) => void,
     dataIndex: DataIndex,
@@ -207,7 +205,7 @@ const BrandTab = () => {
     confirm();
   };
 
-  const handleReset = (clearFilters: () => void) => {
+  const handleColumnReset = (clearFilters: () => void) => {
     clearFilters();
   };
 
@@ -219,13 +217,13 @@ const BrandTab = () => {
           placeholder={`Search ${String(dataIndex)}`}
           value={selectedKeys[0]}
           onChange={(e) => setSelectedKeys(e.target.value ? [e.target.value] : [])}
-          onPressEnter={() => handleSearch(selectedKeys as string[], confirm, dataIndex)}
+          onPressEnter={() => handleColumnSearch(selectedKeys as string[], confirm, dataIndex)}
           style={{ marginBottom: 8, display: 'block' }}
         />
         <Space>
           <Button
             type="primary"
-            onClick={() => handleSearch(selectedKeys as string[], confirm, dataIndex)}
+            onClick={() => handleColumnSearch(selectedKeys as string[], confirm, dataIndex)}
             icon={<SearchOutlined />}
             size="small"
             style={{ width: 90 }}
@@ -233,7 +231,7 @@ const BrandTab = () => {
             Search
           </Button>
           <Button
-            onClick={() => clearFilters && handleReset(clearFilters)}
+            onClick={() => clearFilters && handleColumnReset(clearFilters)}
             size="small"
             style={{ width: 90 }}
           >
@@ -242,9 +240,7 @@ const BrandTab = () => {
           <Button
             type="link"
             size="small"
-            onClick={() => {
-              close();
-            }}
+            onClick={() => { close(); }}
           >
             Close
           </Button>
@@ -254,7 +250,6 @@ const BrandTab = () => {
     filterIcon: (filtered: boolean) => (
       <SearchOutlined style={{ color: filtered ? '#1677ff' : undefined }} />
     ),
-    // Corrected type for onFilter value param to Key | boolean
     onFilter: (value: Key | boolean, record: Brand) => {
       const stringValue = String(value).toLowerCase();
       const recordValue = record[dataIndex];
@@ -279,20 +274,20 @@ const BrandTab = () => {
       dataIndex: "name",
       key: "name",
       sorter: (a, b) => a.name.localeCompare(b.name),
-      ...getColumnSearchProps('name'), // Add search to Name column
+      ...getColumnSearchProps('name'),
     },
     {
       title: "Description",
       dataIndex: "description",
       key: "description",
-      render: (text: string | null) => text || "N/A", // Added type
+      render: (text: string | null) => text || "N/A",
       sorter: (a, b) => (a.description || "").localeCompare(b.description || ""),
     },
     {
       title: "Created At",
       dataIndex: "createdAt",
       key: "createdAt",
-      render: (text: string) => new Date(text).toLocaleDateString(), // Added type
+      render: (text: string) => new Date(text).toLocaleDateString(),
       sorter: (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
       width: 120,
     },
@@ -301,7 +296,7 @@ const BrandTab = () => {
       key: "actions",
       align: 'center',
       width: 100,
-      render: (_: any, record: Brand) => ( // Added types
+      render: (_: any, record: Brand) => (
         <Space size="small">
           <Button
             icon={<EditOutlined />}
@@ -326,91 +321,26 @@ const BrandTab = () => {
     },
   ];
 
-  const rowSelection = {
-    selectedRowKeys,
-    onChange: (keys: React.Key[]) => { // Use React.Key
-      setSelectedRowKeys(keys);
-    },
-  };
-
-  const hasSelected = selectedRowKeys.length > 0;
-
   return (
-    <div className="flex flex-col space-y-4 p-4">
-      {/* Toolbar - Removed global search Input */}
-      <div className="flex justify-end items-center flex-wrap gap-2"> {/* Changed justify-between to justify-end */}
-        {/* <Space> Removed Search Input Space </Space> */}
-        <Space wrap>
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => {
-              setEditingBrand(null);
-              setIsModalOpen(true);
-            }}
-            disabled={isActionLoading}
-          >
-            Create Brand
-          </Button>
-          <Upload {...uploadProps}>
-            <Button icon={<ImportOutlined />} loading={isImporting} disabled={isActionLoading}>
-              Import
-            </Button>
-          </Upload>
-          <Button icon={<ExportOutlined />} onClick={handleExport} disabled={isActionLoading}>
-            Export
-          </Button>
-          <Button icon={<DownloadOutlined />} onClick={handleDownloadTemplate} disabled={isActionLoading}>
-            Template
-          </Button>
-        </Space>
-      </div>
-
-       {/* Selected Rows Actions */}
-       {hasSelected && (
-         <div className="flex justify-start items-center space-x-2 p-2 bg-blue-50 border border-blue-200 rounded">
-           <span className="text-sm font-medium text-blue-700">
-             {selectedRowKeys.length} selected
-           </span>
-           <Popconfirm
-             title={`Delete ${selectedRowKeys.length} Brands`}
-             description="Are you sure you want to delete the selected brands?"
-             onConfirm={handleDeleteSelected}
-             okText="Yes"
-             cancelText="No"
-             okButtonProps={{ loading: isDeleting }}
-             disabled={!hasSelected || isActionLoading}
-           >
-             <Button
-               icon={<DeleteOutlined />}
-               danger
-               size="small"
-               disabled={!hasSelected || isActionLoading}
-             >
-               Delete Selected
-             </Button>
-           </Popconfirm>
-         </div>
-       )}
-
-
-      {/* Table */}
-      <Spin spinning={isDataLoading}>
-        <Table
-          columns={columns}
-          dataSource={allBrands} // Use allBrands, filtering is internal
-          rowKey="id"
-          rowSelection={rowSelection}
-          pagination={{
-             showSizeChanger: true,
-             showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`,
-             pageSizeOptions: ['10', '20', '50', '100'],
-          }}
-          loading={isDataLoading}
-          scroll={{ x: 'max-content' }}
-          size="small"
-        />
-      </Spin>
+    // Removed outer div, GenericDataTable provides padding
+    <>
+      <GenericDataTable
+        columns={columns}
+        dataSource={allBrands} // Pass all data
+        loading={isDataLoading}
+        entityName="Brand"
+        uploadProps={uploadProps}
+        onCreate={() => {
+          setEditingBrand(null);
+          setIsModalOpen(true);
+        }}
+        onExport={handleExport}
+        onDownloadTemplate={handleDownloadTemplate}
+        onDeleteSelected={handleDeleteSelected}
+        isActionLoading={isActionLoading}
+        isDeleting={isDeleting}
+        isImporting={isImporting}
+      />
 
       {/* Create/Edit Modal */}
       {isModalOpen && (
@@ -427,13 +357,10 @@ const BrandTab = () => {
           }
           isSuccess={isCreateSuccess || isUpdateSuccess}
           initialData={editingBrand}
-          // Pass isLoading for modal's internal spinner
           isLoading={isCreating || isUpdating}
         />
       )}
-
-      {/* Delete Dialog removed */}
-    </div>
+    </>
   );
 };
 
