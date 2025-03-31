@@ -1,27 +1,20 @@
 "use client";
 
-import Header from "@/components/Header";
+import React, { useEffect } from "react";
 import { Category, NewCategory } from "@/types";
-import React, { ChangeEvent, FormEvent, useEffect, useState } from "react";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Modal, Form, Input, Select, Button, Spin, Space } from "antd";
+
+const { Option } = Select;
 
 type CreateCategoryModalProps = {
   isOpen: boolean;
   onClose: () => void;
-  onCreate: (formData: NewCategory) => void;
-  isSuccess: boolean;
+  // Renamed from onSubmit in previous refactor attempt to match original prop name
+  onCreate: (formData: NewCategory) => Promise<void> | void;
+  isSuccess: boolean; // Used to reset form
   parentCategories?: Category[];
   initialData?: Category | null;
+  isLoading?: boolean; // Loading state from parent
 };
 
 const CreateCategoryModal = ({
@@ -31,116 +24,121 @@ const CreateCategoryModal = ({
   isSuccess,
   parentCategories = [],
   initialData,
+  isLoading = false, // Default to false
 }: CreateCategoryModalProps) => {
-  const formDataInitialState: NewCategory = {
-    name: "",
-    description: null,
-    parentId: null,
-  };
-  const [formData, setFormData] = useState<NewCategory>(formDataInitialState);
+  const [form] = Form.useForm<NewCategory>();
+  const modalTitle = initialData ? "Edit Category" : "Create New Category";
 
+  // Set form fields when initialData changes or modal opens
   useEffect(() => {
-    if (isSuccess) {
-      setFormData(formDataInitialState);
+    if (isOpen) {
+      if (initialData) {
+        form.setFieldsValue({
+          name: initialData.name,
+          description: initialData.description ?? undefined,
+          parentId: initialData.parentId ?? undefined,
+        });
+      } else {
+        form.resetFields(); // Reset to initial values if creating new
+      }
     }
-  }, [isSuccess]);
+  }, [initialData, isOpen, form]);
 
+  // Reset form on successful submission (indicated by isSuccess prop)
   useEffect(() => {
-    if (initialData) {
-      setFormData({
-        name: initialData.name,
-        description: initialData.description,
-        parentId: initialData.parentId,
-      });
-    } else {
-      setFormData(formDataInitialState);
+    if (isSuccess && !initialData && isOpen) {
+      form.resetFields();
     }
-  }, [initialData]);
+  }, [isSuccess, initialData, form, isOpen]);
 
-  const handleChange = (
-    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: value === "" ? null : value,
-    });
+
+  const handleFinish = async (values: NewCategory) => {
+    // Ensure empty strings become null for optional fields if needed by API
+    const processedValues: NewCategory = {
+      ...values,
+      // Description is now required, so it should have a value.
+      // Keep null conversion for parentId if it's optional.
+      description: values.description, // No longer needs || null if required
+      parentId: values.parentId || null,
+    };
+    await onCreate(processedValues);
+    // Parent component (CategoryTab) handles closing the modal on success/error
   };
 
-  const handleParentChange = (value: string) => {
-    setFormData({
-      ...formData,
-      parentId: value === "none" ? null : value,
-    });
-  };
-
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    onCreate(formData);
+  const handleCancel = () => {
+    form.resetFields(); // Reset fields on cancel
     onClose();
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[425px]">
-        <Header name={initialData ? "Edit Category" : "Create New Category"} />
-        <form onSubmit={handleSubmit} className="mt-5 space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="name">Category Name</Label>
-            <Input
-              id="name"
-              name="name"
-              placeholder="Name"
-              onChange={handleChange}
-              value={formData.name}
-              required
-            />
-          </div>
+    <Modal
+      title={modalTitle}
+      open={isOpen}
+      onCancel={handleCancel}
+      footer={null} // Use custom footer buttons inside Form
+      destroyOnClose // Destroy form state when modal is closed
+      maskClosable={false} // Prevent closing by clicking outside
+    >
+      <Spin spinning={isLoading}>
+        <Form
+          form={form}
+          layout="vertical"
+          onFinish={handleFinish}
+          className="mt-6" // Add some margin top
+          initialValues={{ // Set initial values for Antd Form
+            name: '',
+            description: '', // Initialize description
+            parentId: undefined,
+          }}
+        >
+          <Form.Item
+            name="name"
+            label="Category Name"
+            rules={[{ required: true, message: "Please enter the category name" }]}
+          >
+            <Input placeholder="Enter category name" />
+          </Form.Item>
 
-          <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
-            <Input
-              id="description"
-              name="description"
-              placeholder="Description"
-              onChange={handleChange}
-              value={formData.description || ""}
-            />
-          </div>
+          <Form.Item
+            name="description"
+            label="Description" // Removed (Optional)
+            rules={[{ required: true, message: "Please enter the description" }]} // Added required rule
+          >
+            <Input.TextArea rows={3} placeholder="Enter description" />
+          </Form.Item>
 
           {parentCategories.length > 0 && (
-            <div className="space-y-2">
-              <Label htmlFor="parentId">Parent Category</Label>
-              <Select
-                value={formData.parentId || "none"}
-                onValueChange={handleParentChange}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a parent category" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">None</SelectItem>
-                  {parentCategories
-                    .filter(category => !initialData || category.id !== initialData.id)
-                    .map((category) => (
-                      <SelectItem key={category.id} value={category.id}>
-                        {category.name}
-                      </SelectItem>
-                    ))}
-                </SelectContent>
+            <Form.Item
+              name="parentId"
+              label="Parent Category (Optional)"
+            >
+              <Select placeholder="Select a parent category" allowClear>
+                {/* <Option value={undefined}>None</Option> */}
+                {parentCategories
+                  // Filter out the category itself if editing
+                  .filter(category => !initialData || category.id !== initialData.id)
+                  .map((category) => (
+                    <Option key={category.id} value={category.id}>
+                      {category.name}
+                    </Option>
+                  ))}
               </Select>
-            </div>
+            </Form.Item>
           )}
 
-          <div className="flex justify-end space-x-2">
-            <Button type="submit">{initialData ? "Update" : "Create"}</Button>
-            <Button type="button" variant="outline" onClick={onClose}>
-              Cancel
-            </Button>
-          </div>
-        </form>
-      </DialogContent>
-    </Dialog>
+          <Form.Item className="text-right mb-0"> {/* Align buttons to the right */}
+            <Space>
+              <Button onClick={handleCancel} disabled={isLoading}>
+                Cancel
+              </Button>
+              <Button type="primary" htmlType="submit" loading={isLoading}>
+                {initialData ? "Update" : "Create"}
+              </Button>
+            </Space>
+          </Form.Item>
+        </Form>
+      </Spin>
+    </Modal>
   );
 };
 
