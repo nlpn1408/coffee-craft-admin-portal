@@ -10,6 +10,7 @@ import {
   DownloadOutlined,
   DeleteOutlined,
 } from "@ant-design/icons";
+import { on } from "node:events";
 
 // Generic type for data items, assuming they have an 'id'
 interface DataItem {
@@ -23,10 +24,10 @@ interface GenericDataTableProps<T extends DataItem> {
   rowKey?: keyof T | ((record: T) => React.Key);
   loading: boolean;
   entityName: string; // e.g., "Category", "Brand"
-  uploadProps: UploadProps;
+  uploadProps?: UploadProps;
   onCreate: () => void;
-  onExport: () => void;
-  onDownloadTemplate: () => void;
+  onExport?: () => void;
+  onDownloadTemplate?: () => void;
   onDeleteSelected: (selectedIds: React.Key[]) => Promise<boolean>; // Expects a promise
   isActionLoading?: boolean; // General loading state for actions
   isDeleting?: boolean; // Specific loading state for delete actions
@@ -61,6 +62,7 @@ export function GenericDataTable<T extends DataItem>({
 
   const handleDelete = async () => {
     const success = await onDeleteSelected(selectedRowKeys);
+    // Reset selection after delete is attempted (success/fail handled by parent)
     if (success) {
       setSelectedRowKeys([]);
     }
@@ -79,29 +81,35 @@ export function GenericDataTable<T extends DataItem>({
           >
             Create {entityName}
           </Button>
-          <Upload {...uploadProps}>
+          {uploadProps && (
+            <Upload {...uploadProps}>
+              <Button
+                icon={<ImportOutlined />}
+                loading={isImporting}
+                disabled={isActionLoading}
+              >
+                Import
+              </Button>
+            </Upload>
+          )}
+          {onExport && (
             <Button
-              icon={<ImportOutlined />}
-              loading={isImporting}
+              icon={<ExportOutlined />}
+              onClick={onExport}
               disabled={isActionLoading}
             >
-              Import
+              Export
             </Button>
-          </Upload>
-          <Button
-            icon={<ExportOutlined />}
-            onClick={onExport}
-            disabled={isActionLoading}
-          >
-            Export
-          </Button>
-          <Button
-            icon={<DownloadOutlined />}
-            onClick={onDownloadTemplate}
-            disabled={isActionLoading}
-          >
-            Template
-          </Button>
+          )}
+          {onDownloadTemplate && (
+            <Button
+              icon={<DownloadOutlined />}
+              onClick={onDownloadTemplate}
+              disabled={isActionLoading}
+            >
+              Template
+            </Button>
+          )}
           {/* Add other generic buttons here if needed */}
         </Space>
       </div>

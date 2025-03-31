@@ -22,7 +22,7 @@ const CategoriesPage = () => {
 
   return (
     <div className="flex flex-col">
-      <Header name="Categories & Brands" />
+      {/* <Header name="Categories & Brands" /> */}
       <Tabs defaultActiveKey="categories" items={items} className="mt-6" />
     </div>
   );

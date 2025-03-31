@@ -1,36 +1,31 @@
 "use client";
 
-import { useState } from "react";
-import Header from "@/components/Header";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs } from "antd";
+import type { TabsProps } from "antd";
 import ProductTab from "./ProductTab/ProductTab";
 import ProductImageTab from "./ProductImageTab/ProductImageTab";
+// Removed useState, Header, Shadcn Tabs imports
 
 const Products = () => {
-  const [activeTab, setActiveTab] = useState("products");
+  // Removed activeTab state
+
+  const items: TabsProps["items"] = [
+    {
+      key: "products",
+      label: "Products",
+      children: <ProductTab />,
+    },
+    {
+      key: "productsImages",
+      label: "Product Images",
+      children: <ProductImageTab />,
+    },
+  ];
 
   return (
     <div className="mx-auto pb-5 w-full">
-      {/* <div className="flex justify-between items-center mb-6">
-        <Header name="Products" />
-      </div> */}
-
-      <Tabs
-        defaultValue="products"
-        className="mt-6"
-        onValueChange={(value) => setActiveTab(value)}
-      >
-        <TabsList className="grid w-[400px] grid-cols-2">
-          <TabsTrigger value="products">Products</TabsTrigger>
-          <TabsTrigger value="productsImages">Product Images</TabsTrigger>
-        </TabsList>
-        <TabsContent value="products" className="mt-6">
-          <ProductTab />
-        </TabsContent>
-        <TabsContent value="productsImages" className="mt-6">
-          <ProductImageTab />
-        </TabsContent>
-      </Tabs>
+      {/* Header is likely part of a layout component now, removed from here */}
+      <Tabs defaultActiveKey="products" items={items} className="mt-6" />
     </div>
   );
 };

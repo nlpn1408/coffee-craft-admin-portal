@@ -1,246 +1,190 @@
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { useFormContext } from "react-hook-form";
-import {
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
+"use client";
 
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Switch } from "antd";
-import { dummyProduct } from "../components/dummyProduct";
-import {
-  useCreateProductMutation,
-  useDeleteProductMutation,
-  useGetBrandsQuery,
-  useGetCategoriesQuery,
-  useGetProductsQuery,
-  useUploadProductImageMutation,
-} from "@/state/api";
-import { Button } from "@/components/ui/button";
+import React from "react";
+import { Input, Select, Switch, InputNumber, Form } from "antd";
+import { Controller, Control, FieldErrors } from "react-hook-form";
+import { Category, Brand, NewProduct } from "@/types";
+import { useGetBrandsQuery, useGetCategoriesQuery } from "@/state/api";
+import { z } from "zod"; // Import z
 
-export const ProductFormFields = () => {
-  const { control } = useFormContext();
-  const { data: categories } = useGetCategoriesQuery();
-  const { data: brands } = useGetBrandsQuery();
-  const { data: products } = useGetProductsQuery({});
+const { Option } = Select;
 
-  const [createProduct] = useCreateProductMutation();
-  const [uploadProductImage] = useUploadProductImageMutation();
-  const [deleteProduct] = useDeleteProductMutation();
+// Define the schema *again* here or import it to ensure type consistency
+// (Importing is better, but for simplicity here, we redefine)
+const formSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  description: z.string().min(1, "Description is required"), // Matches ProductForm schema
+  price: z.coerce.number({
+    required_error: " Price is required",
+    invalid_type_error: "Price must be a number",
+  }).positive("Price must be positive"),
+  categoryId: z.string().min(1, "Category is required"),
+  brandId: z.string().min(1, "Brand is required"),
+  stock: z.coerce.number({
+    required_error: "Stock is required",
+    invalid_type_error: "Stock must be a number",
+  }).int().nonnegative("Stock cannot be negative"),
+  active: z.boolean().default(true),
+});
 
-  const createDummy = async () => {
-    const formattedDummy = dummyProduct.map((item) => {
-      return {
-        name: item.name,
-        description: item.slug,
-        price: item.priceVAT,
-        categoryId:
-          (categories &&
-            categories.length > 0 &&
-            categories?.find(
-              (category) => category.name == item.productCategory.categoryName
-            )?.id) ||
-          "uuid-3",
-        brandId: "uuid-15",
-        stock: item.quantity,
-        active: true,
-        images: item.imageLanguage.map((img, index) => {
-          return {
-            url: img.image.secure_url,
-            isThumbnail: index === 0,
-            order: index,
-            productId: "",
-          };
-        }),
-      };
-    });
+// Infer type from the consistent schema definition
+type ProductFormData = z.infer<typeof formSchema>;
 
-    for (let i = 0; i < formattedDummy.length; i++) {
-      const { images, ...data } = formattedDummy[i];
-      const product = await createProduct(data);
-      await uploadProductImage(
-        images.map((img) => ({
-          ...img,
-          productId: product?.data?.id || "",
-        }))
-      );
-    }
-  };
+interface ProductFormFieldsProps {
+  control: Control<ProductFormData>; // Use the inferred type
+  errors: FieldErrors<ProductFormData>;
+}
 
-  const deleteDuplicate = () => {
-    const duplicateProd = products?.data.filter((product, index) => {
-      return products?.data.findIndex((p) => p.name === product.name) !== index;
-    });
-    duplicateProd?.forEach(async (product) => {
-      await deleteProduct(product.id);
-    });
-  };
+export const ProductFormFields = ({ control, errors }: ProductFormFieldsProps) => {
+  const { data: categories = [] } = useGetCategoriesQuery();
+  const { data: brands = [] } = useGetBrandsQuery();
 
-  return control ? (
+  return (
     <div className="space-y-4">
-      <div>
-        <FormField
-          control={control}
+      {/* Name */}
+      <Form.Item
+        label="Name"
+        validateStatus={errors.name ? "error" : ""}
+        help={errors.name?.message}
+        required
+      >
+        <Controller
           name="name"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Name</FormLabel>
-              <FormControl>
-                <Input {...field} className="bg-white" id="name" />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-      </div>
-      <div>
-        <FormField
           control={control}
-          name="description"
           render={({ field }) => (
-            <FormItem>
-              <FormLabel>Description</FormLabel>
-              <FormControl>
-                <Textarea {...field} className="bg-white" id="description" />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
+            <Input {...field} placeholder="Enter product name" />
           )}
         />
-      </div>
-      <div>
-        <FormField
-          control={control}
-          name="price"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Price (VND)</FormLabel>
-              <FormControl>
-                <Input
-                  {...field}
-                  className="bg-white text-right"
-                  id="price"
-                  type="number"
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-      </div>
+      </Form.Item>
 
-      <div className="flex space-x-4">
-        <div className="col-span-2">
-          <FormField
-            control={control}
+      {/* Description */}
+      <Form.Item
+        label="Description"
+        validateStatus={errors.description ? "error" : ""}
+        help={errors.description?.message}
+        required
+      >
+        <Controller
+          name="description"
+          control={control}
+          render={({ field }) => (
+            // Handle potential null value from react-hook-form if schema changes later
+            <Input.TextArea {...field} value={field.value ?? ''} rows={3} placeholder="Enter product description" />
+          )}
+        />
+      </Form.Item>
+
+      {/* Price */}
+      <Form.Item
+        label="Price (VND)"
+        validateStatus={errors.price ? "error" : ""}
+        help={errors.price?.message}
+        required
+      >
+        <Controller
+          name="price"
+          control={control}
+          render={({ field }) => (
+            <InputNumber
+              {...field}
+              min={0}
+              placeholder="Enter price"
+              style={{ width: '100%' }}
+              formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+              // Fix: Parser must return number or null/undefined
+              parser={(value) => {
+                  const parsed = value!.replace(/\$\s?|(,*)/g, '');
+                  const num = Number(parsed);
+                  return isNaN(num) ? 0 : num; // Return 0 if parsing fails
+              }}
+            />
+          )}
+        />
+      </Form.Item>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Category */}
+        <Form.Item
+          label="Category"
+          validateStatus={errors.categoryId ? "error" : ""}
+          help={errors.categoryId?.message}
+          required
+        >
+          <Controller
             name="categoryId"
+            control={control}
             render={({ field }) => (
-              <FormItem>
-                <FormLabel>Category</FormLabel>
-                <FormControl>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <SelectTrigger className="w-[180px]">
-                      <SelectValue placeholder="Select a category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectGroup>
-                        {categories?.map((category) => (
-                          <SelectItem key={category.id} value={category.id}>
-                            {category.name}
-                          </SelectItem>
-                        ))}
-                      </SelectGroup>
-                    </SelectContent>
-                  </Select>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
+              <Select {...field} placeholder="Select a category" allowClear>
+                {categories.map((category) => (
+                  <Option key={category.id} value={category.id}>
+                    {category.name}
+                  </Option>
+                ))}
+              </Select>
             )}
           />
-        </div>
-        <div className="col-span-2">
-          <FormField
-            control={control}
+        </Form.Item>
+
+        {/* Brand */}
+        <Form.Item
+          label="Brand"
+          validateStatus={errors.brandId ? "error" : ""}
+          help={errors.brandId?.message}
+          required
+        >
+          <Controller
             name="brandId"
+            control={control}
             render={({ field }) => (
-              <FormItem>
-                <FormLabel>Brand</FormLabel>
-                <FormControl>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <SelectTrigger className="w-[180px]">
-                      <SelectValue placeholder="Select a brand" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectGroup>
-                        {brands?.map((brand) => (
-                          <SelectItem key={brand.id} value={brand.id}>
-                            {brand.name}
-                          </SelectItem>
-                        ))}
-                      </SelectGroup>
-                    </SelectContent>
-                  </Select>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
+              <Select {...field} placeholder="Select a brand" allowClear>
+                {brands.map((brand) => (
+                  <Option key={brand.id} value={brand.id}>
+                    {brand.name}
+                  </Option>
+                ))}
+              </Select>
             )}
           />
-        </div>
-        <div className="col-span-2">
-          <FormField
-            control={control}
+        </Form.Item>
+
+        {/* Stock */}
+        <Form.Item
+          label="Stock"
+          validateStatus={errors.stock ? "error" : ""}
+          help={errors.stock?.message}
+          required
+        >
+          <Controller
             name="stock"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Stock</FormLabel>
-                <FormControl>
-                  <Input
-                    {...field}
-                    className="bg-white text-right"
-                    id="stock"
-                    type="number"
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-        <div className="col-span-2">
-          <FormField
             control={control}
-            name="active"
             render={({ field }) => (
-              <FormItem>
-                <FormLabel>Active</FormLabel>
-                <FormControl>
-                  <div>
-                    <Switch {...field} className="bg-white" id="active" />
-                  </div>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
+              <InputNumber
+                {...field}
+                min={0}
+                placeholder="Enter stock quantity"
+                style={{ width: '100%' }}
+              />
             )}
           />
-        </div>
+        </Form.Item>
+
+        {/* Active */}
+        <Form.Item
+          label="Active Status"
+          name="active"
+          valuePropName="checked"
+          validateStatus={errors.active ? "error" : ""}
+          help={errors.active?.message}
+        >
+           <Controller
+            name="active"
+            control={control}
+            render={({ field }) => (
+               <Switch {...field} checked={field.value} />
+            )}
+          />
+        </Form.Item>
       </div>
-      <Button type="button" onClick={createDummy}>
-        Create Dummy Product
-      </Button>
-      <Button type="button" onClick={deleteDuplicate}>
-        Delete Duplicate
-      </Button>
     </div>
-  ) : null;
+  );
 };
