@@ -35,31 +35,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setIsLoading(true);
     console.log("Checking authentication status...");
     try {
-      const storedUser = localStorage.getItem('user');
-      if (storedUser) {
-        const userData = JSON.parse(storedUser);
-        console.log("User found in localStorage:", userData); 
+      const response = await newRequest.get(API_ENDPOINTS.CHECK_AUTH);
+      if (response.data) {
+        const userData = response.data;
+        console.log("User found:", userData);
         setUser(userData);
       } else {
-        console.log("No user found. Checking API...");
-        const response = await newRequest.get(API_ENDPOINTS.CHECK_AUTH);
-        if (response.data) {
-          const userData = response.data;
-          console.log("User found:", userData);
-          setUser(userData);
-        } else {
-          console.log("No user found.");
-          setUser(null);
-          if (pathname !== "/login") {
-            console.log("Redirecting to /login");
-            router.push("/login");
-          }
+        console.log("No user found.");
+        setUser(null);
+        if (pathname !== "/login") {
+          console.log("Redirecting to /login");
+          router.push("/login");
         }
       }
     } catch (error) {
       console.error("Auth check failed:", error);
       setUser(null);
-      localStorage.removeItem('user');
+      localStorage.removeItem("user");
       if (pathname !== "/login") {
         router.push("/login");
       }
@@ -80,7 +72,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const userData = response.data.user;
       console.log("Login successful:", userData);
       setUser(userData);
-      localStorage.setItem('user', JSON.stringify(userData));
+      localStorage.setItem("user", JSON.stringify(userData));
       return userData;
     } catch (error: any) {
       console.error("Login failed:", error);
@@ -96,7 +88,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       await newRequest.post(API_ENDPOINTS.LOGOUT);
       setUser(null);
-      localStorage.removeItem('user');
+      localStorage.removeItem("user");
       console.log("User logged out. Redirecting to /login");
       router.push("/login");
     } catch (error) {

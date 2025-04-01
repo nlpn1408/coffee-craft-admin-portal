@@ -1,17 +1,17 @@
 "use client";
 
-import React from "react"; // Import React
+import React from "react";
 import { Brand, NewBrand } from "@/types";
-import { Modal } from "antd"; // Import Ant Design Modal
-// Correct the import path if BrandForm is moved
-import { BrandForm } from "@/app/categories/BrandTab/BrandForm"; // Import the new form component
+import { Modal } from "antd";
+import { BrandForm } from "./BrandForm"; // Import the form component
 
+// Define props, ensuring initialData is included
 interface CreateBrandModalProps {
   isOpen: boolean;
   onClose: () => void;
   onCreate: (data: NewBrand) => Promise<void> | void;
-  isSuccess?: boolean; // Keep for consistency, though not used by BrandForm directly
-  initialData?: Brand | null;
+  isSuccess?: boolean;
+  initialData?: Brand | null; // Add initialData prop
   isLoading?: boolean;
 }
 
@@ -20,7 +20,7 @@ export default function CreateBrandModal({
   onClose,
   onCreate,
   isSuccess, // Prop is kept but not directly used by BrandForm
-  initialData,
+  initialData, // Accept initialData
   isLoading = false,
 }: CreateBrandModalProps) {
   const modalTitle = initialData ? "Edit Brand" : "Create Brand";
@@ -29,17 +29,17 @@ export default function CreateBrandModal({
     <Modal
       title={modalTitle}
       open={isOpen}
-      onCancel={onClose} // Modal's cancel calls onClose
-      footer={null} // Footer is rendered within BrandForm
+      onCancel={onClose}
+      footer={null}
       destroyOnClose
       maskClosable={false}
     >
       {/* Render BrandForm and pass necessary props */}
       <BrandForm
-        onSubmit={onCreate} // Pass the submission handler
-        initialData={initialData}
+        onSubmit={onCreate}
+        initialData={initialData} // Pass initialData down
         isLoading={isLoading}
-        onCancel={onClose} // Pass onClose for the form's cancel button
+        onCancel={onClose}
       />
     </Modal>
   );

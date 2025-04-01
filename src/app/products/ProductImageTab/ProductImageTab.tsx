@@ -14,6 +14,7 @@ import { handleApiError, showSuccessToast } from "@/lib/api-utils";
 import { Select } from "antd";
 import { ProductImageTable } from "./ProductImageTable";
 import UploadImageModal from "./UploadImageModal";
+import axios from "axios";
 
 const ProductImageTab = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);

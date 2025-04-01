@@ -3,8 +3,8 @@
 import Header from "@/components/Header";
 import { Tabs } from "antd";
 import type { TabsProps } from "antd";
-import BrandTab from "./components/BrandTab";
-import CategoryTab from "./components/CategoryTab";
+import BrandTab from "./BrandTab/BrandTab";
+import CategoryTab from "./CategoryTab/CategoryTab";
 
 const CategoriesPage = () => {
   const items: TabsProps["items"] = [

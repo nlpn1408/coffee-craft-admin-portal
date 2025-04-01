@@ -7,6 +7,9 @@ import { USER_ROLES } from "@/lib/constants/constans"; // Import USER_ROLES
 
 const { Option } = Select;
 
+// Define roles - adjust as needed
+// const ROLES = ["admin", "user"]; // Removed hardcoded roles
+
 // Define props, including onSubmit with typed data
 interface CreateUserModalProps {
   isOpen: boolean;
@@ -35,7 +38,7 @@ export default function CreateUserModal({
           email: initialData.email,
           role: initialData.role,
           // Clear password field when editing
-          password: "",
+          password: '',
         });
       } else {
         form.resetFields(); // Reset for create
@@ -73,7 +76,7 @@ export default function CreateUserModal({
           layout="vertical"
           onFinish={handleFinish}
           className="mt-6"
-          initialValues={{ role: "user" }} // Default role
+          initialValues={{ role: 'user' }} // Default role
         >
           <Form.Item
             name="name"
@@ -88,37 +91,41 @@ export default function CreateUserModal({
             label="Email"
             rules={[
               { required: true, message: "Please enter user's email" },
-              { type: "email", message: "Please enter a valid email" },
+              { type: 'email', message: 'Please enter a valid email' }
             ]}
           >
-            <Input
-              placeholder="Enter email"
-              type="email"
-              disabled={isEditing}
-            />{" "}
-            {/* Disable email editing */}
+            <Input placeholder="Enter email" type="email" disabled={isEditing} /> {/* Disable email editing */}
           </Form.Item>
 
           {/* Password - Required only on create */}
-
-          <Form.Item
-            name="password"
-            label="Password"
-            rules={[
-              { required: true, message: "Please enter a password" },
-              { min: 6, message: "Password must be at least 6 characters" },
-            ]}
-            hasFeedback // Add feedback icon for validation
-          >
-            {isEditing ? (
-              <Input.Password placeholder="Enter new password to change" />
-            ) : (
+          {!isEditing && (
+            <Form.Item
+              name="password"
+              label="Password"
+              rules={[
+                { required: true, message: "Please enter a password" },
+                { min: 6, message: 'Password must be at least 6 characters' }
+              ]}
+              hasFeedback // Add feedback icon for validation
+            >
               <Input.Password placeholder="Enter password" />
-            )}
-          </Form.Item>
+            </Form.Item>
+          )}
+
+          {/* Password - Optional on edit */}
+          {isEditing && (
+            <Form.Item
+              name="password"
+              label="New Password (Optional)"
+              rules={[{ min: 6, message: 'Password must be at least 6 characters' }]}
+              hasFeedback
+            >
+              <Input.Password placeholder="Enter new password to change" />
+            </Form.Item>
+          )}
 
           <Form.Item
-            // name="role"
+            name="role"
             label="Role"
             rules={[{ required: true, message: "Please select a role" }]}
           >
