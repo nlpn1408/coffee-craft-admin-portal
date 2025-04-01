@@ -1,6 +1,7 @@
-import axios from "axios";
+import axios, { AxiosError } from "axios"; // Import AxiosError
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
+import { handleUnauthorized } from "@/contexts/AuthContext"; // Import the handler
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -49,6 +50,27 @@ export function composeEventHandlers<E>(
 }
 
 export const newRequest = axios.create({
-  withCredentials: true,
+  withCredentials: true, // Important for session cookies
   baseURL: process.env.NEXT_PUBLIC_API_BASE_URL,
 });
+
+// Add a response interceptor
+newRequest.interceptors.response.use(
+  (response) => {
+    // Any status code that lie within the range of 2xx cause this function to trigger
+    // Do something with response data
+    return response;
+  },
+  (error: AxiosError) => {
+    // Any status codes that falls outside the range of 2xx cause this function to trigger
+    // Check if the error is a 401 Unauthorized
+    if (error.response && error.response.status === 401) {
+      console.error("Interceptor caught 401 Unauthorized error.");
+      // Call the handler function from AuthContext
+      handleUnauthorized();
+    }
+    // Do something with response error
+    // It's important to reject the promise so downstream catches work
+    return Promise.reject(error);
+  }
+);

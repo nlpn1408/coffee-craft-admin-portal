@@ -11,6 +11,7 @@ import {
   Layout,
   LucideIcon,
   Menu,
+  ShoppingCart, // Import ShoppingCart icon
   SlidersHorizontal,
   User,
 } from "lucide-react";
@@ -89,13 +90,6 @@ const Sidebar = () => {
           isSidebarCollapsed ? "px-5" : "px-8"
         }`}
       >
-        {/* <Image
-            src="https://s3-coffee-craft.s3.ap-southeast-1.amazonaws.com/logo.png"
-            alt="COFFEE CRAFT-logo"
-            width={27}
-            height={27}
-            className="rounded w-8"
-          /> */}
         <h1
           className={`${
             isSidebarCollapsed ? "hidden" : "block"
@@ -145,6 +139,12 @@ const Sidebar = () => {
           href="/products"
           icon={Clipboard}
           label="Products"
+          isCollapsed={isSidebarCollapsed}
+        />
+        <SidebarLink
+          href="/orders"
+          icon={ShoppingCart} // Add Orders link
+          label="Orders"
           isCollapsed={isSidebarCollapsed}
         />
         <SidebarLink

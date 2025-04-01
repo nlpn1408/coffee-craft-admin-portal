@@ -21,11 +21,14 @@ type DataIndex = keyof User;
 // Hook Arguments Interface
 interface UseUserTableColumnsProps {
   onEdit: (user: User) => void;
-  // Add other action handlers as needed (e.g., onDeactivate, onViewDetails)
+  onViewDetails: (userId: string) => void;
+  onDelete: (userId: string) => void; // Add handler for deleting user
 }
 
 export const useUserTableColumns = ({
   onEdit,
+  onViewDetails,
+  onDelete, // Destructure the new handler
 }: UseUserTableColumnsProps): TableProps<User>["columns"] => {
 
   const getColumnSearchProps = useColumnSearch<User>();
@@ -39,12 +42,10 @@ export const useUserTableColumns = ({
        message.success('User ID copied to clipboard');
     } else if (e.key === 'edit') {
        onEdit(user);
-    } else if (e.key === 'deactivate') {
-       console.warn("Deactivate action not implemented");
-       // Add deactivate logic here, potentially calling a prop function
+    } else if (e.key === 'delete') { // Handle delete key
+       onDelete(user.id); // Call the onDelete handler
     } else if (e.key === 'details') {
-       console.warn("Details view not implemented");
-       // Add details view logic here
+       onViewDetails(user.id); // Call the handler with the user ID
     } else {
         message.info(`Action '${e.key}' clicked for user ID: ${user.id}`);
     }
@@ -60,11 +61,11 @@ export const useUserTableColumns = ({
     if (currentUser?.role === USER_ROLES.ADMIN.value) {
       items.push({ label: 'Edit User', key: 'edit' });
       items.push({ type: 'divider' });
-      // Optional: Prevent admin from deactivating themselves
-      if (currentUser.id !== user.id) {
-        items.push({ label: 'Deactivate User', key: 'deactivate', danger: true });
-      }
-    }
+       // Prevent admin from deleting themselves
+       if (currentUser.id !== user.id) {
+         items.push({ label: 'Delete User', key: 'delete', danger: true });
+       }
+     }
 
     return items;
   };
@@ -82,7 +83,7 @@ export const useUserTableColumns = ({
       title: "Name",
       dataIndex: "name",
       key: "name",
-      sorter: (a, b) => a.name.localeCompare(b.name),
+      sorter: (a, b) => (a.name ?? '').localeCompare(b.name ?? ''), // Handle null/undefined names
       ...getColumnSearchProps('name'),
     },
     {
@@ -122,9 +123,13 @@ export const useUserTableColumns = ({
       align: 'center',
       width: 80,
       render: (_, record) => (
-        <Dropdown overlay={<Menu items={getMenuItems(record)} onClick={(e) => handleMenuClick(e, record)} />}>
-          {/* Render button only if there are items to show (besides copy/details if those are always shown) */}
-          {/* Or always render and let the menu handle item visibility */}
+        <Dropdown
+          menu={{ // Use menu prop instead of overlay
+            items: getMenuItems(record),
+            onClick: (e) => handleMenuClick(e, record),
+          }}
+          trigger={['click']} // Optional: specify trigger if needed
+        >
           <Button type="text" icon={<MoreOutlined />} />
         </Dropdown>
       ),

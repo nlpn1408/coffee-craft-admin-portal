@@ -1,5 +1,4 @@
-import { ProductImage } from './api';
-import { Product } from './index';
+import { ProductImage, Product } from './index'; // Import both from index.ts
 
 export interface ProductFormData {
   name: string;

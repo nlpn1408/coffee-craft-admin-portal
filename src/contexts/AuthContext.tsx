@@ -8,134 +8,101 @@ import React, {
   ReactNode,
 } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { User } from "@/types/auth";
+import { User } from "@/types";
 import { API_ENDPOINTS } from "@/lib/constants/api";
-import { newRequest } from "@/lib/utils";
-import LoadingScreen from "@/components/LoadingScreen";
+import { newRequest } from "@/lib/utils"; // Interceptor configured here
+// LoadingScreen removed as it's no longer used for initial load
 
 interface AuthContextType {
   user: User | null;
-  isLoading: boolean;
+  // setUser is no longer exposed
   login: (email: string, password: string) => Promise<User>;
   logout: () => Promise<void>;
-  checkAuth: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Store context instance outside to potentially access setUser from interceptor
+let authContextSetUser: React.Dispatch<React.SetStateAction<User | null>> | null = null;
+
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true); // Start loading until first checkAuth completes
+  // hasInitialized state removed
   const router = useRouter();
   const pathname = usePathname();
 
-  // Function to check authentication status (API call)
-  const checkAuth = async () => {
-    // Don't set isLoading true here if already checking on mount
-    console.log("Checking authentication status...");
-    try {
-      const response = await newRequest.get(API_ENDPOINTS.CHECK_AUTH);
-      if (response.data) {
-        const userData = response.data;
-        console.log("User found via checkAuth:", userData);
-        setUser(userData);
-      } else {
-        console.log("No user found via checkAuth.");
-        setUser(null);
-        // Redirect only if not already on login page
-        if (pathname !== "/login") {
-          console.log("Redirecting to /login from checkAuth failure");
-          router.push("/login");
-        }
-      }
-    } catch (error) {
-      console.error("Auth check failed:", error);
-      setUser(null);
-      // Redirect only if not already on login page
-      if (pathname !== "/login") {
-        router.push("/login");
-      }
-    } finally {
-      // Set loading false only after the *initial* check completes
-      if (isLoading) {
-        setIsLoading(false);
-        console.log("Initial auth check finished. Loading:", false);
-      }
-    }
-  };
-
-  // Login function (API call)
+  // Login API call
   const login = async (email: string, password: string): Promise<User> => {
-    console.log("Attempting login with email:", email);
-    // Consider setting loading state during login attempt if needed
-    // setIsLoading(true);
     try {
-      const response = await newRequest.post(API_ENDPOINTS.LOGIN, {
-        email,
-        password,
-      });
-      const userData = response.data.user; // Adjust if API response structure differs
-      console.log("Login successful:", userData);
+      const response = await newRequest.post(API_ENDPOINTS.LOGIN, { email, password });
+      const userData = response.data.user;
+      if (!userData) throw new Error("Login response missing user data.");
+
+      localStorage.setItem('user', JSON.stringify(userData));
       setUser(userData);
-      // Removed localStorage.setItem("user", JSON.stringify(userData));
-      // Redirect to dashboard after successful login
       router.push("/dashboard");
       return userData;
     } catch (error: any) {
       console.error("Login failed:", error);
-      // Optionally display error message to user
-      // message.error(error.response?.data?.message || "Invalid email or password");
-      throw new Error(
-        error.response?.data?.message || "Invalid email or password"
-      );
-    } finally {
-      setIsLoading(false);
+      localStorage.removeItem('user');
+      setUser(null);
+      throw new Error(error.response?.data?.message || "Invalid email or password");
     }
   };
 
-  // Logout function (API call)
+  // Logout API call
   const logout = async () => {
-    console.log("Logging out...");
+    const currentUser = user;
+    setUser(null);
+    localStorage.removeItem('user');
+    router.push("/login"); // Redirect immediately
     try {
-      await newRequest.post(API_ENDPOINTS.LOGOUT);
+      if (currentUser) {
+           await newRequest.post(API_ENDPOINTS.LOGOUT);
+      }
     } catch (error) {
       console.error("Logout API call failed:", error);
-      // Still proceed with client-side logout even if API fails
-    } finally {
-      setUser(null);
-      // Removed localStorage.removeItem("user");
-      console.log("User logged out. Redirecting to /login");
-      router.push("/login");
     }
   };
 
-  // Check authentication status when the provider mounts
+  // Initialize auth state on mount from localStorage ONLY
   useEffect(() => {
-    checkAuth();
-  }, []);
+    const storedUser = localStorage.getItem('user');
+    let userFromStorage: User | null = null;
 
-  // This effect might become redundant or need adjustment
-  // as checkAuth handles redirection on initial load/failure.
-  // Keep it for now to handle cases where state changes post-initial load.
-  useEffect(() => {
-    if (!isLoading) {
-      if (!user && pathname !== "/login") {
-        console.log(
-          "Effect redirect: Not logged in, not on login page. Redirecting."
-        );
-        router.push("/login");
-      } else if (user && pathname === "/login") {
-        console.log(
-          "Effect redirect: Logged in, but on login page. Redirecting to dashboard."
-        );
-        router.push("/dashboard");
+    if (storedUser) {
+      try {
+        userFromStorage = JSON.parse(storedUser);
+      } catch (e) {
+        localStorage.removeItem('user'); // Clear invalid data
+        console.error("Failed to parse stored user:", e);
       }
     }
-  }, [user, isLoading, pathname, router]);
 
+    setUser(userFromStorage);
+
+    // Redirect immediately if no user found and not on login page
+    // This runs after the first render but before the browser paints (usually)
+    if (!userFromStorage && pathname !== "/login") {
+        router.push("/login");
+    }
+    // No need to track initialization separately anymore
+
+  }, []); // Run only once on mount
+
+   // Store the setUser function for the interceptor
+   useEffect(() => {
+    authContextSetUser = setUser;
+    return () => { authContextSetUser = null; }; // Cleanup on unmount
+  }, []); // Only needs to run once to capture setUser
+
+
+  // --- Rendering Logic ---
+  // Render children if user exists OR if on the login page. Otherwise render null.
+  // Note: May render null briefly on initial load before useEffect redirects.
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, logout, checkAuth }}>
-      {isLoading ? <LoadingScreen /> : children}
+    <AuthContext.Provider value={{ user, login, logout }}>
+      {(user || pathname === "/login") ? children : null}
     </AuthContext.Provider>
   );
 };
@@ -146,4 +113,17 @@ export const useAuth = () => {
     throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
+};
+
+// Function to be called by the API interceptor on 401
+export const handleUnauthorized = () => {
+  console.warn("Unauthorized access detected (401). Clearing storage and redirecting.");
+  localStorage.removeItem('user');
+  if (authContextSetUser) {
+      authContextSetUser(null); // Attempt to update state via stored setter
+  }
+  // Force reload redirect to login
+  if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
+      window.location.href = '/login';
+  }
 };

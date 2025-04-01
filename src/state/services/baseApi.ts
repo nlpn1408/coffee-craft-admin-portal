@@ -2,13 +2,6 @@ import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 
 const baseQueryWithAuth = fetchBaseQuery({
   baseUrl: process.env.NEXT_PUBLIC_API_BASE_URL,
-  prepareHeaders: (headers) => {
-    const token = localStorage.getItem("token");
-    if (token) {
-      headers.set("authorization", `Bearer ${token}`);
-    }
-    return headers;
-  },
   credentials: "include",
 });
 
@@ -23,5 +16,6 @@ export const baseApi = createApi({
     "Categories",
     "Brands",
     "ProductImages",
+    "Order",
   ],
 });

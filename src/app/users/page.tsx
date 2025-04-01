@@ -1,189 +1,167 @@
 "use client";
 
-import React, { useState, useEffect } from "react"; // Removed useMemo, useRef, Key
-import Header from "@/components/Header";
-import {
-  useGetUsersQuery,
-  useCreateUserMutation,
-  useUpdateUserMutation,
-  useDeleteUserMutation,
-} from "@/state/api";
-import { User as ApiUser, NewUser } from "@/types";
-// import { format } from "date-fns"; // Moved to hook
-import { Button, message } from "antd"; // Removed Dropdown, Menu, Space, Tag, Input, InputRef
-// import type { MenuProps, TableProps } from "antd"; // Moved to hook
-// import type { ColumnType, FilterConfirmProps, FilterDropdownProps } from 'antd/es/table/interface'; // Moved to hook
-// import { MoreOutlined, SearchOutlined } from "@ant-design/icons"; // Moved to hook
+import React, { useState, useCallback } from "react";
+import { Button, Card, message, Spin, Modal as AntModal } from "antd"; // Import AntModal for confirmation
+import { PlusOutlined, ExclamationCircleFilled } from "@ant-design/icons";
+import { useGetUsersQuery, useCreateUserMutation, useUpdateUserMutation, useDeleteUserMutation } from "@/state/services/userService"; // Import delete hook
+import { useUserTableColumns } from "./components/useUserTableColumns";
 import { GenericDataTable } from "@/components/GenericDataTable/GenericDataTable";
-import LoadingScreen from "@/components/LoadingScreen";
+import { User, NewUser } from "@/types";
 import CreateUserModal from "./components/CreateUserModal";
-import { handleApiError } from "@/lib/api-utils";
-import { useUserTableColumns } from "./components/useUserTableColumns"; // Import the hook
+import UserDetailModal from "./components/UserDetailModal";
 
-// Define the User type used in this component
-interface User extends ApiUser {
-  // status: "active" | "inactive"; // Example if status is added client-side
-}
+const { confirm } = AntModal; // Destructure confirm modal
 
-// Removed DataIndex type alias
+export default function UsersPage() {
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [viewingUserId, setViewingUserId] = useState<string | null>(null);
 
-const UsersPage = () => {
-  const {
-    data: users = [],
-    isError,
-    isLoading,
-    refetch: refetchUsers,
-  } = useGetUsersQuery();
-
-  // Use actual mutation hooks
   const [createUser, { isLoading: isCreating }] = useCreateUserMutation();
   const [updateUser, { isLoading: isUpdating }] = useUpdateUserMutation();
-  const [deleteUser, { isLoading: isDeleting }] = useDeleteUserMutation();
+  const [deleteUser, { isLoading: isDeleting }] = useDeleteUserMutation(); // Use delete hook
 
-  const [isUserModalOpen, setIsUserModalOpen] = useState(false);
-  const [editingUser, setEditingUser] = useState<User | null>(null);
-
-  // Combined loading states for actions passed to GenericDataTable and Modal
-  const isActionLoading = isCreating || isUpdating || isDeleting;
-
-  // --- Modal Handlers ---
-  const handleCreateUserClick = () => {
-    setEditingUser(null);
-    setIsUserModalOpen(true);
-  };
-
-  const handleEditUserClick = (user: User) => {
-    setEditingUser(user);
-    setIsUserModalOpen(true);
-  };
-
-  const handleModalClose = () => {
-    setIsUserModalOpen(false);
-    setEditingUser(null);
-  };
-
-  // --- CRUD Handlers ---
-  const handleCreateUser = async (userData: Partial<NewUser>) => {
-    if (
-      !userData.name ||
-      !userData.email ||
-      !userData.password ||
-      !userData.role
-    ) {
-      message.error(
-        "Name, Email, Password, and Role are required to create a user."
-      );
-      return;
-    }
-    const finalUserData = userData as NewUser;
-
-    message.loading({ content: "Creating user...", key: "createUser" });
-    try {
-      await createUser(finalUserData).unwrap();
-      message.success({
-        content: "User created successfully",
-        key: "createUser",
-      });
-      setIsUserModalOpen(false);
-      refetchUsers();
-    } catch (error) {
-      message.error({ content: "Failed to create user", key: "createUser" });
-      handleApiError(error);
-    }
-  };
-
-  const handleUpdateUser = async (id: string, userData: Partial<NewUser>) => {
-    message.loading({ content: "Updating user...", key: "updateUser" });
-    try {
-      await updateUser({ id, ...userData }).unwrap();
-      message.success({
-        content: "User updated successfully",
-        key: "updateUser",
-      });
-      setIsUserModalOpen(false);
-      setEditingUser(null);
-      refetchUsers();
-    } catch (error) {
-      message.error({ content: "Failed to update user", key: "updateUser" });
-      handleApiError(error);
-    }
-  };
-
-  const handleDeleteSelected = async (
-    selectedIds: React.Key[]
-  ): Promise<boolean> => {
-    const key = "deleting_selected_users";
-    message.loading({
-      content: `Deleting ${selectedIds.length} users...`,
-      key,
-      duration: 0,
-    });
-    try {
-      await Promise.all(
-        selectedIds.map((id) => deleteUser(id as string).unwrap())
-      );
-      message.success({
-        content: `${selectedIds.length} users deleted successfully`,
-        key,
-      });
-      refetchUsers();
-      return true; // Indicate success
-    } catch (error) {
-      message.error({ content: `Failed to delete selected users`, key });
-      handleApiError(error);
-      return false; // Indicate failure
-    }
-  };
-  // --- End CRUD Handlers ---
-
-  // --- Get Columns from Hook ---
-  const columns = useUserTableColumns({
-    onEdit: handleEditUserClick,
-    // Pass other handlers if defined in the hook
+  const {
+    data: usersData,
+    isLoading: isLoadingUsers,
+    isError,
+    refetch,
+  } = useGetUsersQuery(undefined, {
+    refetchOnMountOrArgChange: true,
   });
-  // --- End Get Columns from Hook ---
 
-  if (isLoading) {
-    return <LoadingScreen />;
+  const handleOpenCreateModal = useCallback((user: User | null = null) => {
+    setEditingUser(user);
+    setIsCreateModalOpen(true);
+  }, []);
+
+  const handleCloseCreateModal = useCallback(() => {
+    setIsCreateModalOpen(false);
+    setEditingUser(null);
+  }, []);
+
+  const handleOpenDetailModal = useCallback((userId: string) => {
+    setViewingUserId(userId);
+    setIsDetailModalOpen(true);
+  }, []);
+
+  const handleCloseDetailModal = useCallback(() => {
+    setIsDetailModalOpen(false);
+    setViewingUserId(null);
+  }, []);
+
+  const handleCreateSubmit = async (values: Partial<NewUser>) => {
+    try {
+      if (editingUser) {
+        await updateUser({ id: editingUser.id, ...values }).unwrap();
+        message.success("User updated successfully!");
+      } else {
+        await createUser(values as NewUser).unwrap();
+        message.success("User created successfully!");
+      }
+      handleCloseCreateModal();
+      refetch();
+    } catch (error: any) {
+      console.error("Failed to save user:", error);
+      message.error(`Failed to save user: ${error.data?.message || error.message || 'Unknown error'}`);
+    }
+  };
+
+  // Handler for deleting a single user
+  const handleDeleteUser = useCallback((userId: string) => {
+    confirm({
+      title: 'Are you sure you want to delete this user?',
+      icon: <ExclamationCircleFilled />,
+      content: 'This action cannot be undone.',
+      okText: 'Yes, Delete',
+      okType: 'danger',
+      cancelText: 'No',
+      onOk: async () => {
+        try {
+          await deleteUser(userId).unwrap();
+          message.success("User deleted successfully!");
+          refetch(); // Refetch the user list
+        } catch (error: any) {
+          console.error("Failed to delete user:", error);
+          message.error(`Failed to delete user: ${error.data?.message || error.message || 'Unknown error'}`);
+        }
+      },
+      onCancel() {
+        console.log('Delete cancelled');
+      },
+    });
+  }, [deleteUser, refetch]); // Add dependencies
+
+   // Handler for deleting selected rows (placeholder)
+   const handleDeleteSelected = async (selectedIds: React.Key[]) => {
+    // Bulk delete might need a different confirmation/API call
+    console.log("Attempting to delete selected user IDs:", selectedIds);
+    await new Promise(resolve => setTimeout(resolve, 500));
+    message.warning("Bulk user deletion not implemented.");
+    return false;
+  };
+
+  const columns = useUserTableColumns({
+    onEdit: handleOpenCreateModal,
+    onViewDetails: handleOpenDetailModal,
+    onDelete: handleDeleteUser, // Pass the delete handler
+  });
+
+  if (isError) {
+    message.error("Failed to load users.");
   }
 
-  if (isError || !users) {
-    return (
-      <div className="text-center text-red-500 py-4">Failed to fetch users</div>
-    );
-  }
+  // Combine all mutation loading states for generic actions if needed
+  const isLoadingMutation = isCreating || isUpdating || isDeleting;
 
   return (
-    <div className="flex flex-col">
-      <Header name="Users" />
-      {/* Use GenericDataTable */}
-      <GenericDataTable
-        columns={columns}
-        dataSource={users}
-        loading={isLoading}
-        entityName="User"
-        onCreate={handleCreateUserClick}
-        onDeleteSelected={handleDeleteSelected}
-        isActionLoading={isActionLoading}
-        isDeleting={isDeleting}
-      />
+    <Card
+      title="Manage Users"
+      variant="borderless"
+      extra={
+        <Button
+          type="primary"
+          icon={<PlusOutlined />}
+          onClick={() => handleOpenCreateModal()}
+        >
+          Create User
+        </Button>
+      }
+    >
+      <Spin spinning={isLoadingUsers}>
+        <GenericDataTable<User>
+          columns={columns}
+          dataSource={usersData ?? []}
+          loading={isLoadingUsers}
+          entityName="User"
+          onCreate={() => handleOpenCreateModal()}
+          onDeleteSelected={handleDeleteSelected} // Keep placeholder for bulk delete button
+          // Pass loading states
+          isActionLoading={isLoadingMutation} // General loading for toolbar buttons
+          isDeleting={isDeleting} // Specific loading for delete confirmation
+        />
+      </Spin>
 
-      {/* Create/Edit User Modal */}
-      {isUserModalOpen && (
+      {/* Create/Edit Modal */}
+      {isCreateModalOpen && (
         <CreateUserModal
-          isOpen={isUserModalOpen}
-          onClose={handleModalClose}
-          onSubmit={
-            editingUser
-              ? (data) => handleUpdateUser(editingUser.id, data)
-              : handleCreateUser
-          }
+          isOpen={isCreateModalOpen}
+          onClose={handleCloseCreateModal}
+          onSubmit={handleCreateSubmit}
           initialData={editingUser}
-          isLoading={isCreating || isUpdating}
+          isLoading={isCreating || isUpdating} // Pass relevant loading state
         />
       )}
-    </div>
-  );
-};
 
-export default UsersPage;
+       {/* Detail Modal */}
+      {isDetailModalOpen && viewingUserId && (
+        <UserDetailModal
+          isOpen={isDetailModalOpen}
+          onClose={handleCloseDetailModal}
+          userId={viewingUserId}
+        />
+      )}
+    </Card>
+  );
+}

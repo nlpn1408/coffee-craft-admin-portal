@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import 'antd/dist/reset.css'; // Import Ant Design CSS reset
+import "antd/dist/reset.css"; // Import Ant Design CSS reset
 import DashboardWrapper from "./dashboardWrapper";
 import { Toaster } from "@/components/ui/toaster"; // Keep toaster for now, might replace later
 import { AuthProvider } from "@/contexts/AuthContext";
@@ -14,7 +14,6 @@ export const metadata: Metadata = {
   description: "Admin Portal",
 };
 
-
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -24,7 +23,6 @@ export default function RootLayout({
     <html lang="en">
       <body className={inter.className}>
         <AuthProvider>
-          {/* DashboardWrapper might be conditionally rendered later based on auth state */}
           <DashboardWrapper>
             {children}
             <Toaster />

@@ -34,7 +34,7 @@ export default function CreateUserModal({
     if (isOpen) {
       if (initialData) {
         form.setFieldsValue({
-          name: initialData.name,
+          name: initialData.name ?? undefined, // Convert null to undefined for the form
           email: initialData.email,
           role: initialData.role,
           // Clear password field when editing
