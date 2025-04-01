@@ -9,7 +9,6 @@ import React, {
 } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { User } from "@/types/auth";
-import axios from "axios";
 import { API_ENDPOINTS } from "@/lib/constants/api";
 import { newRequest } from "@/lib/utils";
 import LoadingScreen from "@/components/LoadingScreen";
@@ -26,59 +25,71 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true); // Start loading until first checkAuth completes
   const router = useRouter();
   const pathname = usePathname();
 
   // Function to check authentication status (API call)
   const checkAuth = async () => {
-    setIsLoading(true);
+    // Don't set isLoading true here if already checking on mount
     console.log("Checking authentication status...");
     try {
       const response = await newRequest.get(API_ENDPOINTS.CHECK_AUTH);
       if (response.data) {
         const userData = response.data;
-        console.log("User found:", userData);
+        console.log("User found via checkAuth:", userData);
         setUser(userData);
       } else {
-        console.log("No user found.");
+        console.log("No user found via checkAuth.");
         setUser(null);
+        // Redirect only if not already on login page
         if (pathname !== "/login") {
-          console.log("Redirecting to /login");
+          console.log("Redirecting to /login from checkAuth failure");
           router.push("/login");
         }
       }
     } catch (error) {
       console.error("Auth check failed:", error);
       setUser(null);
-      localStorage.removeItem("user");
+      // Redirect only if not already on login page
       if (pathname !== "/login") {
         router.push("/login");
       }
     } finally {
-      setIsLoading(false);
-      console.log("Auth check finished. Loading:", false);
+      // Set loading false only after the *initial* check completes
+      if (isLoading) {
+        setIsLoading(false);
+        console.log("Initial auth check finished. Loading:", false);
+      }
     }
   };
 
   // Login function (API call)
   const login = async (email: string, password: string): Promise<User> => {
     console.log("Attempting login with email:", email);
+    // Consider setting loading state during login attempt if needed
+    // setIsLoading(true);
     try {
       const response = await newRequest.post(API_ENDPOINTS.LOGIN, {
         email,
         password,
       });
-      const userData = response.data.user;
+      const userData = response.data.user; // Adjust if API response structure differs
       console.log("Login successful:", userData);
       setUser(userData);
-      localStorage.setItem("user", JSON.stringify(userData));
+      // Removed localStorage.setItem("user", JSON.stringify(userData));
+      // Redirect to dashboard after successful login
+      router.push("/dashboard");
       return userData;
     } catch (error: any) {
       console.error("Login failed:", error);
+      // Optionally display error message to user
+      // message.error(error.response?.data?.message || "Invalid email or password");
       throw new Error(
         error.response?.data?.message || "Invalid email or password"
-      ); // Propagate error message
+      );
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -87,22 +98,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     console.log("Logging out...");
     try {
       await newRequest.post(API_ENDPOINTS.LOGOUT);
+    } catch (error) {
+      console.error("Logout API call failed:", error);
+      // Still proceed with client-side logout even if API fails
+    } finally {
       setUser(null);
-      localStorage.removeItem("user");
+      // Removed localStorage.removeItem("user");
       console.log("User logged out. Redirecting to /login");
       router.push("/login");
-    } catch (error) {
-      console.error("Logout failed:", error);
-      // Handle logout failure (e.g., show error message)
     }
   };
 
   // Check authentication status when the provider mounts
   useEffect(() => {
     checkAuth();
-  }, []); // Run only once on mount
+  }, []);
 
-  // Redirect logic based on auth state and current path
+  // This effect might become redundant or need adjustment
+  // as checkAuth handles redirection on initial load/failure.
+  // Keep it for now to handle cases where state changes post-initial load.
   useEffect(() => {
     if (!isLoading) {
       if (!user && pathname !== "/login") {

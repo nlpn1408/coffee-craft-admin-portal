@@ -3,9 +3,9 @@ export const USER_ROLES = {
     name: "Admin",
     value: "ADMIN",
   },
-  USER: {
-    name: "User",
-    value: "USER",
+  CUSTOMER: {
+    name: "Customer",
+    value: "CUSTOMER",
   },
   STAFF: {
     name: "Staff",

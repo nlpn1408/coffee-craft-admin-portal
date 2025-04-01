@@ -28,7 +28,12 @@ interface User extends ApiUser {
 // Removed DataIndex type alias
 
 const UsersPage = () => {
-  const { data: users = [], isError, isLoading, refetch: refetchUsers } = useGetUsersQuery();
+  const {
+    data: users = [],
+    isError,
+    isLoading,
+    refetch: refetchUsers,
+  } = useGetUsersQuery();
 
   // Use actual mutation hooks
   const [createUser, { isLoading: isCreating }] = useCreateUserMutation();
@@ -59,44 +64,68 @@ const UsersPage = () => {
 
   // --- CRUD Handlers ---
   const handleCreateUser = async (userData: Partial<NewUser>) => {
-    if (!userData.name || !userData.email || !userData.password || !userData.role) {
-        message.error("Name, Email, Password, and Role are required to create a user.");
-        return;
+    if (
+      !userData.name ||
+      !userData.email ||
+      !userData.password ||
+      !userData.role
+    ) {
+      message.error(
+        "Name, Email, Password, and Role are required to create a user."
+      );
+      return;
     }
     const finalUserData = userData as NewUser;
 
-    message.loading({ content: 'Creating user...', key: 'createUser' });
+    message.loading({ content: "Creating user...", key: "createUser" });
     try {
       await createUser(finalUserData).unwrap();
-      message.success({ content: 'User created successfully', key: 'createUser' });
+      message.success({
+        content: "User created successfully",
+        key: "createUser",
+      });
       setIsUserModalOpen(false);
       refetchUsers();
     } catch (error) {
-      message.error({ content: 'Failed to create user', key: 'createUser' });
+      message.error({ content: "Failed to create user", key: "createUser" });
       handleApiError(error);
     }
   };
 
   const handleUpdateUser = async (id: string, userData: Partial<NewUser>) => {
-    message.loading({ content: 'Updating user...', key: 'updateUser' });
+    message.loading({ content: "Updating user...", key: "updateUser" });
     try {
       await updateUser({ id, ...userData }).unwrap();
-      message.success({ content: 'User updated successfully', key: 'updateUser' });
+      message.success({
+        content: "User updated successfully",
+        key: "updateUser",
+      });
       setIsUserModalOpen(false);
       setEditingUser(null);
       refetchUsers();
     } catch (error) {
-      message.error({ content: 'Failed to update user', key: 'updateUser' });
+      message.error({ content: "Failed to update user", key: "updateUser" });
       handleApiError(error);
     }
   };
 
-   const handleDeleteSelected = async (selectedIds: React.Key[]): Promise<boolean> => {
+  const handleDeleteSelected = async (
+    selectedIds: React.Key[]
+  ): Promise<boolean> => {
     const key = "deleting_selected_users";
-    message.loading({ content: `Deleting ${selectedIds.length} users...`, key, duration: 0 });
+    message.loading({
+      content: `Deleting ${selectedIds.length} users...`,
+      key,
+      duration: 0,
+    });
     try {
-      await Promise.all(selectedIds.map(id => deleteUser(id as string).unwrap()));
-      message.success({ content: `${selectedIds.length} users deleted successfully`, key });
+      await Promise.all(
+        selectedIds.map((id) => deleteUser(id as string).unwrap())
+      );
+      message.success({
+        content: `${selectedIds.length} users deleted successfully`,
+        key,
+      });
       refetchUsers();
       return true; // Indicate success
     } catch (error) {
@@ -113,7 +142,6 @@ const UsersPage = () => {
     // Pass other handlers if defined in the hook
   });
   // --- End Get Columns from Hook ---
-
 
   if (isLoading) {
     return <LoadingScreen />;
@@ -142,13 +170,17 @@ const UsersPage = () => {
 
       {/* Create/Edit User Modal */}
       {isUserModalOpen && (
-          <CreateUserModal
-            isOpen={isUserModalOpen}
-            onClose={handleModalClose}
-            onSubmit={editingUser ? (data) => handleUpdateUser(editingUser.id, data) : handleCreateUser}
-            initialData={editingUser}
-            isLoading={isCreating || isUpdating}
-          />
+        <CreateUserModal
+          isOpen={isUserModalOpen}
+          onClose={handleModalClose}
+          onSubmit={
+            editingUser
+              ? (data) => handleUpdateUser(editingUser.id, data)
+              : handleCreateUser
+          }
+          initialData={editingUser}
+          isLoading={isCreating || isUpdating}
+        />
       )}
     </div>
   );

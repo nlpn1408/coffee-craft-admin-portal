@@ -38,7 +38,7 @@ export default function CreateUserModal({
           email: initialData.email,
           role: initialData.role,
           // Clear password field when editing
-          password: '',
+          password: "",
         });
       } else {
         form.resetFields(); // Reset for create
@@ -76,7 +76,7 @@ export default function CreateUserModal({
           layout="vertical"
           onFinish={handleFinish}
           className="mt-6"
-          initialValues={{ role: 'user' }} // Default role
+          initialValues={{ role: USER_ROLES.CUSTOMER.value }} // Default role
         >
           <Form.Item
             name="name"
@@ -91,10 +91,10 @@ export default function CreateUserModal({
             label="Email"
             rules={[
               { required: true, message: "Please enter user's email" },
-              { type: 'email', message: 'Please enter a valid email' }
+              { type: "email", message: "Please enter a valid email" },
             ]}
           >
-            <Input placeholder="Enter email" type="email" disabled={isEditing} /> {/* Disable email editing */}
+            <Input placeholder="Enter email" disabled={isEditing} />
           </Form.Item>
 
           {/* Password - Required only on create */}
@@ -104,7 +104,7 @@ export default function CreateUserModal({
               label="Password"
               rules={[
                 { required: true, message: "Please enter a password" },
-                { min: 6, message: 'Password must be at least 6 characters' }
+                { min: 6, message: "Password must be at least 6 characters" },
               ]}
               hasFeedback // Add feedback icon for validation
             >
@@ -117,7 +117,9 @@ export default function CreateUserModal({
             <Form.Item
               name="password"
               label="New Password (Optional)"
-              rules={[{ min: 6, message: 'Password must be at least 6 characters' }]}
+              rules={[
+                { min: 6, message: "Password must be at least 6 characters" },
+              ]}
               hasFeedback
             >
               <Input.Password placeholder="Enter new password to change" />

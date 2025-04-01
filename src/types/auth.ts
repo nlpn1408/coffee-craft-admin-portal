@@ -4,6 +4,7 @@ export interface User {
   username: string; // Keep username if it's used elsewhere, e.g., display name fallback
   name: string;
   email: string; // Make email required as it's the login identifier
+  role: string; // Add role property
   // Add other relevant user fields as needed
 }
 
