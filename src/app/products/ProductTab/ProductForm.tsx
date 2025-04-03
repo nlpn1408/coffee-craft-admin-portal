@@ -126,7 +126,7 @@ export const ProductForm = ({ onSave, isLoading, product, onCancel }: Props) => 
     <Form layout="vertical" onFinish={handleSubmit(onSubmit)}>
        <Spin spinning={isLoading}>
         {/* Pass control and errors down to the fields component */}
-        <ProductFormFields control={control} errors={errors} />
+        <ProductFormFields/>
 
         <Form.Item className="mt-6 pt-4 border-t"> {/* Use Form.Item for layout */}
           <div className="flex justify-end">

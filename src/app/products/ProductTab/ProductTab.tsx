@@ -45,12 +45,15 @@ import { dummyProduct } from "../components/dummyProduct";
 
 // Define props interface
 interface ProductTabProps {
-  onSelectProductForVariants: (product: Product) => void;
+  onCreate: () => void; // Add onCreate prop
+  onEdit: (product: Product) => void; // Keep onEdit prop (now opens drawer)
+  onViewDetails: (product: Product) => void; // Keep onViewDetails prop
 }
 
-const ProductTab: React.FC<ProductTabProps> = ({ onSelectProductForVariants }) => { // Accept props
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+const ProductTab: React.FC<ProductTabProps> = ({ onCreate, onEdit, onViewDetails }) => { // Use new props
+  // Remove modal state as it's handled by the parent drawer now
+  // const [isModalOpen, setIsModalOpen] = useState(false);
+  // const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [queryParams, setQueryParams] = useState<{
     sortField?: string;
     sortOrder?: "ascend" | "descend";
@@ -90,42 +93,23 @@ const ProductTab: React.FC<ProductTabProps> = ({ onSelectProductForVariants }) =
   );
 
   const [createProduct, { isLoading: isCreating }] = useCreateProductMutation();
-  const [updateProduct, { isLoading: isUpdating }] = useUpdateProductMutation();
   const [deleteProduct, { isLoading: isDeleting }] = useDeleteProductMutation();
 
   const [uploadImage] = useUploadProductImageMutation();
 
-  const isActionLoading = isCreating || isUpdating || isDeleting;
+  // Remove isActionLoading calculation related to internal modal state
+  const isActionLoading = isDeleting; // Only consider delete loading for table actions now
 
   // --- Handlers ---
-  const handleCreateProduct = async (productData: NewProduct) => {
-    try {
-      await createProduct(productData).unwrap();
-      message.success("Product created successfully");
-      setIsModalOpen(false);
-      refetchProducts(); // Refetch after create
-    } catch (error) {
-      handleApiError(error);
-    }
-  };
+  // Remove handlers related to the internal modal (handleCreateProduct, handleUpdateProduct)
+  // The save logic is now in ProductDetailView
 
-  const handleUpdateProduct = async (id: string, productData: NewProduct) => {
-    try {
-      await updateProduct({ id, formData: productData }).unwrap();
-      message.success("Product updated successfully");
-      setIsModalOpen(false);
-      setEditingProduct(null);
-      refetchProducts(); // Refetch after update
-    } catch (error) {
-      handleApiError(error);
-    }
-  };
-
+  // Keep handleEdit, but it now calls the prop to open the drawer
   const handleEdit = (product: Product) => {
-    setEditingProduct(product);
-    setIsModalOpen(true);
+    onEdit(product); // Call prop to open drawer in edit mode
   };
 
+  // Keep handleDeleteSingle
   const handleDeleteSingle = async (id: string): Promise<void> => {
     try {
       await deleteProduct(id).unwrap();
@@ -155,28 +139,15 @@ const ProductTab: React.FC<ProductTabProps> = ({ onSelectProductForVariants }) =
   const columns = useProductTableColumns({
     categories: categoriesData,
     brands: brandsData,
-    onEdit: handleEdit,
+    onEdit: handleEdit, // Pass the updated handleEdit
     onDelete: handleDeleteSingle,
-    onSelectProductForVariants: onSelectProductForVariants, // Pass the prop down
-    isActionLoading,
-    isDeleting,
+    onViewDetails: onViewDetails, // Pass onViewDetails prop down
+    isActionLoading, // Pass down delete loading state
+    isDeleting, // Pass down delete loading state
     // Pass queryParams if hook needs it for controlled sortOrder/filteredValue
     // queryParams,
   });
 
-  if (isLoading && !isFetching) {
-    // Show loading screen only on initial load
-    return <LoadingScreen />;
-  }
-
-  if (isError && !isLoading) {
-    // Show error only if not initial loading
-    return (
-      <div className="text-center text-red-500 py-4">
-        Failed to fetch products. Please try again later.
-      </div>
-    );
-  }
 
   const handleCreateDummy = async () => {
     dummyProduct.forEach(async (product) => {
@@ -212,14 +183,12 @@ const ProductTab: React.FC<ProductTabProps> = ({ onSelectProductForVariants }) =
         {/* Inline Toolbar */}
         <div className="flex justify-end items-center flex-wrap gap-2">
           <Space wrap>
+            {/* Call onCreate prop to open drawer in create mode */}
             <Button
               type="primary"
               icon={<PlusOutlined />}
-              onClick={() => {
-                setEditingProduct(null);
-                setIsModalOpen(true);
-              }}
-              disabled={isActionLoading}
+              onClick={onCreate}
+              disabled={isActionLoading} // Disable if deleting
             >
               Create Product
             </Button>
@@ -250,30 +219,14 @@ const ProductTab: React.FC<ProductTabProps> = ({ onSelectProductForVariants }) =
             showSizeChanger: true,
             pageSizeOptions: ["10", "20", "50", "100"],
           }}
-          loading={isFetching} // Show table loading indicator on fetch
+          loading={isLoading && !isFetching} // Show table loading indicator on fetch
           onChange={handleTableChange} // Handle server-side sort/filter changes
           scroll={{ x: 2000 }}
           size="small"
         />
       </div>
 
-      {/* Create/Edit Modal */}
-      {isModalOpen && (
-        <CreateProductModal
-          isOpen={isModalOpen}
-          onClose={() => {
-            setIsModalOpen(false);
-            setEditingProduct(null);
-          }}
-          onCreate={
-            editingProduct
-              ? (data) => handleUpdateProduct(editingProduct.id, data)
-              : handleCreateProduct
-          }
-          initialData={editingProduct || undefined}
-          isLoading={isCreating || isUpdating} // Pass modal loading state
-        />
-      )}
+      {/* Remove Create/Edit Modal - Handled by Drawer now */}
     </>
   );
 };

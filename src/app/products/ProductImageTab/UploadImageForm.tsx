@@ -1,49 +1,41 @@
-import { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
-import {  NewProductImage, ProductImage } from "@/types";
-import { zodResolver } from "@hookform/resolvers/zod";
+import React, { useEffect, useState } from "react";
 import {
   Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import {
-  GetProp,
-  message,
-  Upload,
-  UploadProps,
-  Radio,
   Input,
   Switch,
-  InputNumber, // Added InputNumber
-  Modal, // Added Modal for preview
+  InputNumber,
+  Upload,
+  Radio,
+  Button,
+  message,
+  Modal,
+  Space, // Added Space
 } from "antd";
-import type { UploadFile } from "antd"; // Added UploadFile type for preview
+import type { GetProp, UploadProps, UploadFile } from "antd";
 import { LoadingOutlined, PlusOutlined } from "@ant-design/icons";
+import { NewProductImage, ProductImage } from "@/types";
 
-const formSchema = z.object({
-  id: z.string().optional(),
-  imageUrl: z.string().url({ message: "Please enter a valid URL." }).optional(),
-  isThumbnail: z.boolean().default(false).optional(),
-  order: z.number().min(0, "Order must be non-negative").default(0).optional(), // Added validation
-});
+// Define form data structure (can be simpler without Zod)
+interface ProductImageFormData {
+  id?: string; // Keep id if needed (e.g., for Cloudinary public_id)
+  imageUrl?: string;
+  isThumbnail?: boolean;
+  order?: number;
+}
 
-type ProductImageFormData = z.infer<typeof formSchema>;
-
-type Props = {
-  productId: string; // Added productId
-  productImage?: ProductImage; // Changed type to ProductImage
+// Define component props
+interface Props {
+  productId: string;
+  productImage?: ProductImage;
   onSave: (productFormData: NewProductImage) => void;
   isLoading: boolean;
-};
+  onCancel: () => void;
+  isViewMode?: boolean; // Add isViewMode prop
+}
 
 type FileType = Parameters<GetProp<UploadProps, "beforeUpload">>[0];
 
+// --- Upload Helper Functions (Keep as they are Ant Design related) ---
 const beforeUpload = (file: FileType) => {
   const isJpgOrPng = file.type === "image/jpeg" || file.type === "image/png";
   if (!isJpgOrPng) {
@@ -56,7 +48,6 @@ const beforeUpload = (file: FileType) => {
   return isJpgOrPng && isLt2M;
 };
 
-// Function to get base64 for preview modal
 const getPreviewBase64 = (file: FileType): Promise<string> =>
   new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -64,66 +55,76 @@ const getPreviewBase64 = (file: FileType): Promise<string> =>
     reader.onload = () => resolve(reader.result as string);
     reader.onerror = (error) => reject(error);
   });
+// --- End Upload Helper Functions ---
 
-export const UploadImageForm = ({
-  productId, // Destructure productId
+export const UploadImageForm: React.FC<Props> = ({
+  productId,
   onSave,
   isLoading,
   productImage,
-}: Props) => {
-  const form = useForm<ProductImageFormData>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      id: productImage?.id || undefined,
-      imageUrl: productImage?.url || undefined,
-      isThumbnail: productImage?.isThumbnail || false,
-      order: productImage?.order || 0, // Added order default value
-    },
-  });
+  onCancel,
+  isViewMode = false, // Destructure isViewMode
+}) => {
+  const [form] = Form.useForm<ProductImageFormData>();
 
   // State for upload component UI
-  const [loading, setLoading] = useState(false);
-  // const [localImageUrl, setLocalImageUrl] = useState<string>(); // No longer needed for internal preview
-
-  // State for file list managed externally
+  const [uploadLoading, setUploadLoading] = useState(false);
   const [fileList, setFileList] = useState<UploadFile[]>([]);
-
-  // State for preview modal
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewImage, setPreviewImage] = useState("");
   const [previewTitle, setPreviewTitle] = useState("");
+  const [uploadMode, setUploadMode] = useState<"upload" | "url">("upload");
 
-  // Effect to set initial fileList for editing
+  // Effect to set initial form values and fileList when editing
   useEffect(() => {
-    if (productImage?.url) {
-      // Create an UploadFile object for the existing image
-      setFileList([
-        {
-          uid: productImage.id || "-1", // Use existing ID or a placeholder
-          name: productImage.url.substring(
-            productImage.url.lastIndexOf("/") + 1
-          ), // Extract filename
-          status: "done",
-          url: productImage.url,
-          thumbUrl: productImage.url, // Use the same URL for thumbnail
-        },
-      ]);
+    if (productImage) {
+      form.setFieldsValue({
+        id: productImage.id, // Assuming id might be needed elsewhere
+        imageUrl: productImage.url,
+        isThumbnail: productImage.isThumbnail || false,
+        order: productImage.order || 0,
+      });
+      if (productImage.url) {
+        setFileList([
+          {
+            uid: productImage.id || "-1",
+            name: productImage.url.substring(productImage.url.lastIndexOf("/") + 1),
+            status: "done",
+            url: productImage.url,
+            thumbUrl: productImage.url,
+          },
+        ]);
+        // Determine initial mode based on whether it looks like a Cloudinary URL
+        // This is heuristic, adjust if needed
+        if (!productImage.url.includes('cloudinary')) {
+             setUploadMode('url');
+        } else {
+             setUploadMode('upload'); // Default to upload if it seems like a Cloudinary URL
+        }
+      } else {
+        setFileList([]);
+        setUploadMode('upload'); // Default to upload if no URL
+      }
     } else {
-      setFileList([]); // Clear file list if no initial image
+      // Reset form for creating new image
+      form.resetFields();
+      setFileList([]);
+      setUploadMode('upload');
     }
-  }, [productImage]); // Re-run when productImage changes
+  }, [productImage, form]);
 
-  const onSubmit = (formData: ProductImageFormData) => {
+  // Ant Design Form submission handler
+  const handleFinish = (values: ProductImageFormData) => {
     // Ensure imageUrl has a value before saving
-    if (formData.imageUrl) {
+    const currentImageUrl = form.getFieldValue('imageUrl'); // Get current value
+    if (currentImageUrl) {
       const imageData: NewProductImage = {
-        // id: formData.id || "",
         productId: productId,
-        url: formData.imageUrl,
-        isThumbnail: formData.isThumbnail || false,
-        order: formData.order || 0, // Use order from form data
+        url: currentImageUrl,
+        isThumbnail: values.isThumbnail || false,
+        order: values.order || 0,
       };
-      onSave(imageData);
+      onSave(imageData); // Call the save handler passed from the modal
     } else {
       message.error("Please upload an image or provide a valid URL.");
     }
@@ -133,240 +134,185 @@ export const UploadImageForm = ({
     if (!file.url && !file.preview) {
       file.preview = await getPreviewBase64(file.originFileObj as FileType);
     }
-
     setPreviewImage(file.url || (file.preview as string));
     setPreviewOpen(true);
-    setPreviewTitle(
-      file.name || file.url!.substring(file.url!.lastIndexOf("/") + 1)
-    );
+    setPreviewTitle(file.name || file.url!.substring(file.url!.lastIndexOf("/") + 1));
   };
-
-  // State for mode selection
-  const [uploadMode, setUploadMode] = useState<"upload" | "url">("upload");
 
   const handleModeChange = (e: any) => {
     const newMode = e.target.value;
     setUploadMode(newMode);
-    form.clearErrors("imageUrl"); // Clear validation errors
+    form.setFieldsValue({ imageUrl: undefined }); // Clear imageUrl on mode change
+    form.validateFields(['imageUrl']); // Re-validate imageUrl field if needed
 
     if (newMode === "url") {
-      // Switched TO URL mode
-      setFileList([]); // Clear the file list from upload mode
-      // Clear the form value to force re-entry or re-upload
-      form.setValue("imageUrl", undefined);
+      setFileList([]); // Clear file list when switching to URL mode
     } else {
-      // Switched TO Upload mode
-      // Clear the URL that might have been typed in URL mode
-      form.setValue("imageUrl", undefined);
-      // Re-initialize fileList and form value based on original productImage
-      if (productImage?.url) {
-        setFileList([
-          {
-            uid: productImage.id || "-1",
-            name: productImage.url.substring(
-              productImage.url.lastIndexOf("/") + 1
-            ),
-            status: "done",
-            url: productImage.url,
-            thumbUrl: productImage.url,
-          },
-        ]);
-        // Also restore the imageUrl in the form if it came from the initial productImage
-        form.setValue("imageUrl", productImage.url);
-      } else {
-        // No initial image, ensure fileList is empty
-        setFileList([]);
-      }
+       // When switching back to upload, reset fileList based on initial productImage if it exists
+       if (productImage?.url && productImage.url.includes('cloudinary')) {
+         setFileList([
+           {
+             uid: productImage.id || "-1",
+             name: productImage.url.substring(productImage.url.lastIndexOf("/") + 1),
+             status: "done",
+             url: productImage.url,
+             thumbUrl: productImage.url,
+           },
+         ]);
+         form.setFieldsValue({ imageUrl: productImage.url }); // Restore URL if it was from Cloudinary
+       } else {
+         setFileList([]); // Otherwise, clear file list
+       }
     }
   };
 
-  const handleChange: UploadProps["onChange"] = ({
-    file,
-    fileList: newFileList,
-  }) => {
-    // Always update the file list state
-    // Limit to 1 file for this avatar-style uploader
-    setFileList(newFileList.slice(-1));
+  const handleChange: UploadProps["onChange"] = ({ file, fileList: newFileList }) => {
+    setFileList(newFileList.slice(-1)); // Limit to 1 file
 
     if (file.status === "uploading") {
-      setLoading(true);
-      form.setValue("imageUrl", undefined); // Clear any previous URL value
+      setUploadLoading(true);
+      form.setFieldsValue({ imageUrl: undefined });
     } else if (file.status === "done") {
-      setLoading(false);
-      // Get URL from Cloudinary response
+      setUploadLoading(false);
       const responseUrl = file.response?.secure_url;
-      const id = file.response?.public_id; // Get the public ID from the response
-      if (responseUrl && id) {
-        form.setValue("imageUrl", responseUrl);
-        form.clearErrors("imageUrl");
-        form.setValue("id", id);
+      // const id = file.response?.public_id; // Get public_id if needed
 
-        // Update the file object in the list with the final URL for preview
+      if (responseUrl) {
+        form.setFieldsValue({ imageUrl: responseUrl });
+        form.validateFields(['imageUrl']); // Validate after setting value
+        // Update file object in list for preview
         setFileList((prevList) =>
           prevList.map((item) =>
-            item.uid === file.uid
-              ? { ...item, url: responseUrl, thumbUrl: responseUrl }
-              : item
+            item.uid === file.uid ? { ...item, url: responseUrl, thumbUrl: responseUrl } : item
           )
         );
       } else {
-        message.error(
-          "Upload finished but failed to get URL. Please try again."
-        );
-        form.setValue("imageUrl", undefined);
-        // Remove the failed file from the list
-        setFileList((prevList) =>
-          prevList.filter((item) => item.uid !== file.uid)
-        );
+        message.error("Upload finished but failed to get URL.");
+        form.setFieldsValue({ imageUrl: undefined });
+        setFileList((prevList) => prevList.filter((item) => item.uid !== file.uid));
       }
     } else if (file.status === "error") {
-      setLoading(false);
+      setUploadLoading(false);
       message.error(`${file.name} file upload failed.`);
-      form.setValue("imageUrl", undefined);
-      // Remove the failed file from the list
-      setFileList((prevList) =>
-        prevList.filter((item) => item.uid !== file.uid)
-      );
+      form.setFieldsValue({ imageUrl: undefined });
+      setFileList((prevList) => prevList.filter((item) => item.uid !== file.uid));
     }
   };
 
   const uploadButton = (
     <button style={{ border: 0, background: "none" }} type="button">
-      {loading ? <LoadingOutlined /> : <PlusOutlined />}
+      {uploadLoading ? <LoadingOutlined /> : <PlusOutlined />}
       <div style={{ marginTop: 8 }}>Upload</div>
     </button>
   );
+
   return (
-    <Form {...form}>
-      <form
-        onSubmit={form.handleSubmit(onSubmit)}
-        className="space-y-6 bg-gray-50 p-6 md:p-10 rounded-lg"
+    <>
+      <Form
+        form={form}
+        layout="vertical"
+        onFinish={handleFinish}
+        initialValues={{ // Set initial values for Ant Form
+            isThumbnail: productImage?.isThumbnail || false,
+            order: productImage?.order || 0,
+            // imageUrl is handled by useEffect and mode change
+        }}
       >
         {/* Mode Selector */}
-        <FormItem>
-          <FormLabel>Image Source</FormLabel>
-          <FormControl className="ml-2">
-            <Radio.Group onChange={handleModeChange} value={uploadMode}>
-              <Radio value="upload">Upload File</Radio>
-              <Radio value="url">Use Image URL</Radio>
-            </Radio.Group>
-          </FormControl>
-        </FormItem>
+        <Form.Item label="Image Source">
+          <Radio.Group onChange={handleModeChange} value={uploadMode}>
+            <Radio value="upload">Upload File</Radio>
+            <Radio value="url">Use Image URL</Radio>
+          </Radio.Group>
+        </Form.Item>
 
         {/* Conditional Fields */}
         {uploadMode === "upload" && (
-          <FormField
-            control={form.control}
-            name="imageUrl" // Use imageUrl, but the UI is the Upload component
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Upload Image</FormLabel>
-                <FormControl>
-                  <Upload
-                    name="file" // Important: This should match the expected field name for Cloudinary
-                    action={process.env.NEXT_PUBLIC_CLOUDINARY_URL}
-                    data={{ upload_preset: process.env.NEXT_PUBLIC_CLOUDINARY_PRESET }}
-                    listType="picture-card"
-                    fileList={fileList} // Pass fileList state
-                    className="avatar-uploader" // Keep or adjust class as needed
-                    // showUploadList={true} // Default is true for picture-card, explicitly set if needed
-                    beforeUpload={beforeUpload}
-                    onChange={handleChange} // Use the updated handleChange
-                    onPreview={handlePreview} // Added preview handler
-                    onRemove={() => {
-                      // Handle file removal
-                      form.setValue("imageUrl", undefined);
-                      form.setValue("id", undefined);
-                      setFileList([]);
-                      return true;
-                    }}
-                  >
-                    {/* Show upload button only if fileList is empty */}
-                    {fileList.length === 0 && uploadButton}
-                  </Upload>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          <Form.Item
+            label="Upload Image"
+            name="imageUrl" // Still bind to imageUrl for validation
+            rules={[{ required: true, message: "Please upload an image." }]}
+            // Trigger validation based on fileList changes indirectly
+            // validateStatus={form.getFieldError('imageUrl') ? 'error' : ''}
+            // help={form.getFieldError('imageUrl')?.[0]}
+          >
+            <Upload
+              name="file"
+              action={process.env.NEXT_PUBLIC_CLOUDINARY_URL}
+              data={{ upload_preset: process.env.NEXT_PUBLIC_CLOUDINARY_PRESET }}
+              listType="picture-card"
+              fileList={fileList}
+              beforeUpload={beforeUpload}
+              onChange={handleChange}
+              onPreview={handlePreview}
+              onRemove={isViewMode ? undefined : () => { // Disable remove in view mode
+                form.setFieldsValue({ imageUrl: undefined });
+                setFileList([]);
+                return true;
+              }}
+              disabled={isViewMode} // Disable upload component
+            >
+              {/* Conditionally show upload button */}
+              {fileList.length === 0 && !isViewMode && uploadButton}
+            </Upload>
+          </Form.Item>
         )}
 
         {uploadMode === "url" && (
-          <FormField
-            control={form.control}
+          <Form.Item
+            label="Image URL"
             name="imageUrl"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Image URL</FormLabel>
-                <FormControl>
-                  <Input
-                    placeholder="https://example.com/image.png"
-                    {...field}
-                    value={field.value ?? ""} // Handle undefined value for Input
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+            rules={[
+              { required: true, message: "Please enter an image URL." },
+              { type: "url", message: "Please enter a valid URL." },
+            ]}
+          >
+            <Input placeholder="https://example.com/image.png" disabled={isViewMode} />
+          </Form.Item>
         )}
 
-        {/* isThumbnail Checkbox */}
-        <FormField
-          control={form.control}
-          name="isThumbnail"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Is Thumbnail </FormLabel>
-              <FormControl>
-                <div>
-                  <Switch {...field} className="bg-white" id="active" />
-                </div>
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        {/* isThumbnail Switch */}
+        <Form.Item name="isThumbnail" label="Is Thumbnail?" valuePropName="checked">
+          <Switch disabled={isViewMode} />
+        </Form.Item>
 
         {/* Order InputNumber */}
-        <FormField
-          control={form.control}
+        <Form.Item
+          label="Display Order"
           name="order"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Display Order</FormLabel>
-              <FormControl>
-                <InputNumber
-                  min={0}
-                  style={{ width: "100%" }}
-                  {...field}
-                  value={field.value ?? 0} // Handle undefined
-                  onChange={(value) => field.onChange(value ?? 0)} // Ensure value is number
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+          rules={[
+            { type: 'integer', message: 'Order must be an integer.' },
+            { type: 'number', min: 0, message: 'Order must be non-negative.' }
+          ]}
+        >
+          <InputNumber min={0} style={{ width: "100%" }} disabled={isViewMode} />
+        </Form.Item>
 
-        <div className="flex justify-end space-x-2 mt-6 pt-4 border-t">
-          {/* Consider adding a Cancel button */}
-          <Button type="submit" disabled={isLoading || !form.formState.isValid}>
-            {" "}
-            {/* Disable if form is invalid */}
-            {isLoading ? "Saving..." : "Submit"}
-          </Button>
-        </div>
-      </form>
-      {/* Preview Modal */}
+        {/* Form Actions - Conditionally render */}
+        {!isViewMode && (
+            <Form.Item> {/* This Form.Item should wrap the Space/Buttons */}
+               <Space style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                 <Button onClick={onCancel} disabled={isLoading}>
+                   Cancel
+                 </Button>
+                 <Button type="primary" htmlType="submit" loading={isLoading}>
+                   {productImage ? "Update" : "Upload"} Image
+                 </Button>
+               </Space>
+            </Form.Item>
+        )}
+        {/* Removed the extra closing </Form.Item> here */}
+      </Form> {/* This is the correct closing tag for the main Form */}
+
+      {/* Preview Modal (Ant Design) - Ensure this is outside the main Form but inside the fragment */}
       <Modal
         open={previewOpen}
         title={previewTitle}
         footer={null}
         onCancel={() => setPreviewOpen(false)}
       >
-        <img alt="example" style={{ width: "100%" }} src={previewImage} />
+        <img alt="Preview" style={{ width: "100%" }} src={previewImage} />
       </Modal>
-    </Form>
+    </>
   );
 };

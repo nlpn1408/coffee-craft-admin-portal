@@ -1,218 +1,121 @@
 "use client";
 
-import React, { useState, useMemo, useEffect } from "react"; // Added useEffect
-import { Tag, NewTag } from "@/types";
-import {
-  useGetTagsQuery,
-  useCreateTagMutation,
-  useUpdateTagMutation,
-  useDeleteTagMutation,
-} from "@/state/services/tagService";
-import { Button, Space, Table, message } from "antd"; // Removed Input
-import type { TableProps, TablePaginationConfig } from "antd";
-import type { FilterValue, SorterResult } from "antd/es/table/interface";
-import { PlusOutlined } from "@ant-design/icons";
-import CreateEditTagModal from "./CreateEditTagModal";
-import { handleApiError } from "@/lib/api-utils";
-import { useTagTableColumns } from "./useTagTableColumns";
-import LoadingScreen from "@/components/LoadingScreen";
-// Removed useDebounce import and Search constant
-// Removed const { Search } = Input;
+import React, { useMemo } from 'react';
+import { Product, Tag as TagType, NewProduct } from '@/types'; // Import NewProduct
+import { Select, Spin, Alert, notification, Space, Tag as AntTag } from 'antd';
+import { useGetTagsQuery } from '@/state/services/tagService';
+// Assume this hook exists for updating product-tag associations
+import { useUpdateProductMutation } from '@/state/api'; // Using the general update product for now
 
-const TagTab = () => {
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingTag, setEditingTag] = useState<Tag | null>(null);
-  // Removed searchTerm state
+// Define props
+interface TagTabProps {
+    selectedProduct: Product | null;
+}
 
-  const [queryParams, setQueryParams] = useState<{ // Added queryParams state
-    page: number;
-    limit: number;
-    filters: Record<string, FilterValue | null>;
-    sortField?: string;
-    sortOrder?: "ascend" | "descend";
-  }>({
-    page: 1,
-    limit: 10,
-    filters: {},
-  });
+const TagTab: React.FC<TagTabProps> = ({ selectedProduct }) => {
 
-  // Fetch Tags using RTK Query
-  const {
-    data: tagsResponse,
-    isLoading,
-    isFetching,
-    isError,
-    refetch: refetchTags,
-  } = useGetTagsQuery({
-    page: queryParams.page,
-    limit: queryParams.limit,
-    search: queryParams.filters?.name?.[0] as string | undefined, // Use filters from queryParams
-    sortBy: queryParams.sortField,
-    sortOrder:
-      queryParams.sortOrder === "ascend"
-        ? "asc"
-        : queryParams.sortOrder === "descend"
-        ? "desc"
-        : undefined,
-  });
+    // Fetch all available tags for the Select options
+    const { data: allTagsResponse, isLoading: isLoadingTags, isError: isTagsError } = useGetTagsQuery({
+        // Add params if needed to fetch ALL tags, e.g., limit: 9999
+        limit: 9999, page: 1 // Example: Fetch a large number
+    });
 
-  const tags = useMemo(() => tagsResponse?.data ?? [], [tagsResponse]);
-  const totalTags = useMemo(() => tagsResponse?.total ?? 0, [tagsResponse]);
+    // Assume useUpdateProductMutation can handle updating tags via a 'tagIds' array
+    const [updateProduct, { isLoading: isUpdatingTags }] = useUpdateProductMutation();
 
-  // Mutations
-  const [createTag, { isLoading: isCreating }] = useCreateTagMutation();
-  const [updateTag, { isLoading: isUpdating }] = useUpdateTagMutation();
-  const [deleteTag, { isLoading: isDeleting }] = useDeleteTagMutation();
+    // Memoize options for the Select component
+    const tagOptions = useMemo(() => {
+        return allTagsResponse?.data?.map((tag: TagType) => ({
+            label: tag.name,
+            value: tag.id,
+        })) ?? [];
+    }, [allTagsResponse]);
 
-  const isActionLoading = isCreating || isUpdating; // Loading state for create/update actions
+    // Get the IDs of currently associated tags
+    const associatedTagIds = useMemo(() => {
+        return selectedProduct?.tags?.map((tag: TagType) => tag.id) ?? [];
+    }, [selectedProduct]);
 
-  // --- Handlers ---
-  const handleOpenCreateModal = () => {
-    setEditingTag(null);
-    setIsModalOpen(true);
-  };
+    const handleTagChange = async (selectedTagIds: string[]) => {
+        if (!selectedProduct) return;
 
-  const handleOpenEditModal = (tag: Tag) => {
-    setEditingTag(tag);
-    setIsModalOpen(true);
-  };
+        try {
+            // Call the mutation to update the product with the new list of tag IDs
+            // depending on how the mutation is defined. Use 'tags' key as per NewProduct type.
+            // Construct the full formData expected by the mutation, merging existing data with new tags
+            const updatePayload: NewProduct = {
+                // Spread existing product data (ensure it matches NewProduct fields)
+                name: selectedProduct.name,
+                sku: selectedProduct.sku,
+                price: selectedProduct.price,
+                categoryId: selectedProduct.categoryId,
+                stock: selectedProduct.stock,
+                shortDescription: selectedProduct.shortDescription,
+                longDescription: selectedProduct.longDescription,
+                discountPrice: selectedProduct.discountPrice,
+                brandId: selectedProduct.brandId,
+                active: selectedProduct.active,
+                // Overwrite with the new tags array
+                tags: selectedTagIds,
+            };
 
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
-    setEditingTag(null);
-  };
+            await updateProduct({
+                id: selectedProduct.id,
+                formData: updatePayload
+            }).unwrap();
+            notification.success({ message: "Tags updated successfully." });
+            // Product data should refetch automatically due to cache invalidation
+            // defined in the updateProduct mutation (assuming it invalidates 'Products' tag)
+        } catch (err: any) {
+            console.error("Failed to update tags:", err);
+            const errorMessage = err?.data?.message || err?.error || 'An unknown error occurred';
+            notification.error({ message: "Error updating tags", description: errorMessage });
+        }
+    };
 
-  const handleSaveTag = async (data: NewTag) => {
-    try {
-      if (editingTag) {
-        await updateTag({ id: editingTag.id, body: data }).unwrap();
-        message.success(`Tag "${data.name}" updated successfully`);
-      } else {
-        await createTag(data).unwrap();
-        message.success(`Tag "${data.name}" created successfully`);
-      }
-      handleCloseModal();
-      refetchTags(); // Refresh the tag list
-    } catch (error) {
-      handleApiError(error);
+    if (!selectedProduct) {
+        return <div className="p-4 text-center text-gray-500">No product selected.</div>;
     }
-  };
 
-  const handleDeleteSingle = async (id: string): Promise<void> => {
-    try {
-      await deleteTag(id).unwrap();
-      message.success("Tag deleted successfully");
-      // If the deleted item was the last one on the current page, go back one page
-      if (tags.length === 1 && queryParams.page > 1) { // Use queryParams.page
-        setQueryParams(prev => ({ ...prev, page: prev.page - 1 })); // Update queryParams
-      } else {
-        refetchTags();
-      }
-    } catch (error) {
-      handleApiError(error);
-      throw error; // Re-throw for Popconfirm loading state
+    if (isTagsError) {
+        return <Alert message="Error loading tags" type="error" showIcon className="m-4"/>;
     }
-  };
 
-  // --- Table Change Handler ---
-  const handleTableChange: TableProps<Tag>["onChange"] = (
-    paginationConfig,
-    filters, // Now using filters from Ant Design Table
-    sorterResult
-  ) => {
-    const currentSorter = sorterResult as SorterResult<Tag>;
-    setQueryParams(prev => ({
-      ...prev,
-      page: paginationConfig.current || 1,
-      limit: paginationConfig.pageSize || 10,
-      filters: filters, // Update filters from table state
-      sortField: currentSorter.field as string | undefined,
-      sortOrder: currentSorter.order === null ? undefined : currentSorter.order, // Handle null case for sortOrder
-    }));
-  };
-
-  // --- Get Columns from Hook ---
-  const columns = useTagTableColumns({
-    onEdit: handleOpenEditModal,
-    onDelete: handleDeleteSingle,
-    isActionLoading: isActionLoading || isDeleting, // Disable actions if any mutation is loading
-    isDeleting: isDeleting,
-  });
-
-  // Update pagination total when data changes
-  useEffect(() => {
-    // Update total in the pagination object within queryParams state
-    setQueryParams(prev => ({
-      ...prev,
-      // We don't store total in queryParams, but we can update the pagination object
-      // if we were storing it separately. Since we derive it for the Table,
-      // this effect might not be strictly necessary anymore unless pagination
-      // component itself needs the total directly.
-      // For Ant Design's Table pagination prop, we'll construct it below.
-    }));
-  }, [totalTags]);
-
-
-  if (isLoading && !isFetching) {
-    return <LoadingScreen />;
-  }
-
-  if (isError && !isLoading) {
     return (
-      <div className="text-center text-red-500 py-4">
-        Failed to fetch tags. Please try again later.
-      </div>
-    );
-  }
+        <div className="p-4 space-y-4">
+            <h3 className="text-lg font-semibold">Manage Associated Tags</h3>
+            <Spin spinning={isLoadingTags || isUpdatingTags}>
+                 {/* Display current tags (optional, as Select shows them) */}
+                 {/* <div className="mb-4">
+                     <span className="font-medium mr-2">Current Tags:</span>
+                     <Space size={[0, 8]} wrap>
+                         {selectedProduct.tags?.map((tag: TagType) => (
+                             <AntTag key={tag.id} color="blue">
+                                 {tag.name}
+                             </AntTag>
+                         ))}
+                         {(!selectedProduct.tags || selectedProduct.tags.length === 0) && <span>None</span>}
+                     </Space>
+                 </div> */}
 
-  return (
-    <>
-      <div className="p-4 space-y-4">
-        {/* Toolbar */}
-        <div className="flex justify-end items-center flex-wrap gap-2">
-          {/* Removed Search Input */}
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={handleOpenCreateModal}
-            disabled={isActionLoading}
-          >
-            Create Tag
-          </Button>
+                <Select
+                    mode="multiple"
+                    allowClear
+                    style={{ width: '100%' }}
+                    placeholder="Select tags to associate"
+                    value={associatedTagIds}
+                    onChange={handleTagChange}
+                    options={tagOptions}
+                    loading={isLoadingTags}
+                    filterOption={(input, option) =>
+                        (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+                    }
+                    disabled={isUpdatingTags}
+                />
+            </Spin>
+             {/* TODO: Add UI for creating new tags globally if needed */}
         </div>
-
-        {/* Table */}
-        <Table<Tag>
-          columns={columns}
-          dataSource={tags}
-          rowKey="id"
-          pagination={{ // Construct pagination object for the Table
-            current: queryParams.page,
-            pageSize: queryParams.limit,
-            total: totalTags,
-            showSizeChanger: true,
-            pageSizeOptions: ["10", "20", "50", "100"],
-            showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`,
-          }}
-          loading={isFetching} // Show table loading indicator on fetch/refetch/pagination/sort/filter
-          onChange={handleTableChange} // Handle pagination, sorting, and filtering changes
-          scroll={{ x: 'max-content' }} // Allow horizontal scroll if needed
-          size="small"
-        />
-      </div>
-
-      {/* Create/Edit Modal */}
-      {isModalOpen && (
-        <CreateEditTagModal
-          isOpen={isModalOpen}
-          onClose={handleCloseModal}
-          onSubmit={handleSaveTag}
-          initialData={editingTag || undefined}
-          isLoading={isCreating || isUpdating}
-        />
-      )}
-    </>
-  );
+    );
 };
 
 export default TagTab;

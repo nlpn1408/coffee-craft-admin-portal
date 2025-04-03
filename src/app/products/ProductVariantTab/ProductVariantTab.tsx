@@ -11,12 +11,14 @@ import {
 } from '@/state/services/productVariantService';
 import CreateEditVariantModal from './CreateEditVariantModal';
 import { Product, ProductVariant } from '@/types';
+import { Button } from 'antd'; // Import Ant Button
 
 interface ProductVariantTabProps {
     selectedProduct: Product | null;
+    isViewMode?: boolean; // Add isViewMode prop
 }
 
-const ProductVariantTab: React.FC<ProductVariantTabProps> = ({ selectedProduct }) => {
+const ProductVariantTab: React.FC<ProductVariantTabProps> = ({ selectedProduct, isViewMode = false }) => { // Destructure isViewMode
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null);
 
@@ -53,13 +55,14 @@ const ProductVariantTab: React.FC<ProductVariantTabProps> = ({ selectedProduct }
     // Removed handleDeleteBulk as API doesn't support it
 
     // --- Columns Definition ---
-    // Pass the actual delete handler to the columns hook
+    // Pass the actual delete handler and isViewMode to the columns hook
     const columns = useVariantTableColumns({
         onEdit: (variant) => {
             setSelectedVariant(variant);
             setIsModalOpen(true);
         },
-        onDelete: handleDeleteSingle, // Use the implemented handler
+        onDelete: handleDeleteSingle,
+        isViewMode: isViewMode, // Pass down isViewMode
     });
 
     // --- Modal Handlers ---
@@ -80,8 +83,13 @@ const ProductVariantTab: React.FC<ProductVariantTabProps> = ({ selectedProduct }
 
     return (
         <div className="p-4 space-y-4">
-            {/* Uncomment and use the modal */}
-            {isModalOpen && selectedProduct && ( // Conditionally render modal and ensure product exists
+             {/* Add Variant Button - Conditionally render or disable */}
+             {!isViewMode && (
+                 <div className="flex justify-end">
+                     <Button onClick={handleOpenCreateModal}>Add Variant</Button>
+                 </div>
+             )}
+            {isModalOpen && selectedProduct && (
                  <CreateEditVariantModal
                     isOpen={isModalOpen}
                     onClose={handleCloseModal}

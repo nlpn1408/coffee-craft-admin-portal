@@ -1,62 +1,91 @@
 "use client";
 
-import React, { useState } from "react"; // Import useState
-import { Tabs } from "antd";
+import React, { useState } from "react";
+import { Tabs } from "antd"; // Re-import Tabs
 import type { TabsProps } from "antd";
 import ProductTab from "./ProductTab/ProductTab";
-import ProductImageTab from "./ProductImageTab/ProductImageTab";
-import TagTab from "./TagTab/TagTab";
-import ProductVariantTab from "./ProductVariantTab/ProductVariantTab"; // Import Variant Tab
-import { Product } from "@/types"; // Import Product type
+import { Product } from "@/types";
+import ProductDetailView from "@/app/products/ProductDetailView";
+import GlobalTagManager from "@/app/products/TagTab/GlobalTagManager";
+
+// Define type for drawer state
+type DrawerState = {
+  isOpen: boolean;
+  mode: 'create' | 'edit' | 'view';
+  product: Product | null;
+};
 
 const Products = () => {
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [activeTabKey, setActiveTabKey] = useState<string>("products"); // State for active tab
+  // State for managing the drawer
+  const [drawerState, setDrawerState] = useState<DrawerState>({
+    isOpen: false,
+    mode: 'view', // Default mode doesn't matter much when closed
+    product: null,
+  });
 
-  // Function to handle selecting a product and switching tab
-  const handleSelectProductForVariants = (product: Product) => {
-    setSelectedProduct(product);
-    setActiveTabKey("variants"); // Switch to variants tab
+  // Handlers to open the drawer in different modes
+  const handleOpenCreateDrawer = () => {
+    setDrawerState({ isOpen: true, mode: 'create', product: null });
   };
 
+  const handleOpenEditDrawer = (product: Product) => {
+    setDrawerState({ isOpen: true, mode: 'edit', product: product });
+  };
+
+  const handleOpenViewDrawer = (product: Product) => {
+    setDrawerState({ isOpen: true, mode: 'view', product: product });
+  };
+
+  // Handler to close the detail view drawer
+  const handleCloseDetailView = () => {
+    setDrawerState({ isOpen: false, mode: 'view', product: null });
+  };
+
+  // Define Tabs items
   const items: TabsProps["items"] = [
     {
       key: "products",
       label: "Products",
-      // Pass state and handler to ProductTab
-      children: <ProductTab onSelectProductForVariants={handleSelectProductForVariants} />,
-    },
-    {
-      key: "productsImages",
-      label: "Product Images",
-      // TODO: Pass selectedProduct if needed by ProductImageTab
-      children: <ProductImageTab />,
+      // Pass handlers for create, edit, and view to ProductTab
+      children: (
+        <ProductTab
+          onCreate={handleOpenCreateDrawer}
+          onEdit={handleOpenEditDrawer}
+          onViewDetails={handleOpenViewDrawer}
+        />
+      ),
     },
     {
       key: "tags",
-      label: "Tags",
-      // TODO: Pass selectedProduct if needed by TagTab
-      children: <TagTab />,
-    },
-    // Add the new Variants Tab
-    {
-      key: "variants",
-      label: "Variants",
-      // Pass selectedProduct to ProductVariantTab
-      children: <ProductVariantTab selectedProduct={selectedProduct} />,
-      // Optionally disable if no product is selected
-      disabled: !selectedProduct,
+      label: "Manage Tags", // Label for the global tag management tab
+      children: <GlobalTagManager />, // Render the new component here
     },
   ];
 
   return (
     <div className="mx-auto pb-5 w-full">
+      {/* Render top-level Tabs */}
       <Tabs
-        activeKey={activeTabKey} // Control active tab
-        onChange={setActiveTabKey} // Update state on tab change
+        defaultActiveKey="products"
+        // activeKey={activeTabKey} // Optional: control active tab if needed
+        // onChange={setActiveTabKey}
         items={items}
         className="mt-6"
       />
+
+      {/* Detail View Drawer - controlled by drawerState */}
+      {drawerState.isOpen && (
+        <ProductDetailView
+          product={drawerState.product}
+          mode={drawerState.mode}
+          onClose={handleCloseDetailView}
+          onSaveSuccess={() => {
+             handleCloseDetailView();
+             // TODO: Add refetch logic for the product list if needed
+             // refetchProducts(); // Assuming refetchProducts is available here or passed down
+          }}
+        />
+      )}
     </div>
   );
 };

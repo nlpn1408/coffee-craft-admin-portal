@@ -20,7 +20,8 @@ export const productImageService = baseApi.injectEndpoints({
       }),
       providesTags: ["ProductImages"],
     }),
-    updateProductImage: build.mutation<any, { id: string; productImageData: NewProductImage }>({
+    // Allow partial updates for productImageData
+    updateProductImage: build.mutation<any, { id: string; productImageData: Partial<NewProductImage> }>({
       query: ({ id, productImageData: body }) => ({
         url: `${API_ENDPOINTS.PRODUCT_IMAGES}/${id}`,
         method: "PUT",

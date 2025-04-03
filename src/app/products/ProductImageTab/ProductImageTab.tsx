@@ -1,152 +1,155 @@
 "use client";
 
-import { NewProductImage, ProductImage } from "@/types";
+import { NewProductImage, Product, ProductImage } from "@/types"; // Add Product type
 import {
-  api,
+  // api, // api seems unused
   useDeleteProductImageMutation,
-  useGetProductsQuery,
+  // useGetProductsQuery, // Remove product query
   useUpdateProductImageMutation,
   useUploadProductImageMutation,
 } from "@/state/api";
 import { useState } from "react";
-import { DeleteDialog } from "@/components/ui/delete-dialog";
-import { handleApiError, showSuccessToast } from "@/lib/api-utils";
-import { Select } from "antd";
+import { notification } from "antd";
+// import { DeleteDialog } from "@/components/ui/delete-dialog"; // Remove DeleteDialog import
+import { handleApiError } from "@/lib/api-utils";
+// import { Select } from "antd";
 import { ProductImageTable } from "./ProductImageTable";
 import UploadImageModal from "./UploadImageModal";
-import axios from "axios";
+// import axios from "axios"; // axios seems unused
 
-const ProductImageTab = () => {
+// Define props
+interface ProductImageTabProps {
+  selectedProduct: Product | null;
+  isViewMode?: boolean; // Add isViewMode prop
+}
+
+const ProductImageTab: React.FC<ProductImageTabProps> = ({
+  selectedProduct,
+  isViewMode = false,
+}) => {
+  // Destructure isViewMode
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<ProductImage | null>(
-    null
-  );
-  const [selectedProductId, setSelectedProductId] = useState<string | null>(
-    null
-  );
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [productImageToDelete, setProductImageToDelete] = useState<
-    string | null
-  >(null);
+  const [editingImage, setEditingImage] = useState<ProductImage | null>(null);
+  // Remove state related to DeleteDialog
+  // const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  // const [productImageToDelete, setProductImageToDelete] = useState<string | null>(null);
 
-  const { data: products, isLoading, isError } = useGetProductsQuery({});
+  // Remove product query hook call
 
   const [uploadProductImage] = useUploadProductImageMutation();
   const [updateProductImage] = useUpdateProductImageMutation();
   const [deleteProductImage] = useDeleteProductImageMutation();
 
-  const handleCreateProduct = async (imageData: NewProductImage) => {
+  // Renamed handler
+  const handleCreateImage = async (imageData: NewProductImage) => {
+    // Ensure productId is included from the selectedProduct prop
+    if (!selectedProduct) return;
+    const payload = { ...imageData, productId: selectedProduct.id };
     try {
-      await uploadProductImage([imageData]).unwrap();
-      showSuccessToast("Product created successfully");
+      await uploadProductImage([payload]).unwrap();
+      notification.success({
+        message: "Success",
+        description: "Image uploaded successfully.",
+      }); // Use notification
       setIsModalOpen(false);
     } catch (error) {
       handleApiError(error);
     }
   };
 
-  const handleUpdateProductImage = async (
+  // Renamed handler
+  const handleUpdateImage = async (
     id: string,
-    productImageData: NewProductImage
+    productImageData: Partial<NewProductImage>
   ) => {
+    if (!selectedProduct) return;
+    // Exclude productId from the update payload, as it's usually not needed/allowed for updates
+    const { productId, ...updateData } = productImageData;
+    const payload = updateData;
     try {
-      await updateProductImage({ id, productImageData }).unwrap();
-
-      showSuccessToast("Product updated successfully");
+      // Pass the payload without productId
+      await updateProductImage({ id, productImageData: payload }).unwrap();
+      notification.success({
+        message: "Success",
+        description: "Image updated successfully.",
+      }); // Use notification
       setIsModalOpen(false);
-      setEditingProduct(null);
+      setEditingImage(null);
     } catch (error) {
       handleApiError(error);
     }
   };
 
-  const handleEdit = (imgs: ProductImage) => {
-    setEditingProduct(imgs);
+  // Renamed handler
+  const handleEditImage = (img: ProductImage) => {
+    setEditingImage(img); // Use renamed state
     setIsModalOpen(true);
   };
 
-  const handleDelete = (id: string) => {
-    setProductImageToDelete(id);
-    setDeleteDialogOpen(true);
-  };
-
-  const handleConfirmDelete = async () => {
-    if (productImageToDelete) {
-      try {
-        await deleteProductImage(productImageToDelete).unwrap();
-        showSuccessToast("Product deleted successfully");
-        setProductImageToDelete(null);
-        setDeleteDialogOpen(false);
-      } catch (error) {
-        handleApiError(error);
-      }
+  // This handler is now passed directly to ActionColumn's onDelete prop
+  // which is used by Popconfirm's onConfirm
+  const handleDeleteImage = async (id: string) => {
+    try {
+      await deleteProductImage(id).unwrap();
+      notification.success({
+        message: "Success",
+        description: "Image deleted successfully.",
+      });
+      // Refetching might be needed if cache invalidation isn't perfect
+    } catch (error) {
+      handleApiError(error);
     }
   };
 
-  if (!isLoading && (isError || !products)) {
+  // Remove handleConfirmDelete as it's handled by Popconfirm now
+
+  // Don't render if no product is selected from the parent
+  if (!selectedProduct) {
     return (
-      <div className="text-center text-red-500 py-4">
-        Failed to fetch products
-      </div>
+      <div className="p-4 text-center text-gray-500">No product selected.</div>
     );
   }
 
-  return (
-    <>
-      {products?.data && products.data.length > 0 && (
-        <Select
-          showSearch
-          placeholder="Select a product"
-          filterOption={(input, option) =>
-            (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
-          }
-          options={products.data.map((product) => ({
-            value: product.id,
-            label: product.name,
-          }))}
-          onChange={(value) => setSelectedProductId(value)}
-          style={{ width: "35%" }}
-        />
-      )}
-      {selectedProductId ? (
-        <ProductImageTable
-          selectedProductId={selectedProductId}
-          onCreate={() => {
-            setEditingProduct(null);
-            setIsModalOpen(true);
-          }}
-          onUpdate={handleUpdateProductImage}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
-        />
-      ) : null}
+  // Remove loading/error state related to fetching all products
 
-      {/* Conditionally render modal only when a product is selected */}
-      {selectedProductId && (
+  return (
+    <div className="space-y-4 p-4">
+      {" "}
+      {/* Added padding and spacing */}
+      {/* Remove the Select dropdown */}
+      {/* Always render table if selectedProduct exists */}
+      <ProductImageTable
+        selectedProductId={selectedProduct.id}
+        // Disable create button trigger in view mode
+        onCreate={() => {
+          setEditingImage(null);
+          setIsModalOpen(true);
+        }} // Pass undefined if view mode
+        onUpdate={handleUpdateImage}
+        onEdit={handleEditImage}
+        onDelete={handleDeleteImage}
+        isViewMode={isViewMode} // Pass isViewMode down to table
+      />
+      {/* Modal rendering logic - ensure it doesn't open in view mode (already handled by onCreate check) */}
+      {isModalOpen && (
         <UploadImageModal
-          productId={selectedProductId}
+          productId={selectedProduct.id} // Use ID from prop
           isOpen={isModalOpen}
           onClose={() => {
             setIsModalOpen(false);
-            setEditingProduct(null);
+            setEditingImage(null); // Use renamed state
           }}
+          // Use renamed handlers
           onCreate={
-            editingProduct
-              ? (data) => handleUpdateProductImage(editingProduct.id, data)
-              : handleCreateProduct
+            editingImage
+              ? (data) => handleUpdateImage(editingImage.id, data)
+              : handleCreateImage
           }
-          initialData={editingProduct || undefined}
+          initialData={editingImage || undefined} // Use renamed state
         />
       )}
-
-      <DeleteDialog
-        open={deleteDialogOpen}
-        onOpenChange={setDeleteDialogOpen}
-        onConfirm={handleConfirmDelete}
-        title="Delete Product"
-        description="Are you sure you want to delete this product? This action cannot be undone."
-      />
-    </>
+      {/* Remove DeleteDialog component */}
+    </div>
   );
 };
 

@@ -21,11 +21,11 @@ import {
 } from "antd"; // Aliased Ant Design Tag
 import type { TableProps, MenuProps, TableColumnsType } from "antd"; // Import TableColumnsType
 import type { ColumnType } from "antd/es/table/interface";
-import { EditOutlined, DeleteOutlined, MoreOutlined } from "@ant-design/icons";
+import { EditOutlined, DeleteOutlined, EyeOutlined } from "@ant-design/icons"; // Changed icon
 import { format } from "date-fns";
 import { formatCurrency } from "@/utils/utils";
 import { useColumnSearch } from "@/hooks/useColumnSearch";
-import { AppstoreAddOutlined } from "@ant-design/icons"; // Import icon for Variants button
+// Removed AppstoreAddOutlined
 
 type DataIndex = keyof Product | "category" | "brand";
 
@@ -33,9 +33,9 @@ type DataIndex = keyof Product | "category" | "brand";
 interface UseProductTableColumnsProps {
   categories: Category[];
   brands: Brand[];
-  onEdit: (product: Product) => void;
+  onEdit: (product: Product) => void; // Will open drawer in edit mode
   onDelete: (id: string) => Promise<void>;
-  onSelectProductForVariants: (product: Product) => void; // Add the new prop
+  onViewDetails: (product: Product) => void; // Will open drawer in view mode
   isActionLoading?: boolean;
   isDeleting?: boolean;
 }
@@ -43,9 +43,9 @@ interface UseProductTableColumnsProps {
 export const useProductTableColumns = ({
   categories,
   brands,
-  onEdit,
+  onEdit, // Receive edit handler
   onDelete,
-  onSelectProductForVariants, // Receive the new prop
+  onViewDetails, // Receive view details handler
   isActionLoading = false,
   isDeleting = false,
 }: UseProductTableColumnsProps): TableColumnsType<Product> => {
@@ -244,22 +244,22 @@ export const useProductTableColumns = ({
       key: "actions",
       render: (_, record) => (
         <Space size="small">
-          {/* Variants Button */}
+          {/* View Details Button */}
           <Button
-            icon={<AppstoreAddOutlined />} // Use an appropriate icon
-            onClick={() => onSelectProductForVariants(record)} // Call the handler
+            icon={<EyeOutlined />} // Use Eye icon
+            onClick={() => onViewDetails(record)} // Call view details handler
             size="small"
-            aria-label="Manage Variants"
-            title="Manage Variants" // Tooltip
+            aria-label="View Details"
+            title="View Details"
             disabled={isActionLoading}
           />
-          {/* Edit Button */}
+          {/* Edit Button - Now opens drawer in edit mode */}
           <Button
             icon={<EditOutlined />}
-            onClick={() => onEdit(record)}
+            onClick={() => onEdit(record)} // Call edit handler
             size="small"
             aria-label="Edit"
-            title="Edit Product" // Tooltip
+            title="Edit Product"
             disabled={isActionLoading}
           />
           {/* Delete Button */}

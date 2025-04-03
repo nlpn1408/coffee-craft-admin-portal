@@ -10,6 +10,7 @@ type Props = {
   onEdit: (imgs: ProductImage) => void;
   onUpdate: (id: string, data: any) => void;
   onDelete: (id: string) => void;
+  isViewMode?: boolean; // Add isViewMode prop
 };
 export const ProductImageTable = ({
   selectedProductId = "",
@@ -17,6 +18,7 @@ export const ProductImageTable = ({
   onEdit,
   onUpdate,
   onDelete,
+  isViewMode = false, // Destructure isViewMode
 }: Props) => {
   const {
     data: imgs,
@@ -102,9 +104,14 @@ export const ProductImageTable = ({
         <ActionColumn
           onEdit={() => onEdit(record)}
           onDelete={() => onDelete(record.id)}
+          deleteConfirmTitle="Delete Image?"
+          deleteConfirmDescription="Are you sure you want to delete this image?"
+          // Pass down disabled state
+          isEditDisabled={isViewMode}
+          isDeleteDisabled={isViewMode}
         />
       ),
-      width: 80,
+      width: 100,
       fixed: "right",
       align: "center",
     },
@@ -119,12 +126,15 @@ export const ProductImageTable = ({
   //   }
   return selectedProductId ? (
     <div className="mt-5">
-      <div className="mb-4">
-        <TableToolbar
-          onCreate={onCreate}
-          createButtonLabel="Upload Product Image"
-        />
-      </div>
+      {/* Conditionally render toolbar or disable button */}
+      {!isViewMode && (
+          <div className="mb-4">
+              <TableToolbar
+                  onCreate={onCreate} // onCreate is already potentially undefined if isViewMode
+                  createButtonLabel="Upload Product Image"
+              />
+          </div>
+      )}
 
       <Table<ProductImage>
         columns={columns}
