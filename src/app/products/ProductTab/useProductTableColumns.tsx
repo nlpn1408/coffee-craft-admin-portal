@@ -24,18 +24,18 @@ import type { ColumnType } from "antd/es/table/interface";
 import { EditOutlined, DeleteOutlined, MoreOutlined } from "@ant-design/icons";
 import { format } from "date-fns";
 import { formatCurrency } from "@/utils/utils";
-import { useColumnSearch } from "@/hooks/useColumnSearch"; // Import the reusable search hook
+import { useColumnSearch } from "@/hooks/useColumnSearch";
+import { AppstoreAddOutlined } from "@ant-design/icons"; // Import icon for Variants button
 
 type DataIndex = keyof Product | "category" | "brand";
 
 // Hook Arguments Interface
 interface UseProductTableColumnsProps {
-  categories: Category[]; // Pass categories for filtering/display
-  brands: Brand[]; // Pass brands for filtering/display
+  categories: Category[];
+  brands: Brand[];
   onEdit: (product: Product) => void;
   onDelete: (id: string) => Promise<void>;
-  // Pass queryParams for sortOrder and filteredValue if needed for controlled state
-  // queryParams: { sortField?: string; sortOrder?: 'descend' | 'ascend'; filters: Record<string, FilterValue | null> };
+  onSelectProductForVariants: (product: Product) => void; // Add the new prop
   isActionLoading?: boolean;
   isDeleting?: boolean;
 }
@@ -45,7 +45,7 @@ export const useProductTableColumns = ({
   brands,
   onEdit,
   onDelete,
-  // queryParams, // Receive queryParams if needed for controlled state
+  onSelectProductForVariants, // Receive the new prop
   isActionLoading = false,
   isDeleting = false,
 }: UseProductTableColumnsProps): TableColumnsType<Product> => {
@@ -244,17 +244,29 @@ export const useProductTableColumns = ({
       key: "actions",
       render: (_, record) => (
         <Space size="small">
+          {/* Variants Button */}
           <Button
-            icon={<EditOutlined />}
-            onClick={() => onEdit(record)} // Use onEdit prop
+            icon={<AppstoreAddOutlined />} // Use an appropriate icon
+            onClick={() => onSelectProductForVariants(record)} // Call the handler
             size="small"
-            aria-label="Edit"
+            aria-label="Manage Variants"
+            title="Manage Variants" // Tooltip
             disabled={isActionLoading}
           />
+          {/* Edit Button */}
+          <Button
+            icon={<EditOutlined />}
+            onClick={() => onEdit(record)}
+            size="small"
+            aria-label="Edit"
+            title="Edit Product" // Tooltip
+            disabled={isActionLoading}
+          />
+          {/* Delete Button */}
           <Popconfirm
             title="Delete Product"
             description="Are you sure you want to delete this product?"
-            onConfirm={() => onDelete(record.id)} // Use onDelete prop
+            onConfirm={() => onDelete(record.id)}
             okText="Yes"
             cancelText="No"
             okButtonProps={{ loading: isDeleting }}
@@ -265,12 +277,13 @@ export const useProductTableColumns = ({
               danger
               size="small"
               aria-label="Delete"
+              title="Delete Product" // Tooltip
               disabled={isActionLoading}
             />
           </Popconfirm>
         </Space>
       ),
-      width: 80,
+      width: 120, // Increased width to accommodate the new button
       fixed: "right",
       align: "center",
     },

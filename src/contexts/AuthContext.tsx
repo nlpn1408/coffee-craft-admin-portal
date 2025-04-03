@@ -11,6 +11,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { User } from "@/types";
 import { API_ENDPOINTS } from "@/lib/constants/api";
 import { newRequest } from "@/lib/utils"; // Interceptor configured here
+import { message } from "antd";
 // LoadingScreen removed as it's no longer used for initial load
 
 interface AuthContextType {
@@ -117,7 +118,7 @@ export const useAuth = () => {
 
 // Function to be called by the API interceptor on 401
 export const handleUnauthorized = () => {
-  console.warn("Unauthorized access detected (401). Clearing storage and redirecting.");
+  message.error("Unauthorized access. Please log in.");
   localStorage.removeItem('user');
   if (authContextSetUser) {
       authContextSetUser(null); // Attempt to update state via stored setter

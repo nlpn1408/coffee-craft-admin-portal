@@ -275,7 +275,9 @@ export type {
   NewUser,
   NewOrder,
   NewVoucher,
-  NewTag, // Add NewTag here
+  NewTag,
+  NewProductVariant, // Add NewProductVariant
+  UpdateProductVariant, // Add UpdateProductVariant
   NewBlog,
   NewReview,
   NewShippingAddress,

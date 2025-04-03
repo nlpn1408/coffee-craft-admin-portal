@@ -128,6 +128,32 @@ export interface NewTag {
   name: string;
 }
 
+export interface NewProductVariant {
+  productId: string; // Required link to parent product
+  sku?: string | null;
+  price: number;
+  discountPrice?: number | null;
+  stock: number;
+  name: string; // e.g., "Red - Large"
+  color?: string | null;
+  weight?: string | null;
+  material?: string | null;
+}
+
+// For updates, typically all fields are optional except the ID
+export interface UpdateProductVariant {
+  sku?: string | null;
+  price?: number;
+  discountPrice?: number | null;
+  stock?: number;
+  name?: string;
+  color?: string | null;
+  weight?: string | null;
+  material?: string | null;
+  // productId is usually not updatable
+}
+
+
 // Dashboard specific types (Assuming these remain unchanged by the schema update)
 export interface SalesSummary {
   salesSummaryId: string;

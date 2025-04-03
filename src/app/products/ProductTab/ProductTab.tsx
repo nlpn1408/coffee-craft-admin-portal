@@ -40,10 +40,15 @@ import CreateProductModal from "./CreateProductModal";
 import { handleApiError } from "@/lib/api-utils";
 // import { formatCurrency } from "@/utils/utils"; // Moved to hook
 import { useProductTableColumns } from "./useProductTableColumns"; // Import the hook
-import LoadingScreen from "@/components/LoadingScreen"; // Import LoadingScreen
+import LoadingScreen from "@/components/LoadingScreen";
 import { dummyProduct } from "../components/dummyProduct";
 
-const ProductTab = () => {
+// Define props interface
+interface ProductTabProps {
+  onSelectProductForVariants: (product: Product) => void;
+}
+
+const ProductTab: React.FC<ProductTabProps> = ({ onSelectProductForVariants }) => { // Accept props
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [queryParams, setQueryParams] = useState<{
@@ -152,6 +157,7 @@ const ProductTab = () => {
     brands: brandsData,
     onEdit: handleEdit,
     onDelete: handleDeleteSingle,
+    onSelectProductForVariants: onSelectProductForVariants, // Pass the prop down
     isActionLoading,
     isDeleting,
     // Pass queryParams if hook needs it for controlled sortOrder/filteredValue

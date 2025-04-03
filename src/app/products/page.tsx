@@ -1,37 +1,62 @@
 "use client";
 
+import React, { useState } from "react"; // Import useState
 import { Tabs } from "antd";
 import type { TabsProps } from "antd";
 import ProductTab from "./ProductTab/ProductTab";
 import ProductImageTab from "./ProductImageTab/ProductImageTab";
-import TagTab from "./TagTab/TagTab"; // Import the new TagTab component
-// Removed useState, Header, Shadcn Tabs imports
+import TagTab from "./TagTab/TagTab";
+import ProductVariantTab from "./ProductVariantTab/ProductVariantTab"; // Import Variant Tab
+import { Product } from "@/types"; // Import Product type
 
 const Products = () => {
-  // Removed activeTab state
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [activeTabKey, setActiveTabKey] = useState<string>("products"); // State for active tab
+
+  // Function to handle selecting a product and switching tab
+  const handleSelectProductForVariants = (product: Product) => {
+    setSelectedProduct(product);
+    setActiveTabKey("variants"); // Switch to variants tab
+  };
 
   const items: TabsProps["items"] = [
     {
       key: "products",
       label: "Products",
-      children: <ProductTab />,
+      // Pass state and handler to ProductTab
+      children: <ProductTab onSelectProductForVariants={handleSelectProductForVariants} />,
     },
     {
       key: "productsImages",
       label: "Product Images",
+      // TODO: Pass selectedProduct if needed by ProductImageTab
       children: <ProductImageTab />,
     },
     {
       key: "tags",
       label: "Tags",
-      children: <TagTab />, // Add the TagTab component here
+      // TODO: Pass selectedProduct if needed by TagTab
+      children: <TagTab />,
+    },
+    // Add the new Variants Tab
+    {
+      key: "variants",
+      label: "Variants",
+      // Pass selectedProduct to ProductVariantTab
+      children: <ProductVariantTab selectedProduct={selectedProduct} />,
+      // Optionally disable if no product is selected
+      disabled: !selectedProduct,
     },
   ];
 
   return (
     <div className="mx-auto pb-5 w-full">
-      {/* Header is likely part of a layout component now, removed from here */}
-      <Tabs defaultActiveKey="products" items={items} className="mt-6" />
+      <Tabs
+        activeKey={activeTabKey} // Control active tab
+        onChange={setActiveTabKey} // Update state on tab change
+        items={items}
+        className="mt-6"
+      />
     </div>
   );
 };

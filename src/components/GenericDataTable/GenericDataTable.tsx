@@ -28,7 +28,7 @@ interface GenericDataTableProps<T extends DataItem> {
   onCreate: () => void;
   onExport?: () => void;
   onDownloadTemplate?: () => void;
-  onDeleteSelected: (selectedIds: React.Key[]) => Promise<boolean>; // Expects a promise
+  onDeleteSelected?: (selectedIds: React.Key[]) => Promise<boolean>; // Make optional
   isActionLoading?: boolean; // General loading state for actions
   isDeleting?: boolean; // Specific loading state for delete actions
   isImporting?: boolean; // Specific loading state for import
@@ -61,10 +61,15 @@ export function GenericDataTable<T extends DataItem>({
   const hasSelected = selectedRowKeys.length > 0;
 
   const handleDelete = async () => {
-    const success = await onDeleteSelected(selectedRowKeys);
-    // Reset selection after delete is attempted (success/fail handled by parent)
-    if (success) {
-      setSelectedRowKeys([]);
+    // Only proceed if the handler exists
+    if (onDeleteSelected) {
+        const success = await onDeleteSelected(selectedRowKeys);
+        // Reset selection after delete is attempted (success/fail handled by parent)
+        if (success) {
+            setSelectedRowKeys([]);
+        }
+    } else {
+        console.warn("onDeleteSelected handler is not provided to GenericDataTable.");
     }
   };
 
@@ -114,8 +119,8 @@ export function GenericDataTable<T extends DataItem>({
         </Space>
       </div>
 
-      {/* Selected Rows Actions */}
-      {hasSelected && (
+      {/* Selected Rows Actions - Render only if onDeleteSelected is provided */}
+      {hasSelected && onDeleteSelected && (
         <div className="flex justify-start items-center space-x-2 p-2 bg-blue-50 border border-blue-200 rounded">
           <span className="text-sm font-medium text-blue-700">
             {selectedRowKeys.length} selected
@@ -123,17 +128,18 @@ export function GenericDataTable<T extends DataItem>({
           <Popconfirm
             title={`Delete ${selectedRowKeys.length} ${entityName}(s)`}
             description={`Are you sure you want to delete the selected ${entityName}(s)?`}
+            // Directly assign handleDelete, as the parent block ensures onDeleteSelected exists
             onConfirm={handleDelete}
             okText="Yes"
             cancelText="No"
             okButtonProps={{ loading: isDeleting }}
-            disabled={!hasSelected || isActionLoading}
+            disabled={!hasSelected || isActionLoading || !onDeleteSelected} // Disable if handler missing
           >
             <Button
               icon={<DeleteOutlined />}
               danger
               size="small"
-              disabled={!hasSelected || isActionLoading}
+              disabled={!hasSelected || isActionLoading || !onDeleteSelected} // Disable if handler missing
             >
               Delete Selected
             </Button>
