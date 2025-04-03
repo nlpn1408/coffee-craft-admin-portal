@@ -3,12 +3,18 @@
 import React, { useState, useCallback } from "react";
 import { Button, Card, message, Spin, Modal as AntModal } from "antd"; // Import AntModal for confirmation
 import { PlusOutlined, ExclamationCircleFilled } from "@ant-design/icons";
-import { useGetUsersQuery, useCreateUserMutation, useUpdateUserMutation, useDeleteUserMutation } from "@/state/services/userService"; // Import delete hook
+import {
+  useGetUsersQuery,
+  useCreateUserMutation,
+  useUpdateUserMutation,
+  useDeleteUserMutation,
+} from "@/state/services/userService"; // Import delete hook
 import { useUserTableColumns } from "./components/useUserTableColumns";
 import { GenericDataTable } from "@/components/GenericDataTable/GenericDataTable";
 import { User, NewUser } from "@/types";
 import CreateUserModal from "./components/CreateUserModal";
 import UserDetailModal from "./components/UserDetailModal";
+import Header from "@/components/Header";
 
 const { confirm } = AntModal; // Destructure confirm modal
 
@@ -64,40 +70,51 @@ export default function UsersPage() {
       refetch();
     } catch (error: any) {
       console.error("Failed to save user:", error);
-      message.error(`Failed to save user: ${error.data?.message || error.message || 'Unknown error'}`);
+      message.error(
+        `Failed to save user: ${
+          error.data?.message || error.message || "Unknown error"
+        }`
+      );
     }
   };
 
   // Handler for deleting a single user
-  const handleDeleteUser = useCallback((userId: string) => {
-    confirm({
-      title: 'Are you sure you want to delete this user?',
-      icon: <ExclamationCircleFilled />,
-      content: 'This action cannot be undone.',
-      okText: 'Yes, Delete',
-      okType: 'danger',
-      cancelText: 'No',
-      onOk: async () => {
-        try {
-          await deleteUser(userId).unwrap();
-          message.success("User deleted successfully!");
-          refetch(); // Refetch the user list
-        } catch (error: any) {
-          console.error("Failed to delete user:", error);
-          message.error(`Failed to delete user: ${error.data?.message || error.message || 'Unknown error'}`);
-        }
-      },
-      onCancel() {
-        console.log('Delete cancelled');
-      },
-    });
-  }, [deleteUser, refetch]); // Add dependencies
+  const handleDeleteUser = useCallback(
+    (userId: string) => {
+      confirm({
+        title: "Are you sure you want to delete this user?",
+        icon: <ExclamationCircleFilled />,
+        content: "This action cannot be undone.",
+        okText: "Yes, Delete",
+        okType: "danger",
+        cancelText: "No",
+        onOk: async () => {
+          try {
+            await deleteUser(userId).unwrap();
+            message.success("User deleted successfully!");
+            refetch(); // Refetch the user list
+          } catch (error: any) {
+            console.error("Failed to delete user:", error);
+            message.error(
+              `Failed to delete user: ${
+                error.data?.message || error.message || "Unknown error"
+              }`
+            );
+          }
+        },
+        onCancel() {
+          console.log("Delete cancelled");
+        },
+      });
+    },
+    [deleteUser, refetch]
+  ); // Add dependencies
 
-   // Handler for deleting selected rows (placeholder)
-   const handleDeleteSelected = async (selectedIds: React.Key[]) => {
+  // Handler for deleting selected rows (placeholder)
+  const handleDeleteSelected = async (selectedIds: React.Key[]) => {
     // Bulk delete might need a different confirmation/API call
     console.log("Attempting to delete selected user IDs:", selectedIds);
-    await new Promise(resolve => setTimeout(resolve, 500));
+    await new Promise((resolve) => setTimeout(resolve, 500));
     message.warning("Bulk user deletion not implemented.");
     return false;
   };
@@ -116,32 +133,18 @@ export default function UsersPage() {
   const isLoadingMutation = isCreating || isUpdating || isDeleting;
 
   return (
-    <Card
-      title="Manage Users"
-      variant="borderless"
-      extra={
-        <Button
-          type="primary"
-          icon={<PlusOutlined />}
-          onClick={() => handleOpenCreateModal()}
-        >
-          Create User
-        </Button>
-      }
-    >
-      <Spin spinning={isLoadingUsers}>
-        <GenericDataTable<User>
-          columns={columns}
-          dataSource={usersData ?? []}
-          loading={isLoadingUsers}
-          entityName="User"
-          onCreate={() => handleOpenCreateModal()}
-          onDeleteSelected={handleDeleteSelected} // Keep placeholder for bulk delete button
-          // Pass loading states
-          isActionLoading={isLoadingMutation} // General loading for toolbar buttons
-          isDeleting={isDeleting} // Specific loading for delete confirmation
-        />
-      </Spin>
+    <>
+      <Header name="Users" />
+      <GenericDataTable<User>
+        columns={columns}
+        dataSource={usersData ?? []}
+        loading={isLoadingUsers}
+        entityName="User"
+        onCreate={() => handleOpenCreateModal()}
+        onDeleteSelected={handleDeleteSelected}
+        isActionLoading={isLoadingMutation}
+        isDeleting={isDeleting}
+      />
 
       {/* Create/Edit Modal */}
       {isCreateModalOpen && (
@@ -154,7 +157,7 @@ export default function UsersPage() {
         />
       )}
 
-       {/* Detail Modal */}
+      {/* Detail Modal */}
       {isDetailModalOpen && viewingUserId && (
         <UserDetailModal
           isOpen={isDetailModalOpen}
@@ -162,6 +165,6 @@ export default function UsersPage() {
           userId={viewingUserId}
         />
       )}
-    </Card>
+    </>
   );
 }
