@@ -117,7 +117,7 @@ export const UploadImageForm = ({
     // Ensure imageUrl has a value before saving
     if (formData.imageUrl) {
       const imageData: NewProductImage = {
-        id: formData.id || "",
+        // id: formData.id || "",
         productId: productId,
         url: formData.imageUrl,
         isThumbnail: formData.isThumbnail || false,
