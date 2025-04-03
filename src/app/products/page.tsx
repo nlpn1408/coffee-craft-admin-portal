@@ -1,12 +1,12 @@
 "use client";
 
 import React, { useState } from "react";
-import { Tabs } from "antd"; // Re-import Tabs
+import { Tabs } from "antd";
 import type { TabsProps } from "antd";
-import ProductTab from "./ProductTab/ProductTab";
+import ProductListTab from "./product-list/ProductListTab";
 import { Product } from "@/types";
-import ProductDetailView from "@/app/products/ProductDetailView";
-import GlobalTagManager from "@/app/products/TagTab/GlobalTagManager";
+import GlobalTagManager from "./tag-management/GlobalTagManager";
+import ProductDetailView from "./ProductDetailView";
 
 // Define type for drawer state
 type DrawerState = {
@@ -46,9 +46,9 @@ const Products = () => {
     {
       key: "products",
       label: "Products",
-      // Pass handlers for create, edit, and view to ProductTab
+      // Pass handlers for create, edit, and view to ProductListTab
       children: (
-        <ProductTab
+        <ProductListTab
           onCreate={handleOpenCreateDrawer}
           onEdit={handleOpenEditDrawer}
           onViewDetails={handleOpenViewDrawer}

@@ -8,13 +8,14 @@ import {
   useUpdateTagMutation,
   useDeleteTagMutation,
 } from "@/state/services/tagService";
-import { Button, Space, Table, message, notification } from "antd"; // Use notification
+import { Button, Space, Table, message, notification } from "antd";
 import type { TableProps } from "antd";
 import type { FilterValue, SorterResult } from "antd/es/table/interface";
 import { PlusOutlined } from "@ant-design/icons";
-import CreateEditTagModal from "./CreateEditTagModal"; // Re-use the existing modal
+// Use absolute path aliases
+import CreateEditTagModal from "@/app/products/tag-management/CreateEditTagModal";
 import { handleApiError } from "@/lib/api-utils";
-import { useTagTableColumns } from "./useTagTableColumns"; // Re-use the columns hook
+import { useTagTableColumns } from "@/app/products/tag-management/useTagTableColumns";
 import LoadingScreen from "@/components/LoadingScreen";
 
 const GlobalTagManager = () => {
@@ -33,7 +34,6 @@ const GlobalTagManager = () => {
     filters: {},
   });
 
-  // Fetch Tags using RTK Query
   const {
     data: tagsResponse,
     isLoading,
@@ -56,14 +56,12 @@ const GlobalTagManager = () => {
   const tags = useMemo(() => tagsResponse?.data ?? [], [tagsResponse]);
   const totalTags = useMemo(() => tagsResponse?.total ?? 0, [tagsResponse]);
 
-  // Mutations
   const [createTag, { isLoading: isCreating }] = useCreateTagMutation();
   const [updateTag, { isLoading: isUpdating }] = useUpdateTagMutation();
   const [deleteTag, { isLoading: isDeleting }] = useDeleteTagMutation();
 
-  const isActionLoading = isCreating || isUpdating; // Loading state for create/update actions
+  const isActionLoading = isCreating || isUpdating;
 
-  // --- Handlers ---
   const handleOpenCreateModal = () => {
     setEditingTag(null);
     setIsModalOpen(true);
@@ -89,9 +87,9 @@ const GlobalTagManager = () => {
         notification.success({ message: "Success", description: `Tag "${data.name}" created successfully` });
       }
       handleCloseModal();
-      refetchTags(); // Refresh the tag list
+      refetchTags();
     } catch (error) {
-      handleApiError(error); // Remove notification argument
+      handleApiError(error);
     }
   };
 
@@ -99,19 +97,17 @@ const GlobalTagManager = () => {
     try {
       await deleteTag(id).unwrap();
       notification.success({ message: "Success", description: "Tag deleted successfully" });
-      // If the deleted item was the last one on the current page, go back one page
       if (tags.length === 1 && queryParams.page > 1) {
         setQueryParams(prev => ({ ...prev, page: prev.page - 1 }));
       } else {
         refetchTags();
       }
     } catch (error) {
-      handleApiError(error); // Remove notification argument
-      throw error; // Re-throw for Popconfirm loading state
+      handleApiError(error);
+      throw error;
     }
   };
 
-  // --- Table Change Handler ---
   const handleTableChange: TableProps<Tag>["onChange"] = (
     paginationConfig,
     filters,
@@ -128,7 +124,6 @@ const GlobalTagManager = () => {
     }));
   };
 
-  // --- Get Columns from Hook ---
   const columns = useTagTableColumns({
     onEdit: handleOpenEditModal,
     onDelete: handleDeleteSingle,
@@ -151,7 +146,6 @@ const GlobalTagManager = () => {
   return (
     <>
       <div className="p-4 space-y-4">
-        {/* Toolbar */}
         <div className="flex justify-end items-center flex-wrap gap-2">
           <Button
             type="primary"
@@ -163,7 +157,6 @@ const GlobalTagManager = () => {
           </Button>
         </div>
 
-        {/* Table */}
         <Table<Tag>
           columns={columns}
           dataSource={tags}
@@ -183,7 +176,6 @@ const GlobalTagManager = () => {
         />
       </div>
 
-      {/* Create/Edit Modal */}
       {isModalOpen && (
         <CreateEditTagModal
           isOpen={isModalOpen}

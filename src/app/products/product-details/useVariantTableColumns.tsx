@@ -1,24 +1,23 @@
 'use client';
 
-import { TableProps } from 'antd'; // Import Ant Design TableProps
+import { TableProps } from 'antd';
 import { ProductVariant } from '@/types';
-import { ActionColumn } from '@/components/TableActionRow/ActionColumn';
+import { ActionColumn } from '@/components/TableActionRow/ActionColumn'; // Adjust path if needed
 import { formatCurrency } from '@/utils/utils';
 
 interface UseVariantTableColumnsProps {
     onEdit: (variant: ProductVariant) => void;
     onDelete: (variantId: string) => void;
-    isViewMode?: boolean; // Add isViewMode prop
+    isViewMode?: boolean;
 }
 
-// Return type changed to TableProps<ProductVariant>['columns']
-export const useVariantTableColumns = ({ onEdit, onDelete, isViewMode = false }: UseVariantTableColumnsProps): TableProps<ProductVariant>['columns'] => { // Destructure isViewMode
+export const useVariantTableColumns = ({ onEdit, onDelete, isViewMode = false }: UseVariantTableColumnsProps): TableProps<ProductVariant>['columns'] => {
     return [
         {
-            title: 'SKU', // Use 'title' instead of 'header'
-            dataIndex: 'sku', // Use 'dataIndex' instead of 'accessorKey'
-            key: 'sku', // Add 'key' for Ant Design
-            render: (sku) => sku || 'N/A', // Use 'render' instead of 'cell'
+            title: 'SKU',
+            dataIndex: 'sku',
+            key: 'sku',
+            render: (sku) => sku || 'N/A',
         },
         {
             title: 'Variant Name',
@@ -29,7 +28,7 @@ export const useVariantTableColumns = ({ onEdit, onDelete, isViewMode = false }:
             title: 'Price',
             dataIndex: 'price',
             key: 'price',
-            render: (price) => formatCurrency(Number(price)), // Pass value directly to render
+            render: (price) => formatCurrency(Number(price)),
         },
         {
             title: 'Discount Price',
@@ -65,20 +64,14 @@ export const useVariantTableColumns = ({ onEdit, onDelete, isViewMode = false }:
         {
             title: 'Actions',
             key: 'actions',
-            render: (_, variant) => (
+            render: (_, variant: ProductVariant) => ( // Added explicit type for variant
                 <ActionColumn
                     onEdit={() => onEdit(variant)}
                     onDelete={() => onDelete(variant.id)}
-                    // Disable actions in view mode
-                    // Note: ActionColumn needs to accept and use isActionDisabled prop or similar
-                    // For now, we assume ActionColumn handles disabling internally based on a prop
-                    // Let's pass isViewMode to a hypothetical 'disabled' prop for ActionColumn
-                    // We might need to modify ActionColumn later if it doesn't support this
-                    isEditDisabled={isViewMode} // Hypothetical prop for edit button
-                    isDeleteDisabled={isViewMode} // Hypothetical prop for delete button/popconfirm
+                    isEditDisabled={isViewMode}
+                    isDeleteDisabled={isViewMode}
                 />
             ),
-            // width: 150,
         },
     ];
 };

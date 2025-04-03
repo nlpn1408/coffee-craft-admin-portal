@@ -1,13 +1,13 @@
 "use client";
 
-import React, { useRef, useMemo, Key } from "react";
+import React, { useMemo } from "react"; // Removed useRef, Key
 import {
   Product,
   Category,
   Brand,
   ProductImage,
   Tag as ProductTagType,
-} from "@/types"; // Renamed imported Tag type
+} from "@/types";
 import {
   Table,
   Button,
@@ -15,27 +15,26 @@ import {
   Popconfirm,
   Tag as AntTag,
   Image,
-  InputRef,
-  Menu,
-  Dropdown,
-} from "antd"; // Aliased Ant Design Tag
-import type { TableProps, MenuProps, TableColumnsType } from "antd"; // Import TableColumnsType
-import type { ColumnType } from "antd/es/table/interface";
-import { EditOutlined, DeleteOutlined, EyeOutlined } from "@ant-design/icons"; // Changed icon
+  // InputRef, // Removed unused
+  // Menu, // Removed unused
+  // Dropdown, // Removed unused
+} from "antd";
+import type { TableProps, TableColumnsType } from "antd"; // Removed MenuProps
+// import type { ColumnType } from "antd/es/table/interface"; // Removed unused
+import { EditOutlined, DeleteOutlined, EyeOutlined } from "@ant-design/icons";
 import { format } from "date-fns";
 import { formatCurrency } from "@/utils/utils";
 import { useColumnSearch } from "@/hooks/useColumnSearch";
-// Removed AppstoreAddOutlined
 
-type DataIndex = keyof Product | "category" | "brand";
+// Removed DataIndex type alias
 
 // Hook Arguments Interface
 interface UseProductTableColumnsProps {
   categories: Category[];
   brands: Brand[];
-  onEdit: (product: Product) => void; // Will open drawer in edit mode
+  onEdit: (product: Product) => void;
   onDelete: (id: string) => Promise<void>;
-  onViewDetails: (product: Product) => void; // Will open drawer in view mode
+  onViewDetails: (product: Product) => void;
   isActionLoading?: boolean;
   isDeleting?: boolean;
 }
@@ -43,18 +42,15 @@ interface UseProductTableColumnsProps {
 export const useProductTableColumns = ({
   categories,
   brands,
-  onEdit, // Receive edit handler
+  onEdit,
   onDelete,
-  onViewDetails, // Receive view details handler
+  onViewDetails,
   isActionLoading = false,
   isDeleting = false,
 }: UseProductTableColumnsProps): TableColumnsType<Product> => {
-  // Use TableColumnsType for better type safety
 
-  // Use the hook to get the search props generator
   const getColumnSearchProps = useColumnSearch<Product>();
 
-  // Prepare filters from props
   const categoryFilters = useMemo(
     () => categories?.map((cat) => ({ text: cat.name, value: cat.id })) ?? [],
     [categories]
@@ -64,20 +60,7 @@ export const useProductTableColumns = ({
     [brands]
   );
 
-  // --- Action Menu Logic (Optional) ---
-  // const handleMenuClick = (e: { key: string }, product: Product) => {
-  //   if (e.key === 'edit') {
-  //      onEdit(product);
-  //   }
-  //   // Add other actions
-  // };
-  // const getMenuItems = (product: Product): MenuProps['items'] => [
-  //   { label: 'Edit Product', key: 'edit' },
-  // ];
-  // --- End Action Menu Logic ---
-
   const columns: TableColumnsType<Product> = [
-    // Use TableColumnsType
     {
       title: "Image",
       dataIndex: "images",
@@ -109,11 +92,10 @@ export const useProductTableColumns = ({
       title: "Name",
       dataIndex: "name",
       key: "name",
-      sorter: true, // Server-side sort enabled
-      ...getColumnSearchProps("name"), // Server-side search enabled
+      sorter: true,
+      ...getColumnSearchProps("name"),
       ellipsis: true,
-      width: 200, // Adjusted width
-      // sortOrder and filteredValue will be controlled by the Table's state via onChange in ProductTab
+      width: 200,
     },
     {
       title: "SKU",
@@ -131,8 +113,7 @@ export const useProductTableColumns = ({
       render: (categoryId: string) =>
         categoryId
           ? categories.find((cat) => cat.id === categoryId)?.name
-          : "-",      
-      // onFilter handled server-side
+          : "-",
     },
     {
       title: "Brand",
@@ -142,7 +123,6 @@ export const useProductTableColumns = ({
       ellipsis: true,
       render: (brandId: string) =>
         brandId ? brands.find((brand) => brand.id === brandId)?.name : "-",
-      // onFilter handled server-side
     },
     {
       title: "Tags",
@@ -210,15 +190,13 @@ export const useProductTableColumns = ({
       key: "active",
       filters: [
         { text: "Active", value: true },
-        { text: "Active", value: true },
-        { text: "Inactive", value: false },
+        { text: "Inactive", value: false }, // Removed duplicate Active filter
       ],
-      // onFilter handled server-side
       render: (active) => (
         <AntTag color={active ? "green" : "red"}>
           {active ? "Active" : "Inactive"}
         </AntTag>
-      ), // Use aliased AntTag
+      ),
       width: 100,
     },
     {
@@ -244,25 +222,22 @@ export const useProductTableColumns = ({
       key: "actions",
       render: (_, record) => (
         <Space size="small">
-          {/* View Details Button */}
           <Button
-            icon={<EyeOutlined />} // Use Eye icon
-            onClick={() => onViewDetails(record)} // Call view details handler
+            icon={<EyeOutlined />}
+            onClick={() => onViewDetails(record)}
             size="small"
             aria-label="View Details"
             title="View Details"
             disabled={isActionLoading}
           />
-          {/* Edit Button - Now opens drawer in edit mode */}
           <Button
             icon={<EditOutlined />}
-            onClick={() => onEdit(record)} // Call edit handler
+            onClick={() => onEdit(record)}
             size="small"
             aria-label="Edit"
             title="Edit Product"
             disabled={isActionLoading}
           />
-          {/* Delete Button */}
           <Popconfirm
             title="Delete Product"
             description="Are you sure you want to delete this product?"
@@ -277,13 +252,13 @@ export const useProductTableColumns = ({
               danger
               size="small"
               aria-label="Delete"
-              title="Delete Product" // Tooltip
+              title="Delete Product"
               disabled={isActionLoading}
             />
           </Popconfirm>
         </Space>
       ),
-      width: 120, // Increased width to accommodate the new button
+      width: 120,
       fixed: "right",
       align: "center",
     },

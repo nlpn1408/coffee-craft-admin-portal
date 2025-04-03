@@ -1,16 +1,15 @@
 'use client';
 
 import React, { useEffect } from 'react';
-import { Drawer, Tabs, Button, Form, Spin, notification, Space } from 'antd'; // Added Space
+import { Drawer, Tabs, Button, Form, Spin, notification, Space } from 'antd';
 import type { TabsProps } from 'antd';
 import { Product, NewProduct } from '@/types';
-
+// Use absolute path aliases
+import ProductVariantManager from '@/app/products/product-details/ProductVariantManager';
+import ProductImageManager from '@/app/products/product-details/ProductImageManager';
+import { ProductFormFields } from '@/app/products/components/ProductFormFields';
 import { useCreateProductMutation, useUpdateProductMutation } from '@/state/api';
 import { handleApiError } from '@/lib/api-utils';
-import { ProductFormFields } from './components/ProductFormFields';
-import ProductVariantManager from './product-details/ProductVariantManager';
-import ProductImageManager from './product-details/ProductImageManager';
-
 
 type DrawerMode = 'create' | 'edit' | 'view';
 
@@ -85,8 +84,8 @@ const ProductDetailView: React.FC<ProductDetailViewProps> = ({
             children: (
                 // Pass disabled prop to Ant Form based on mode
                 <Form form={form} layout="vertical" disabled={isViewMode}>
-                    {/* Remove isViewMode prop from ProductFormFields */}
-                    <ProductFormFields isViewMode={isViewMode} />
+                    {/* Use component from the same directory */}
+                    <ProductFormFields /> {/* Removed isViewMode prop as Form handles disable */}
                 </Form>
             ),
         },
@@ -97,13 +96,13 @@ const ProductDetailView: React.FC<ProductDetailViewProps> = ({
             {
                 key: 'variants',
                 label: 'Variants',
-                // Pass isViewMode down
+                // Use renamed component
                 children: <ProductVariantManager selectedProduct={product} isViewMode={isViewMode} />,
             },
             {
                 key: 'images',
                 label: 'Images',
-                 // Pass isViewMode down
+                 // Use renamed component
                 children: <ProductImageManager selectedProduct={product} isViewMode={isViewMode} />,
             }
             // Removed Tags tab

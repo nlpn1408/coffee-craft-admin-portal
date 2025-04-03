@@ -12,61 +12,39 @@ import {
   Space,
   InputRef,
   Button,
+  message, // Add message import
 } from "antd";
-// Removed react-hook-form imports
-import { Tag } from "@/types";
+import { Product, Tag } from "@/types"; // Added Product type
 import { useGetBrandsQuery, useGetCategoriesQuery } from "@/state/api";
-import {
-  useCreateTagMutation,
-  useGetTagsQuery,
-} from "@/state/services/tagService";
-import { z } from "zod";
-import { PlusOutlined } from "@ant-design/icons";
+
+import ProductTagAssociation from "../product-details/ProductTagAssociation";
 
 const { Option } = Select;
 
-// Infer type from the schema definition
-// Removed Zod schema and inferred type
+// Removed Zod schema
 
 interface ProductFormFieldsProps {
-  isViewMode?: boolean; // Add prop to disable fields
+  isViewMode?: boolean;
 }
 
 export const ProductFormFields = ({ isViewMode = false }: ProductFormFieldsProps) => {
   const { data: categories = [] } = useGetCategoriesQuery();
   const { data: brands = [] } = useGetBrandsQuery();
-  const { data: tagsResponse, isLoading: isLoadingTags } = useGetTagsQuery(); // Fetch tags
-  const [createTag] = useCreateTagMutation();
+  // Removed tag fetching/creation logic, handled by ProductTagAssociation
 
-  const tags = tagsResponse?.data ?? [];
-  const inputRef = useRef<InputRef>(null);
-  const [newTag, setNewTag] = useState("");
-
-  const addItem = async (
-    e: React.MouseEvent<HTMLButtonElement | HTMLAnchorElement>
-  ) => {
-    e.preventDefault();
-    if (!newTag) return;
-    const tagExists = tags.some((tag: Tag) => tag.name === newTag);
-
-    try {
-      await createTag({ name: newTag }).unwrap();
-    } catch (error) {
-      console.error("Failed to create tag:", error);
-    }
-
-    setNewTag("");
-    setTimeout(() => {
-      inputRef.current?.focus();
-    }, 0);
-  };
+  // Get the form instance to access the current product data
+  const form = Form.useFormInstance();
+  // Watch the product data (or pass selectedProduct if available)
+  // This is needed to pass the current product to ProductTagAssociation
+  // Note: This might cause re-renders. A more optimized way might involve context or props.
+  const currentProduct = Form.useWatch([], form) as Product | null; // Watch all fields
 
   return (
     <div className="space-y-4">
       {/* SKU */}
       <Form.Item
         label="SKU"
-        name="sku" // Use name directly
+        name="sku"
         rules={[{ required: true, message: "SKU is required" }]}
       >
         <Input placeholder="Enter product SKU" disabled={isViewMode} />
@@ -75,7 +53,7 @@ export const ProductFormFields = ({ isViewMode = false }: ProductFormFieldsProps
       {/* Name */}
       <Form.Item
         label="Name"
-        name="name" // Use name directly
+        name="name"
         rules={[{ required: true, message: "Name is required" }]}
       >
         <Input placeholder="Enter product name" disabled={isViewMode} />
@@ -104,7 +82,7 @@ export const ProductFormFields = ({ isViewMode = false }: ProductFormFieldsProps
         {/* Price */}
         <Form.Item
           label="Price (VND)"
-          name="price" // Use name directly
+          name="price"
           rules={[
             { required: true, message: "Price is required" },
             { type: 'number', min: 0, message: 'Price must be non-negative' }
@@ -115,7 +93,7 @@ export const ProductFormFields = ({ isViewMode = false }: ProductFormFieldsProps
             placeholder="Enter price"
             style={{ width: "100%" }}
             formatter={(value) => value ? `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",") : ""}
-            // Remove parser, rely on Form's onFinish for number conversion
+            // Remove parser again
             disabled={isViewMode}
           />
         </Form.Item>
@@ -123,7 +101,7 @@ export const ProductFormFields = ({ isViewMode = false }: ProductFormFieldsProps
         {/* Discount Price */}
         <Form.Item
           label="Discount Price (VND)"
-          name="discountPrice" // Use name directly
+          name="discountPrice"
           rules={[
              { type: 'number', min: 0, message: 'Discount price must be non-negative' }
              // Add custom validator if discountPrice must be less than price
@@ -134,60 +112,24 @@ export const ProductFormFields = ({ isViewMode = false }: ProductFormFieldsProps
             placeholder="Optional discount price"
             style={{ width: "100%" }}
             formatter={(value) => value ? `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",") : ""}
-             // Remove parser, rely on Form's onFinish for number conversion
+            // Remove parser again
             disabled={isViewMode}
           />
         </Form.Item>
       </div>
 
-      {/* Tags */}
+      {/* Tags - Replace Select with ProductTagAssociation */}
+      {/* We need to wrap ProductTagAssociation in Form.Item to connect it to Ant Form state */}
       <Form.Item label="Tags" name="tags">
-        <Select
-          mode="multiple"
-          allowClear
-          style={{ width: "100%" }}
-          placeholder="Select tags (optional)"
-          loading={isLoadingTags}
-          filterOption={(input, option) =>
-            (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
-          }
-          dropdownRender={(menu) => (
-            <>
-              {menu}
-              <Divider style={{ margin: "8px 0" }} />
-              <Space style={{ padding: "0 8px 4px" }}>
-                <Input
-                  placeholder="Enter new tag name"
-                  ref={inputRef}
-                  value={newTag}
-                  onChange={(e) => setNewTag(e.target.value)}
-                  onKeyDown={(e) => e.stopPropagation()}
-                  disabled={isViewMode} // Disable input in view mode
-                />
-                <Button
-                  type="text"
-                  icon={<PlusOutlined />}
-                  onClick={addItem}
-                  disabled={!newTag || isViewMode} // Disable button in view mode
-                >
-                  Add tag
-                </Button>
-              </Space>
-            </>
-          )}
-          options={tags.map((tag: Tag) => ({
-            label: tag.name,
-            value: tag.id, // Use tag ID as value
-          }))}
-          disabled={isViewMode}
-        />
+         {/* Pass the current product data and view mode status */}
+         <ProductTagAssociation selectedProduct={currentProduct} isViewMode={isViewMode} />
       </Form.Item>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Category */}
         <Form.Item
           label="Category"
-          name="categoryId" // Use name directly
+          name="categoryId"
           rules={[{ required: true, message: "Category is required" }]}
         >
           <Select placeholder="Select a category" allowClear disabled={isViewMode}>
@@ -217,7 +159,7 @@ export const ProductFormFields = ({ isViewMode = false }: ProductFormFieldsProps
         {/* Stock */}
         <Form.Item
           label="Stock"
-          name="stock" // Use name directly
+          name="stock"
           rules={[
             { required: true, message: "Stock is required" },
             { type: 'integer', min: 0, message: 'Stock must be a non-negative integer' }
@@ -234,8 +176,8 @@ export const ProductFormFields = ({ isViewMode = false }: ProductFormFieldsProps
         {/* Active */}
         <Form.Item
           label="Active Status"
-          name="active" // Use name directly
-          valuePropName="checked" // Important for Switch
+          name="active"
+          valuePropName="checked"
         >
           <Switch disabled={isViewMode} />
         </Form.Item>

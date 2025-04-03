@@ -1,12 +1,12 @@
 import React from 'react';
 import { Modal } from 'antd';
-import { TagForm } from './TagForm';
+import { TagForm } from '@/app/products/tag-management/TagForm'; // Use absolute path alias
 import { Tag, NewTag } from '@/types';
 
 interface CreateEditTagModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: NewTag) => void; // Renamed from onCreate for clarity
+  onSubmit: (data: NewTag) => void;
   initialData?: Tag;
   isLoading?: boolean;
 }
@@ -32,7 +32,7 @@ const CreateEditTagModal: React.FC<CreateEditTagModalProps> = ({
       <TagForm
         initialData={initialData}
         onSubmit={onSubmit}
-        onCancel={onClose}
+        onCancel={onClose} // Pass cancel handler to form
         isLoading={isLoading}
       />
     </Modal>

@@ -1,19 +1,19 @@
 "use client";
 
 import React from "react";
-import { Tag } from "@/types"; // Import the Tag type
-import { Table, Button, Space, Popconfirm, InputRef } from "antd"; // Added InputRef
+import { Tag } from "@/types";
+import { Table, Button, Space, Popconfirm } from "antd"; // Removed InputRef
 import type { TableColumnsType } from "antd";
 import { EditOutlined, DeleteOutlined } from "@ant-design/icons";
 import { format } from "date-fns";
-import { useColumnSearch } from "@/hooks/useColumnSearch"; // Reusable search hook
+import { useColumnSearch } from "@/hooks/useColumnSearch";
 
 // Hook Arguments Interface
 interface UseTagTableColumnsProps {
   onEdit: (tag: Tag) => void;
   onDelete: (id: string) => Promise<void>;
-  isActionLoading?: boolean; // To disable buttons during actions
-  isDeleting?: boolean; // To show loading on delete confirmation
+  isActionLoading?: boolean;
+  isDeleting?: boolean;
 }
 
 export const useTagTableColumns = ({
@@ -29,8 +29,8 @@ export const useTagTableColumns = ({
       title: "Name",
       dataIndex: "name",
       key: "name",
-      sorter: true, // Enable server-side sorting
-      ...getColumnSearchProps('name'), // Add server-side search functionality
+      sorter: true,
+      ...getColumnSearchProps('name'),
       ellipsis: true,
     },
     {

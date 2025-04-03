@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useMemo, useEffect } from "react"; // Removed useRef, Key
-import { NewProduct, Product, Category, Brand } from "@/types"; // Removed ProductImage
+import React, { useState, useMemo, useEffect } from "react";
+import { NewProduct, Product, Category, Brand } from "@/types";
 import {
   useCreateProductMutation,
   useDeleteProductMutation,
@@ -10,50 +10,33 @@ import {
   useGetProductsQuery,
   useUpdateProductMutation,
   useUploadProductImageMutation,
-  // Assuming export/import/template hooks exist or need to be added
-  // useExportProductsQuery,
-  // useImportProductsMutation,
-  // useGetProductTemplateQuery,
 } from "@/state/api";
 import {
   Button,
-  // Popconfirm, // Moved to hook
   Space,
   Table,
-  // Tag, // Moved to hook
-  // Image, // Moved to hook
-  // Input, // Moved to hook
   message,
   Spin,
-  // InputRef, // Moved to hook
 } from "antd";
-import type { TableProps, TablePaginationConfig } from "antd";
+import type { TableProps } from "antd";
 import type { FilterValue, SorterResult } from "antd/es/table/interface";
-// Removed ColumnType, FilterConfirmProps, FilterDropdownProps, Key
-import {
-  PlusOutlined,
-  // DeleteOutlined, // Moved to hook
-  // EditOutlined, // Moved to hook
-  // SearchOutlined, // Moved to hook
-} from "@ant-design/icons";
-import CreateProductModal from "./CreateProductModal";
+import { PlusOutlined } from "@ant-design/icons";
+// Note: CreateProductModal is removed as creation is handled by the drawer now
+// import CreateProductModal from "../ProductTab/CreateProductModal";
 import { handleApiError } from "@/lib/api-utils";
-// import { formatCurrency } from "@/utils/utils"; // Moved to hook
-import { useProductTableColumns } from "./useProductTableColumns"; // Import the hook
+import { useProductTableColumns } from "@/app/products/components/useProductTableColumns";
 import LoadingScreen from "@/components/LoadingScreen";
-import { dummyProduct } from "../components/dummyProduct";
+import { dummyProduct } from "../dummyProduct"; // Adjust path relative to new location
 
-// Define props interface
-interface ProductTabProps {
-  onCreate: () => void; // Add onCreate prop
-  onEdit: (product: Product) => void; // Keep onEdit prop (now opens drawer)
-  onViewDetails: (product: Product) => void; // Keep onViewDetails prop
+// Define props interface (Renamed)
+interface ProductListTabProps {
+  onCreate: () => void;
+  onEdit: (product: Product) => void;
+  onViewDetails: (product: Product) => void;
 }
 
-const ProductTab: React.FC<ProductTabProps> = ({ onCreate, onEdit, onViewDetails }) => { // Use new props
-  // Remove modal state as it's handled by the parent drawer now
-  // const [isModalOpen, setIsModalOpen] = useState(false);
-  // const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+// Rename component
+const ProductListTab: React.FC<ProductListTabProps> = ({ onCreate, onEdit, onViewDetails }) => {
   const [queryParams, setQueryParams] = useState<{
     sortField?: string;
     sortOrder?: "ascend" | "descend";
@@ -72,7 +55,7 @@ const ProductTab: React.FC<ProductTabProps> = ({ onCreate, onEdit, onViewDetails
     isLoading,
     isFetching,
     isError,
-    refetch: refetchProducts, // Add refetch
+    refetch: refetchProducts,
   } = useGetProductsQuery({
     search: queryParams.filters?.name?.[0] as string | undefined,
     categoryId: queryParams.filters?.category?.[0] as string | undefined,
@@ -84,7 +67,7 @@ const ProductTab: React.FC<ProductTabProps> = ({ onCreate, onEdit, onViewDetails
         : queryParams.sortOrder === "descend"
         ? "desc"
         : undefined,
-    active: queryParams.filters?.active?.[0] as boolean | undefined, // Added 'active' filter parameter back
+    active: queryParams.filters?.active?.[0] as boolean | undefined,
   });
 
   const products = useMemo(
@@ -92,18 +75,15 @@ const ProductTab: React.FC<ProductTabProps> = ({ onCreate, onEdit, onViewDetails
     [productsResponse]
   );
 
-  const [createProduct, { isLoading: isCreating }] = useCreateProductMutation();
+  // Keep create/upload mutations if needed for dummy data creation
+  const [createProduct] = useCreateProductMutation();
+  const [uploadImage] = useUploadProductImageMutation();
+  // Keep delete mutation
   const [deleteProduct, { isLoading: isDeleting }] = useDeleteProductMutation();
 
-  const [uploadImage] = useUploadProductImageMutation();
-
-  // Remove isActionLoading calculation related to internal modal state
-  const isActionLoading = isDeleting; // Only consider delete loading for table actions now
+  const isActionLoading = isDeleting; // Only delete matters for table actions now
 
   // --- Handlers ---
-  // Remove handlers related to the internal modal (handleCreateProduct, handleUpdateProduct)
-  // The save logic is now in ProductDetailView
-
   // Keep handleEdit, but it now calls the prop to open the drawer
   const handleEdit = (product: Product) => {
     onEdit(product); // Call prop to open drawer in edit mode
@@ -123,7 +103,7 @@ const ProductTab: React.FC<ProductTabProps> = ({ onCreate, onEdit, onViewDetails
 
   // --- Table Change Handler ---
   const handleTableChange: TableProps<Product>["onChange"] = (
-    pagination, // Client-side pagination, ignore changes here
+    pagination,
     filters,
     sorter
   ) => {
@@ -139,16 +119,14 @@ const ProductTab: React.FC<ProductTabProps> = ({ onCreate, onEdit, onViewDetails
   const columns = useProductTableColumns({
     categories: categoriesData,
     brands: brandsData,
-    onEdit: handleEdit, // Pass the updated handleEdit
+    onEdit: handleEdit,
     onDelete: handleDeleteSingle,
     onViewDetails: onViewDetails, // Pass onViewDetails prop down
-    isActionLoading, // Pass down delete loading state
-    isDeleting, // Pass down delete loading state
-    // Pass queryParams if hook needs it for controlled sortOrder/filteredValue
-    // queryParams,
+    isActionLoading,
+    isDeleting,
   });
 
-
+  // Keep dummy data handler if still desired
   const handleCreateDummy = async () => {
     dummyProduct.forEach(async (product) => {
       const formattedProduct: NewProduct = {
@@ -176,6 +154,19 @@ const ProductTab: React.FC<ProductTabProps> = ({ onCreate, onEdit, onViewDetails
       } catch (error) {}
     });
   };
+
+   if (isLoading && !isFetching) {
+    return <LoadingScreen />;
+  }
+
+  if (isError && !isLoading) {
+    return (
+      <div className="text-center text-red-500 py-4">
+        Failed to fetch products. Please try again later.
+      </div>
+    );
+  }
+
 
   return (
     <>
@@ -213,22 +204,25 @@ const ProductTab: React.FC<ProductTabProps> = ({ onCreate, onEdit, onViewDetails
           dataSource={products}
           rowKey="id"
           pagination={{
-            total: products.length, // Total based on current client-side data
+            // Use total from response if available for server-side pagination
+            total: productsResponse?.total ?? products.length,
             showTotal: (total, range) =>
               `${range[0]}-${range[1]} of ${total} items`,
             showSizeChanger: true,
             pageSizeOptions: ["10", "20", "50", "100"],
+            // Add current and pageSize if implementing server-side pagination fully
+            // current: queryParams.page,
+            // pageSize: queryParams.limit,
           }}
-          loading={isLoading && !isFetching} // Show table loading indicator on fetch
+          loading={isFetching} // Show table loading indicator on fetch
           onChange={handleTableChange} // Handle server-side sort/filter changes
           scroll={{ x: 2000 }}
           size="small"
         />
       </div>
-
-      {/* Remove Create/Edit Modal - Handled by Drawer now */}
     </>
   );
 };
 
-export default ProductTab;
+// Update export default
+export default ProductListTab;

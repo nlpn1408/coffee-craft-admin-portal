@@ -3,6 +3,8 @@
 import React from 'react';
 import { Form, Input, InputNumber, Row, Col } from 'antd';
 
+// Note: This component assumes it's rendered within an Ant Design <Form> component
+// provided by its parent (e.g., CreateEditVariantModal).
 const VariantForm: React.FC = () => {
     return (
         <>
@@ -21,7 +23,7 @@ const VariantForm: React.FC = () => {
                         label="SKU (Optional)"
                         name="sku"
                         rules={[
-                            // Add specific SKU validation if needed, e.g., uniqueness check via API
+                            // Add specific SKU validation if needed
                         ]}
                     >
                         <Input placeholder="Variant specific SKU" />
@@ -39,7 +41,8 @@ const VariantForm: React.FC = () => {
                             { type: 'number', min: 0, message: 'Price must be non-negative' }
                         ]}
                     >
-                        <InputNumber style={{ width: '100%' }} placeholder="Variant price" addonAfter="VND" />
+                        {/* Removed addonAfter as InputNumber doesn't directly support it like Input */}
+                        <InputNumber style={{ width: '100%' }} placeholder="Variant price" min={0} />
                     </Form.Item>
                 </Col>
                 <Col span={8}>
@@ -51,7 +54,8 @@ const VariantForm: React.FC = () => {
                             // Add validation: discountPrice < price if needed
                         ]}
                     >
-                        <InputNumber style={{ width: '100%' }} placeholder="Discounted price" addonAfter="VND" />
+                         {/* Removed addonAfter */}
+                        <InputNumber style={{ width: '100%' }} placeholder="Discounted price" min={0} />
                     </Form.Item>
                 </Col>
                 <Col span={8}>
@@ -63,7 +67,7 @@ const VariantForm: React.FC = () => {
                             { type: 'integer', min: 0, message: 'Stock must be a non-negative integer' }
                         ]}
                     >
-                        <InputNumber style={{ width: '100%' }} placeholder="Quantity in stock" />
+                        <InputNumber style={{ width: '100%' }} placeholder="Quantity in stock" min={0} />
                     </Form.Item>
                 </Col>
             </Row>
