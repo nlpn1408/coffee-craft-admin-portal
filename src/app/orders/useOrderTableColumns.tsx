@@ -138,16 +138,6 @@ export const useOrderTableColumns = ({
       width: 130,
     },
     {
-      title: "Order Date",
-      dataIndex: "orderDate",
-      key: "orderDate",
-      sorter: (a, b) =>
-        new Date(a.orderDate).getTime() - new Date(b.orderDate).getTime(),
-      render: (orderDate: string | Date) =>
-        format(new Date(orderDate), "MMM d, yyyy HH:mm"),
-      width: 180,
-    },
-    {
       title: "Actions",
       key: "actions",
       align: "center",
