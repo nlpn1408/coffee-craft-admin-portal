@@ -2,6 +2,7 @@
 
 import { useAppDispatch, useAppSelector } from "@/lib/hooks/redux";
 import { setIsSidebarCollapsed } from "@/state";
+import { Button } from "antd";
 import {
   Gem,
   Layers2,
@@ -16,7 +17,6 @@ import {
   User,
   FileText, // Import FileText icon for Blogs
 } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import React from "react";
@@ -99,12 +99,12 @@ const Sidebar = () => {
           COFFEE CRAFT
         </h1>
 
-        <button
+        <Button
           className="md:hidden px-3 py-3 bg-gray-100 rounded-full hover:bg-blue-100"
           onClick={toggleSidebar}
         >
           <Menu className="w-4 h-4" />
-        </button>
+        </Button>
       </div>
 
       {/* LINKS */}
