@@ -108,6 +108,15 @@ export interface NewBlog {
   active?: boolean;
 }
 
+// For updating blogs, all fields are optional
+export interface UpdateBlog {
+  title?: string;
+  content?: string;
+  thumbnail?: string | null;
+  publicationDate?: string | null; // Use string for API payload
+  active?: boolean;
+}
+
 export interface NewReview {
   rating: number; // 1-5
   comment?: string | null;

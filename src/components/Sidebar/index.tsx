@@ -11,9 +11,10 @@ import {
   Layout,
   LucideIcon,
   Menu,
-  ShoppingCart, // Import ShoppingCart icon
+  ShoppingCart,
   SlidersHorizontal,
   User,
+  FileText, // Import FileText icon for Blogs
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -151,6 +152,13 @@ const Sidebar = () => {
           href="/users"
           icon={User}
           label="Users"
+          isCollapsed={isSidebarCollapsed}
+        />
+        {/* Add Blog Link */}
+        <SidebarLink
+          href="/blogs"
+          icon={FileText}
+          label="Blogs"
           isCollapsed={isSidebarCollapsed}
         />
         <SidebarLink

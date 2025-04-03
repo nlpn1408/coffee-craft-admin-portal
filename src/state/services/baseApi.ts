@@ -59,6 +59,7 @@ export const baseApi = createApi({
     "ProductImages",
     "Order",
     "Tags",
-    "ProductVariant", // Add ProductVariant tag type
+    "ProductVariant",
+    "Blogs", // Add Blogs tag type
   ],
 });

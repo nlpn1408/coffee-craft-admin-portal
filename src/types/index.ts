@@ -276,9 +276,10 @@ export type {
   NewOrder,
   NewVoucher,
   NewTag,
-  NewProductVariant, // Add NewProductVariant
-  UpdateProductVariant, // Add UpdateProductVariant
+  NewProductVariant,
+  UpdateProductVariant,
   NewBlog,
+  UpdateBlog, // Add UpdateBlog
   NewReview,
   NewShippingAddress,
   SalesSummary,
