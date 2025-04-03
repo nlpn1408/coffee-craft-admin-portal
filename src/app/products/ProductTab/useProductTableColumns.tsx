@@ -124,18 +124,24 @@ export const useProductTableColumns = ({
     },
     {
       title: "Category",
-      dataIndex: ["category", "name"],
-      key: "category",
+      dataIndex: "categoryId",
+      key: "categoryId",
       filters: categoryFilters,
       ellipsis: true,
+      render: (categoryId: string) =>
+        categoryId
+          ? categories.find((cat) => cat.id === categoryId)?.name
+          : "-",      
       // onFilter handled server-side
     },
     {
       title: "Brand",
-      dataIndex: ["brand", "name"],
-      key: "brand",
+      dataIndex: "brandId",
+      key: "brandId",
       filters: brandFilters,
       ellipsis: true,
+      render: (brandId: string) =>
+        brandId ? brands.find((brand) => brand.id === brandId)?.name : "-",
       // onFilter handled server-side
     },
     {

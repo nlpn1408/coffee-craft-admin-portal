@@ -83,7 +83,7 @@ export const ProductForm = ({ onSave, isLoading, product, onCancel }: Props) => 
         brandId: product.brandId || null, // Handle null
         stock: product.stock, // Already a number
         active: product.active ?? true,
-        tags: product.tags ? product.tags.map(tag => tag.id) : [], // Map tags to IDs
+        tags: product.tags ? product.tags.map(tag => tag.name) : [],
       });
     } else {
       // Reset to default values when creating a new product

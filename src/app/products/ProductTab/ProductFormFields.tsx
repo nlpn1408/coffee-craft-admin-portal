@@ -228,7 +228,6 @@ export const ProductFormFields = ({ control, errors }: ProductFormFieldsProps) =
           label="Brand"
           validateStatus={errors.brandId ? "error" : ""}
           help={errors.brandId?.message}
-          // No longer required
         >
           <Controller
             name="brandId"
