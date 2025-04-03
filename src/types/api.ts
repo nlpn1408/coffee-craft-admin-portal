@@ -1,98 +1,134 @@
-// Keep interfaces specific to API requests/responses or unique features
+import { OrderStatus, PaymentMethod, PaymentStatus, UserRole, VoucherType, GENDER } from './index';
 
 // Interfaces for creating new entities
 export interface NewProduct {
+  sku: string;
   name: string;
-  description: string | null;
-  price: number;
+  shortDescription?: string | null;
+  longDescription?: string | null;
+  price: number; // Prisma Decimal maps to number
+  discountPrice?: number | null; // Prisma Decimal maps to number
   categoryId: string;
-  brandId: string;
-  stock: number;
-  active: boolean;
+  brandId?: string | null;
+  stock: number; // Prisma Int maps to number
+  active?: boolean;
+  tags?: string[]; // Add optional array of tag IDs
+  // avgRating is usually calculated, not set directly
+  // images, variants are likely handled separately or nested differently
 }
 
 export interface NewProductImage {
-  id?: string;
-  productId?: string;
+  productId: string; // Should be required when creating
   url: string;
-  isThumbnail: boolean;
-  order: number | null;
+  order?: number | null;
+  isThumbnail?: boolean;
+  // altText?: string | null; // Uncomment if needed
 }
 
 export interface NewCategory {
   name: string;
-  description: string | null;
+  description?: string | null;
   parentId?: string | null;
+  order?: number | null; // Added order field
 }
 
+// Assuming NewSubcategory is still relevant, otherwise remove
 export interface NewSubcategory {
   name: string;
-  categoryId: string;
+  categoryId: string; // Assuming this links to the parent Category ID
 }
 
 export interface NewBrand {
   name: string;
-  description: string | null;
+  description?: string | null;
+  order?: number | null; // Added order field
 }
 
 export interface NewUser {
-  name: string;
+  name?: string | null;
   email: string;
-  password: string;
-  role: string; // Use string here or import UserRole from index.ts if preferred
+  password?: string; // Password might be handled separately (e.g., during signup)
+  phone?: string | null;
+  address?: string | null;
+  imgUrl?: string | null;
+  gender?: GENDER | null;
+  dob?: string | null; // Use string for API payload, convert on server
+  role?: UserRole; // Optional, might default on server
+  emailVerified?: boolean; // Usually set by server after verification
+  isActive?: boolean; // Usually defaults or managed by admin
+}
+
+export interface NewOrderItem { // Renamed for clarity if used standalone
+  productId: string;
+  productVariantId?: string | null;
+  quantity: number;
+  priceAtOrder: number; // Price at the time of order
+  subTotal: number; // quantity * priceAtOrder
+  discountAmount?: number;
 }
 
 export interface NewOrder {
   userId: string;
-  total: number;
-  status?: string; // Use string here or import OrderStatus from index.ts
+  total: number; // Original total before discounts/fees
+  shippingFee?: number;
+  discountAmount?: number;
+  finalTotal: number; // The actual amount charged
+  status?: OrderStatus; // Default usually set by server
+  paymentStatus?: PaymentStatus; // Default usually set by server
   voucherId?: string | null;
   shippingAddressId: string;
-  orderDate: string; // Consider using Date type if consistent
-  paymentMethod?: string; // Use string here or import PaymentMethod from index.ts
+  paymentMethod?: PaymentMethod; // Default usually set by server
   note?: string | null;
-  orderItems: {
-    productId: string;
-    quantity: number;
-    subTotal: number;
-  }[];
+  transactionId?: string | null; // Usually set after payment processing
+  orderItems: NewOrderItem[]; // Use the defined interface for items
 }
+
 
 export interface NewVoucher {
   code: string;
-  discountPercent: number;
-  maxDiscount: number;
-  type: string; // Use string here or import VoucherType from index.ts
-  startDate: string; // Consider using Date type
-  endDate: string; // Consider using Date type
-  usedLeft: number;
+  discountPercent?: number | null;
+  discountAmount?: number | null;
+  maxDiscount?: number | null;
+  type: VoucherType;
+  startDate: string; // Use string for API payload, convert on server
+  endDate: string; // Use string for API payload, convert on server
+  usageLimit?: number | null;
+  minimumOrderValue?: number | null;
   isActive?: boolean;
+  applicableCategoryIds?: string[]; // IDs of categories
+  excludedProductIds?: string[]; // IDs of products
 }
 
 export interface NewBlog {
   title: string;
   content: string;
   thumbnail?: string | null;
-  userId: string;
-  publicationDate: string; // Consider using Date type
+  userId: string; // Usually inferred from logged-in user on server
+  publicationDate?: string; // Use string for API payload, convert on server
   active?: boolean;
 }
 
 export interface NewReview {
-  userId: string;
-  productId: string;
-  rating: number;
+  rating: number; // 1-5
   comment?: string | null;
+  orderItemId: string;
+  userId: string; // Usually inferred from logged-in user on server
+  productId: string;
+  productVariantId?: string | null;
 }
 
 export interface NewShippingAddress {
-  userId: string;
+  userId: string; // Usually inferred from logged-in user on server
   address: string;
   receiverName: string;
   receiverPhone: string;
 }
 
-// Dashboard specific types
+export interface NewTag {
+  name: string;
+}
+
+// Dashboard specific types (Assuming these remain unchanged by the schema update)
 export interface SalesSummary {
   salesSummaryId: string;
   totalValue: number;
@@ -136,9 +172,3 @@ export interface ImportResult {
   success: number;
   errors: string[];
 }
-
-// Note: Removed duplicated enums (UserRole, OrderStatus, PaymentMethod, VoucherType)
-// Note: Removed duplicated interfaces (Product, ProductImage, Category, Brand, User, Order, OrderItem, Voucher, Blog, Review, ShippingAddress)
-// These should now be imported from './index.ts' where needed.
-// Consider using types (Date) instead of strings for date fields if applicable across the app.
-// Consider importing Enums from index.ts for 'New*' interfaces if strict typing is desired.

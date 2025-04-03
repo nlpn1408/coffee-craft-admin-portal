@@ -1,33 +1,39 @@
 "use client";
 
 import React from "react";
-import { Input, Select, Switch, InputNumber, Form } from "antd";
+import { Input, Select, Switch, InputNumber, Form, Spin } from "antd";
 import { Controller, Control, FieldErrors } from "react-hook-form";
-import { Category, Brand, NewProduct } from "@/types";
-import { useGetBrandsQuery, useGetCategoriesQuery } from "@/state/api";
-import { z } from "zod"; // Import z
+import { Category, Brand, Tag } from "@/types";
+import { useGetBrandsQuery, useGetCategoriesQuery } from "@/state/api"; 
+import { useGetTagsQuery } from "@/state/services/tagService"; 
+import { z } from "zod";
 
 const { Option } = Select;
 
-// Define the schema *again* here or import it to ensure type consistency
-// (Importing is better, but for simplicity here, we redefine)
+// Define the schema matching ProductForm.tsx
 const formSchema = z.object({
+  sku: z.string().min(1, "SKU is required"),
   name: z.string().min(1, "Name is required"),
-  description: z.string().min(1, "Description is required"), // Matches ProductForm schema
+  shortDescription: z.string().optional().nullable(),
+  longDescription: z.string().optional().nullable(),
   price: z.coerce.number({
-    required_error: " Price is required",
+    required_error: "Price is required",
     invalid_type_error: "Price must be a number",
   }).positive("Price must be positive"),
+  discountPrice: z.coerce.number({
+    invalid_type_error: "Discount price must be a number",
+  }).nonnegative("Discount price cannot be negative").optional().nullable(),
   categoryId: z.string().min(1, "Category is required"),
-  brandId: z.string().min(1, "Brand is required"),
+  brandId: z.string().optional().nullable(),
   stock: z.coerce.number({
     required_error: "Stock is required",
     invalid_type_error: "Stock must be a number",
-  }).int().nonnegative("Stock cannot be negative"),
+  }).int().nonnegative("Stock cannot be negative"), 
   active: z.boolean().default(true),
+  tags: z.array(z.string()).optional(),
 });
 
-// Infer type from the consistent schema definition
+// Infer type from the schema definition
 type ProductFormData = z.infer<typeof formSchema>;
 
 interface ProductFormFieldsProps {
@@ -38,9 +44,28 @@ interface ProductFormFieldsProps {
 export const ProductFormFields = ({ control, errors }: ProductFormFieldsProps) => {
   const { data: categories = [] } = useGetCategoriesQuery();
   const { data: brands = [] } = useGetBrandsQuery();
+  const { data: tagsResponse, isLoading: isLoadingTags } = useGetTagsQuery(); // Fetch tags
+
+  const tags = tagsResponse?.data ?? [];
 
   return (
     <div className="space-y-4">
+      {/* SKU */}
+      <Form.Item
+        label="SKU"
+        validateStatus={errors.sku ? "error" : ""}
+        help={errors.sku?.message}
+        required
+      >
+        <Controller
+          name="sku"
+          control={control}
+          render={({ field }) => (
+            <Input {...field} placeholder="Enter product SKU" />
+          )}
+        />
+      </Form.Item>
+
       {/* Name */}
       <Form.Item
         label="Name"
@@ -57,50 +82,123 @@ export const ProductFormFields = ({ control, errors }: ProductFormFieldsProps) =
         />
       </Form.Item>
 
-      {/* Description */}
+      {/* Short Description */}
       <Form.Item
-        label="Description"
-        validateStatus={errors.description ? "error" : ""}
-        help={errors.description?.message}
-        required
+        label="Short Description"
+        validateStatus={errors.shortDescription ? "error" : ""}
+        help={errors.shortDescription?.message}
       >
         <Controller
-          name="description"
+          name="shortDescription"
           control={control}
           render={({ field }) => (
-            // Handle potential null value from react-hook-form if schema changes later
-            <Input.TextArea {...field} value={field.value ?? ''} rows={3} placeholder="Enter product description" />
+            <Input.TextArea {...field} value={field.value ?? ''} rows={2} placeholder="Enter short description (optional)" />
           )}
         />
       </Form.Item>
 
-      {/* Price */}
+      {/* Long Description */}
       <Form.Item
-        label="Price (VND)"
-        validateStatus={errors.price ? "error" : ""}
-        help={errors.price?.message}
-        required
+        label="Long Description"
+        validateStatus={errors.longDescription ? "error" : ""}
+        help={errors.longDescription?.message}
       >
         <Controller
-          name="price"
+          name="longDescription"
           control={control}
           render={({ field }) => (
-            <InputNumber
+            <Input.TextArea {...field} value={field.value ?? ''} rows={4} placeholder="Enter detailed description (optional)" />
+          )}
+        />
+      </Form.Item>
+
+      {/* Price & Discount Price in a row */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Price */}
+        <Form.Item
+          label="Price (VND)"
+          validateStatus={errors.price ? "error" : ""}
+          help={errors.price?.message}
+          required
+        >
+          <Controller
+            name="price"
+            control={control}
+            render={({ field }) => (
+              <InputNumber
+                {...field}
+                min={0}
+                placeholder="Enter price"
+                style={{ width: '100%' }}
+                formatter={(value) => value ? `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',') : ''}
+                parser={(value) => {
+                    const parsed = value ? value.replace(/\$\s?|(,*)/g, '') : '';
+                    const num = Number(parsed);
+                    // Ensure a number is always returned for the InputNumber parser
+                    return isNaN(num) ? 0 : num;
+                }}
+              />
+            )}
+          />
+        </Form.Item>
+
+        {/* Discount Price */}
+        <Form.Item
+          label="Discount Price (VND)"
+          validateStatus={errors.discountPrice ? "error" : ""}
+          help={errors.discountPrice?.message}
+        >
+          <Controller
+            name="discountPrice"
+            control={control}
+            render={({ field }) => (
+              <InputNumber
+                {...field}
+                value={field.value ?? undefined} // Use undefined for empty display in InputNumber
+                onChange={(value) => field.onChange(value === null ? null : value)} // Ensure null is passed back for empty/cleared
+                min={0}
+                placeholder="Optional discount price"
+                style={{ width: '100%' }}
+                formatter={(value) => value ? `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',') : ''}
+                parser={(value) => {
+                    const parsed = value ? value.replace(/\$\s?|(,*)/g, '') : '';
+                    const num = Number(parsed);
+                    // Return 0 if empty or invalid to satisfy InputNumber's parser type requirement
+                    // The onChange handler and zod schema will manage the actual null/undefined state
+                    return (parsed === '' || isNaN(num)) ? 0 : num;
+                }}
+              />
+            )}
+          />
+        </Form.Item>
+      </div>
+
+      {/* Tags */}
+      <Form.Item
+        label="Tags"
+        validateStatus={errors.tags ? "error" : ""}
+        help={errors.tags?.message}
+      >
+        <Controller
+          name="tags"
+          control={control}
+          render={({ field }) => (
+            <Select
               {...field}
-              min={0}
-              placeholder="Enter price"
+              mode="multiple"
+              allowClear
               style={{ width: '100%' }}
-              formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-              // Fix: Parser must return number or null/undefined
-              parser={(value) => {
-                  const parsed = value!.replace(/\$\s?|(,*)/g, '');
-                  const num = Number(parsed);
-                  return isNaN(num) ? 0 : num; // Return 0 if parsing fails
-              }}
+              placeholder="Select tags (optional)"
+              loading={isLoadingTags}
+              filterOption={(input, option) =>
+                (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+              }
+              options={tags.map((tag: Tag) => ({ label: tag.name, value: tag.name }))} // Added type annotation for tag
             />
           )}
         />
       </Form.Item>
+
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Category */}
@@ -130,13 +228,13 @@ export const ProductFormFields = ({ control, errors }: ProductFormFieldsProps) =
           label="Brand"
           validateStatus={errors.brandId ? "error" : ""}
           help={errors.brandId?.message}
-          required
+          // No longer required
         >
           <Controller
             name="brandId"
             control={control}
             render={({ field }) => (
-              <Select {...field} placeholder="Select a brand" allowClear>
+              <Select {...field} value={field.value ?? undefined} placeholder="Select a brand (optional)" allowClear>
                 {brands.map((brand) => (
                   <Option key={brand.id} value={brand.id}>
                     {brand.name}

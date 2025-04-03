@@ -83,6 +83,9 @@ importers:
       drizzle-orm:
         specifier: ^0.40.0
         version: 0.40.0(gel@2.0.1)(pg@8.13.3)(postgres@3.4.5)
+      lodash:
+        specifier: ^4.17.21
+        version: 4.17.21
       lucide-react:
         specifier: ^0.407.0
         version: 0.407.0(react@18.3.1)

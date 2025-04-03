@@ -4,6 +4,7 @@ import { Tabs } from "antd";
 import type { TabsProps } from "antd";
 import ProductTab from "./ProductTab/ProductTab";
 import ProductImageTab from "./ProductImageTab/ProductImageTab";
+import TagTab from "./TagTab/TagTab"; // Import the new TagTab component
 // Removed useState, Header, Shadcn Tabs imports
 
 const Products = () => {
@@ -19,6 +20,11 @@ const Products = () => {
       key: "productsImages",
       label: "Product Images",
       children: <ProductImageTab />,
+    },
+    {
+      key: "tags",
+      label: "Tags",
+      children: <TagTab />, // Add the TagTab component here
     },
   ];
 

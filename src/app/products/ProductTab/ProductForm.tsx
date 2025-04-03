@@ -6,27 +6,38 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 // Removed Shadcn Form import
-import { ProductFormFields } from "./ProductFormFields"; // Keep ProductFormFields for now
+import { ProductFormFields } from "./ProductFormFields";
 import { NewProduct, Product } from "@/types";
 
-// Keep the same schema
+// Updated schema based on Prisma model
 const formSchema = z.object({
+  sku: z.string().min(1, "SKU is required"),
   name: z.string().min(1, "Name is required"),
-  description: z.string().min(1, "Description is required"),
+  shortDescription: z.string().optional().nullable(),
+  longDescription: z.string().optional().nullable(),
   price: z.coerce.number({
-    required_error: " Price is required",
+    required_error: "Price is required",
     invalid_type_error: "Price must be a number",
   }).positive("Price must be positive"),
+  discountPrice: z.coerce.number({
+    invalid_type_error: "Discount price must be a number",
+  }).nonnegative("Discount price cannot be negative").optional().nullable(),
   categoryId: z.string().min(1, "Category is required"),
-  brandId: z.string().min(1, "Brand is required"),
+  brandId: z.string().optional().nullable(), // Optional brand
   stock: z.coerce.number({
     required_error: "Stock is required",
     invalid_type_error: "Stock must be a number",
-  }).int().nonnegative("Stock cannot be negative"),
-  active: z.boolean().default(true), // Default active to true
+  }).int().nonnegative("Stock cannot be negative"), // Ensure integer
+  active: z.boolean().default(true),
+  tags: z.array(z.string()).optional(), // Add tags schema
 });
 
 type ProductFormData = z.infer<typeof formSchema>;
+
+// Helper to convert empty strings to null for optional fields
+const emptyStringToNull = (value: string | null | undefined): string | null => {
+  return value === "" ? null : value ?? null;
+};
 
 type Props = {
   product?: Product;
@@ -44,13 +55,17 @@ export const ProductForm = ({ onSave, isLoading, product, onCancel }: Props) => 
   } = useForm<ProductFormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      sku: "",
       name: "",
-      description: "",
+      shortDescription: "",
+      longDescription: "",
       price: 0,
+      discountPrice: null, // Default to null for optional number
       categoryId: "",
-      brandId: "",
+      brandId: null, // Default to null for optional string
       stock: 0,
-      active: true, // Default active state
+      active: true,
+      tags: [], // Default tags to empty array
     },
   });
 
@@ -58,34 +73,49 @@ export const ProductForm = ({ onSave, isLoading, product, onCancel }: Props) => 
   useEffect(() => {
     if (product) {
       reset({
+        sku: product.sku || "",
         name: product.name || "",
-        description: product.description || "",
-        price: product.price || 0,
+        shortDescription: product.shortDescription || "",
+        longDescription: product.longDescription || "",
+        price: product.price, // Already a number
+        discountPrice: product.discountPrice ?? null, // Handle null
         categoryId: product.categoryId || "",
-        brandId: product.brandId || "",
-        stock: product.stock || 0,
-        active: product.active ?? true, // Use nullish coalescing for boolean
+        brandId: product.brandId || null, // Handle null
+        stock: product.stock, // Already a number
+        active: product.active ?? true,
+        tags: product.tags ? product.tags.map(tag => tag.id) : [], // Map tags to IDs
       });
     } else {
       // Reset to default values when creating a new product
+      // Reset to default values when creating a new product
       reset({
+        sku: "",
         name: "",
-        description: "",
+        shortDescription: "",
+        longDescription: "",
         price: 0,
+        discountPrice: null,
         categoryId: "",
-        brandId: "",
+        brandId: null,
         stock: 0,
         active: true,
+        tags: [], // Reset tags
       });
     }
   }, [product, reset]);
 
-  const onSubmit = (formDataJson: ProductFormData) => {
-    // Process data if needed (e.g., ensure numbers are numbers)
+  const onSubmit = (formData: ProductFormData) => {
+    // Process data: convert empty strings to null for optional fields
     const processedData: NewProduct = {
-        ...formDataJson,
-        price: Number(formDataJson.price),
-        stock: Number(formDataJson.stock),
+      ...formData,
+      brandId: emptyStringToNull(formData.brandId),
+      shortDescription: emptyStringToNull(formData.shortDescription),
+      longDescription: emptyStringToNull(formData.longDescription),
+      // Ensure numeric types are correctly handled (already done by zod coerce)
+      price: formData.price,
+      discountPrice: formData.discountPrice,
+      stock: formData.stock,
+      tags: formData.tags || [], // Include tags, default to empty array if undefined
     };
     onSave(processedData);
   };

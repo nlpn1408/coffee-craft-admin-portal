@@ -11,6 +11,7 @@ export const API_ENDPOINTS = {
   EXPORT_BRANDS: '/brands/export',
   IMPORT_BRANDS: '/brands/import',
   BRAND_TEMPLATE: '/brands/template',
+  TAGS: '/tags', // Added Tags endpoint
   ORDERS: '/orders',
   VOUCHERS: '/vouchers',
   BLOGS: '/blogs',
@@ -20,4 +21,4 @@ export const API_ENDPOINTS = {
   LOGIN: '/auth/login',
   LOGOUT: '/auth/logout',
   CHECK_AUTH: '/auth/me',
-}; 
+};

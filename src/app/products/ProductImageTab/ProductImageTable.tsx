@@ -8,7 +8,7 @@ type Props = {
   selectedProductId?: string;
   onCreate?: () => void;
   onEdit: (imgs: ProductImage) => void;
-  onUpdate: (id: string, data: NewProductImage) => void;
+  onUpdate: (id: string, data: any) => void;
   onDelete: (id: string) => void;
 };
 export const ProductImageTable = ({

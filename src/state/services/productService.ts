@@ -12,6 +12,7 @@ export const productService = baseApi.injectEndpoints({
         brandId?: string;
         sortBy?: string;
         sortOrder?: "asc" | "desc";
+        active?: boolean; // Add the active filter parameter
       }
     >({
       query: (params) => ({

@@ -40,6 +40,7 @@ import { handleApiError } from "@/lib/api-utils";
 // import { formatCurrency } from "@/utils/utils"; // Moved to hook
 import { useProductTableColumns } from "./useProductTableColumns"; // Import the hook
 import LoadingScreen from "@/components/LoadingScreen"; // Import LoadingScreen
+import { dummyProduct } from "../components/dummyProduct";
 
 const ProductTab = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -74,7 +75,7 @@ const ProductTab = () => {
         : queryParams.sortOrder === "descend"
         ? "desc"
         : undefined,
-    // Removed 'active' parameter
+    active: queryParams.filters?.active?.[0] as boolean | undefined, // Added 'active' filter parameter back
   });
 
   const products = useMemo(
@@ -168,6 +169,22 @@ const ProductTab = () => {
     );
   }
 
+  const handleCreateDummy = async () => {
+    // const formattedDummyProduct: NewProduct = dummyProduct.map((item) => ({
+    //  name: item.name,
+    //  sku: item.sku,
+
+    // }));
+
+    // try {
+    //   await createProduct(formattedDummyProduct).unwrap();
+    //   message.success("Dummy products created successfully");
+    //   refetchProducts(); // Refetch after create
+    // } catch (error) {
+    //   handleApiError(error);
+    // }
+  }
+
   return (
     <>
       <div className="p-4 space-y-4">
@@ -184,6 +201,17 @@ const ProductTab = () => {
               disabled={isActionLoading}
             >
               Create Product
+            </Button>
+          </Space>
+
+          <Space wrap>
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={handleCreateDummy}
+              disabled={isActionLoading}
+            >
+              Create Product Dummy
             </Button>
             {/* Add Import/Export/Template buttons here if needed */}
           </Space>
@@ -203,7 +231,7 @@ const ProductTab = () => {
           }}
           loading={isFetching} // Show table loading indicator on fetch
           onChange={handleTableChange} // Handle server-side sort/filter changes
-          scroll={{ x: 1800 }}
+          scroll={{ x: 2000 }}
           size="small"
         />
       </div>
