@@ -99,7 +99,7 @@ export const ProductForm = ({ onSave, isLoading, product, onCancel }: Props) => 
         brandId: null,
         stock: 0,
         active: true,
-        tags: [], // Reset tags
+        tags: [],
       });
     }
   }, [product, reset]);
@@ -115,7 +115,7 @@ export const ProductForm = ({ onSave, isLoading, product, onCancel }: Props) => 
       price: formData.price,
       discountPrice: formData.discountPrice,
       stock: formData.stock,
-      tags: formData.tags || [], // Include tags, default to empty array if undefined
+      tags: formData.tags || [],
     };
     onSave(processedData);
   };

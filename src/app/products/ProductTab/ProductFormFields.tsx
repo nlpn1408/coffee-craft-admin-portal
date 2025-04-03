@@ -3,7 +3,7 @@
 import React from "react";
 import { Input, Select, Switch, InputNumber, Form, Spin } from "antd";
 import { Controller, Control, FieldErrors } from "react-hook-form";
-import { Category, Brand, Tag } from "@/types";
+import { Tag } from "@/types";
 import { useGetBrandsQuery, useGetCategoriesQuery } from "@/state/api"; 
 import { useGetTagsQuery } from "@/state/services/tagService"; 
 import { z } from "zod";
@@ -193,7 +193,7 @@ export const ProductFormFields = ({ control, errors }: ProductFormFieldsProps) =
               filterOption={(input, option) =>
                 (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
               }
-              options={tags.map((tag: Tag) => ({ label: tag.name, value: tag.name }))} // Added type annotation for tag
+              options={tags.map((tag: Tag) => ({ label: tag.name, value: tag.name }))}
             />
           )}
         />

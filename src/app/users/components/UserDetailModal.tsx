@@ -144,7 +144,7 @@ export default function UserDetailModal({
                       {order.id}
                     </Descriptions.Item>
                     <Descriptions.Item label="Date">
-                      {format(new Date(order.orderDate), "P")}
+                      {format(new Date(order.createdAt), "P")}
                     </Descriptions.Item>
                     <Descriptions.Item label="Total">
                       {formatCurrency(order.total)}

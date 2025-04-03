@@ -58,7 +58,7 @@ export default function OrderDetailModal({
           <>
             <Descriptions bordered column={2} size="small" className="mb-4">
               <Descriptions.Item label="Order ID">{order.id}</Descriptions.Item>
-              <Descriptions.Item label="Order Date">{format(new Date(order.orderDate), 'PPpp')}</Descriptions.Item>
+              <Descriptions.Item label="Order Date">{format(new Date(order.createdAt), 'PPpp')}</Descriptions.Item>
               <Descriptions.Item label="Customer Email">{order.user?.email ?? 'N/A'}</Descriptions.Item>
               <Descriptions.Item label="Status">{renderStatusTag(order.status)}</Descriptions.Item>
               <Descriptions.Item label="Payment Method">{order.paymentMethod.replace('_', ' ')}</Descriptions.Item>

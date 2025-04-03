@@ -116,6 +116,8 @@ export interface Product {
   createdAt: Date;
   updatedAt: Date;
 
+  category?: Category;
+  brand?: Brand | null;
   orderItems?: OrderItem[];
   reviews?: Review[];
   images?: ProductImage[];
