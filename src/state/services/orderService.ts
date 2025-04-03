@@ -8,7 +8,10 @@ import { API_ENDPOINTS } from "@/lib/constants/api"; // Correct constant name
 export const orderService = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     // Define the endpoint for getting orders
-    getOrders: builder.query<Order[], void>({
+    getOrders: builder.query<
+      { data: Order[]; total: number; limit: number; page: number },
+      void
+    >({
       // Use void if no query params needed
       query: () => ({
         url: API_ENDPOINTS.ORDERS,

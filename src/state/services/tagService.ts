@@ -28,37 +28,44 @@ export const tagService = baseApi.injectEndpoints({
       providesTags: (result) =>
         result
           ? [
-              ...result.data.map(({ id }) => ({ type: 'Tags' as const, id })),
-              { type: 'Tags', id: 'LIST' },
+              ...result.data.map(({ id }) => ({ type: "Tags" as const, id })),
+              { type: "Tags", id: "LIST" },
             ]
-          : [{ type: 'Tags', id: 'LIST' }],
+          : [{ type: "Tags", id: "LIST" }],
     }),
     getTag: build.query<Tag, string>({
       query: (id) => `${API_ENDPOINTS.TAGS}/${id}`,
-      providesTags: (result, error, id) => [{ type: 'Tags', id }],
+      providesTags: (result, error, id) => [{ type: "Tags", id }],
     }),
     createTag: build.mutation<Tag, NewTag>({
       query: (body) => ({
         url: API_ENDPOINTS.TAGS,
-        method: 'POST',
+        method: "POST",
         body,
       }),
-      invalidatesTags: [{ type: 'Tags', id: 'LIST' }],
+      invalidatesTags: [{ type: "Tags", id: "LIST" }],
     }),
     updateTag: build.mutation<Tag, { id: string; body: Partial<NewTag> }>({
       query: ({ id, body }) => ({
         url: `${API_ENDPOINTS.TAGS}/${id}`,
-        method: 'PUT',
+        method: "PUT",
         body,
       }),
-      invalidatesTags: (result, error, { id }) => [{ type: 'Tags', id }, { type: 'Tags', id: 'LIST' }],
+      invalidatesTags: (result, error, { id }) => [
+        { type: "Tags", id },
+        { type: "Tags", id: "LIST" },
+      ],
     }),
     deleteTag: build.mutation<{ success: boolean; id: string }, string>({
       query: (id) => ({
         url: `${API_ENDPOINTS.TAGS}/${id}`,
-        method: 'DELETE',
+        method: "DELETE",
       }),
-      invalidatesTags: (result, error, id) => [{ type: 'Tags', id }, { type: 'Tags', id: 'LIST' }],
+      invalidatesTags: (result, error, id) => [
+        { type: "Tags", id },
+        { type: "Tags", id: "LIST" },
+        { type: "Products", id: "LIST" },
+      ],
     }),
   }),
 });

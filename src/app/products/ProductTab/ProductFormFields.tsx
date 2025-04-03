@@ -1,12 +1,34 @@
 "use client";
 
-import React from "react";
-import { Input, Select, Switch, InputNumber, Form, Spin } from "antd";
-import { Controller, Control, FieldErrors } from "react-hook-form";
+import React, { useRef, useState } from "react";
+import {
+  Input,
+  Select,
+  Switch,
+  InputNumber,
+  Form,
+  Spin,
+  Divider,
+  Space,
+  InputRef,
+  Button,
+} from "antd";
+import {
+  Controller,
+  Control,
+  FieldErrors,
+  SetValueConfig,
+  useFieldArray,
+  useForm,
+} from "react-hook-form";
 import { Tag } from "@/types";
-import { useGetBrandsQuery, useGetCategoriesQuery } from "@/state/api"; 
-import { useGetTagsQuery } from "@/state/services/tagService"; 
+import { useGetBrandsQuery, useGetCategoriesQuery } from "@/state/api";
+import {
+  useCreateTagMutation,
+  useGetTagsQuery,
+} from "@/state/services/tagService";
 import { z } from "zod";
+import { PlusOutlined } from "@ant-design/icons";
 
 const { Option } = Select;
 
@@ -16,19 +38,28 @@ const formSchema = z.object({
   name: z.string().min(1, "Name is required"),
   shortDescription: z.string().optional().nullable(),
   longDescription: z.string().optional().nullable(),
-  price: z.coerce.number({
-    required_error: "Price is required",
-    invalid_type_error: "Price must be a number",
-  }).positive("Price must be positive"),
-  discountPrice: z.coerce.number({
-    invalid_type_error: "Discount price must be a number",
-  }).nonnegative("Discount price cannot be negative").optional().nullable(),
+  price: z.coerce
+    .number({
+      required_error: "Price is required",
+      invalid_type_error: "Price must be a number",
+    })
+    .positive("Price must be positive"),
+  discountPrice: z.coerce
+    .number({
+      invalid_type_error: "Discount price must be a number",
+    })
+    .nonnegative("Discount price cannot be negative")
+    .optional()
+    .nullable(),
   categoryId: z.string().min(1, "Category is required"),
   brandId: z.string().optional().nullable(),
-  stock: z.coerce.number({
-    required_error: "Stock is required",
-    invalid_type_error: "Stock must be a number",
-  }).int().nonnegative("Stock cannot be negative"), 
+  stock: z.coerce
+    .number({
+      required_error: "Stock is required",
+      invalid_type_error: "Stock must be a number",
+    })
+    .int()
+    .nonnegative("Stock cannot be negative"),
   active: z.boolean().default(true),
   tags: z.array(z.string()).optional(),
 });
@@ -41,12 +72,37 @@ interface ProductFormFieldsProps {
   errors: FieldErrors<ProductFormData>;
 }
 
-export const ProductFormFields = ({ control, errors }: ProductFormFieldsProps) => {
+export const ProductFormFields = ({
+  control,
+  errors,
+}: ProductFormFieldsProps) => {
   const { data: categories = [] } = useGetCategoriesQuery();
   const { data: brands = [] } = useGetBrandsQuery();
   const { data: tagsResponse, isLoading: isLoadingTags } = useGetTagsQuery(); // Fetch tags
+  const [createTag] = useCreateTagMutation();
 
   const tags = tagsResponse?.data ?? [];
+  const inputRef = useRef<InputRef>(null);
+  const [newTag, setNewTag] = useState("");
+
+  const addItem = async (
+    e: React.MouseEvent<HTMLButtonElement | HTMLAnchorElement>
+  ) => {
+    e.preventDefault();
+    if (!newTag) return;
+    const tagExists = tags.some((tag: Tag) => tag.name === newTag);
+
+    try {
+      await createTag({ name: newTag }).unwrap();
+    } catch (error) {
+      console.error("Failed to create tag:", error);
+    }
+
+    setNewTag("");
+    setTimeout(() => {
+      inputRef.current?.focus();
+    }, 0);
+  };
 
   return (
     <div className="space-y-4">
@@ -92,7 +148,12 @@ export const ProductFormFields = ({ control, errors }: ProductFormFieldsProps) =
           name="shortDescription"
           control={control}
           render={({ field }) => (
-            <Input.TextArea {...field} value={field.value ?? ''} rows={2} placeholder="Enter short description (optional)" />
+            <Input.TextArea
+              {...field}
+              value={field.value ?? ""}
+              rows={2}
+              placeholder="Enter short description (optional)"
+            />
           )}
         />
       </Form.Item>
@@ -107,7 +168,12 @@ export const ProductFormFields = ({ control, errors }: ProductFormFieldsProps) =
           name="longDescription"
           control={control}
           render={({ field }) => (
-            <Input.TextArea {...field} value={field.value ?? ''} rows={4} placeholder="Enter detailed description (optional)" />
+            <Input.TextArea
+              {...field}
+              value={field.value ?? ""}
+              rows={4}
+              placeholder="Enter detailed description (optional)"
+            />
           )}
         />
       </Form.Item>
@@ -129,13 +195,15 @@ export const ProductFormFields = ({ control, errors }: ProductFormFieldsProps) =
                 {...field}
                 min={0}
                 placeholder="Enter price"
-                style={{ width: '100%' }}
-                formatter={(value) => value ? `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',') : ''}
+                style={{ width: "100%" }}
+                formatter={(value) =>
+                  value ? `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",") : ""
+                }
                 parser={(value) => {
-                    const parsed = value ? value.replace(/\$\s?|(,*)/g, '') : '';
-                    const num = Number(parsed);
-                    // Ensure a number is always returned for the InputNumber parser
-                    return isNaN(num) ? 0 : num;
+                  const parsed = value ? value.replace(/\$\s?|(,*)/g, "") : "";
+                  const num = Number(parsed);
+                  // Ensure a number is always returned for the InputNumber parser
+                  return isNaN(num) ? 0 : num;
                 }}
               />
             )}
@@ -155,17 +223,21 @@ export const ProductFormFields = ({ control, errors }: ProductFormFieldsProps) =
               <InputNumber
                 {...field}
                 value={field.value ?? undefined} // Use undefined for empty display in InputNumber
-                onChange={(value) => field.onChange(value === null ? null : value)} // Ensure null is passed back for empty/cleared
+                onChange={(value) =>
+                  field.onChange(value === null ? null : value)
+                } // Ensure null is passed back for empty/cleared
                 min={0}
                 placeholder="Optional discount price"
-                style={{ width: '100%' }}
-                formatter={(value) => value ? `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',') : ''}
+                style={{ width: "100%" }}
+                formatter={(value) =>
+                  value ? `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",") : ""
+                }
                 parser={(value) => {
-                    const parsed = value ? value.replace(/\$\s?|(,*)/g, '') : '';
-                    const num = Number(parsed);
-                    // Return 0 if empty or invalid to satisfy InputNumber's parser type requirement
-                    // The onChange handler and zod schema will manage the actual null/undefined state
-                    return (parsed === '' || isNaN(num)) ? 0 : num;
+                  const parsed = value ? value.replace(/\$\s?|(,*)/g, "") : "";
+                  const num = Number(parsed);
+                  // Return 0 if empty or invalid to satisfy InputNumber's parser type requirement
+                  // The onChange handler and zod schema will manage the actual null/undefined state
+                  return parsed === "" || isNaN(num) ? 0 : num;
                 }}
               />
             )}
@@ -187,18 +259,44 @@ export const ProductFormFields = ({ control, errors }: ProductFormFieldsProps) =
               {...field}
               mode="multiple"
               allowClear
-              style={{ width: '100%' }}
+              style={{ width: "100%" }}
               placeholder="Select tags (optional)"
               loading={isLoadingTags}
               filterOption={(input, option) =>
-                (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+                (option?.label ?? "")
+                  .toLowerCase()
+                  .includes(input.toLowerCase())
               }
-              options={tags.map((tag: Tag) => ({ label: tag.name, value: tag.name }))}
+              dropdownRender={(menu) => (
+                <>
+                  {menu}
+                  <Divider style={{ margin: "8px 0" }} />
+                  <Space style={{ padding: "0 8px 4px" }}>
+                    <Input
+                      placeholder="Please enter tag"
+                      ref={inputRef}
+                      value={newTag}
+                      onChange={(e) => setNewTag(e.target.value)}
+                      onKeyDown={(e) => e.stopPropagation()}
+                    />
+                    <Button
+                      type="text"
+                      icon={<PlusOutlined />}
+                      onClick={addItem}
+                    >
+                      Add tag
+                    </Button>
+                  </Space>
+                </>
+              )}
+              options={tags.map((tag: Tag) => ({
+                label: tag.name,
+                value: tag.name,
+              }))}
             />
           )}
         />
       </Form.Item>
-
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Category */}
@@ -233,7 +331,12 @@ export const ProductFormFields = ({ control, errors }: ProductFormFieldsProps) =
             name="brandId"
             control={control}
             render={({ field }) => (
-              <Select {...field} value={field.value ?? undefined} placeholder="Select a brand (optional)" allowClear>
+              <Select
+                {...field}
+                value={field.value ?? undefined}
+                placeholder="Select a brand (optional)"
+                allowClear
+              >
                 {brands.map((brand) => (
                   <Option key={brand.id} value={brand.id}>
                     {brand.name}
@@ -259,7 +362,7 @@ export const ProductFormFields = ({ control, errors }: ProductFormFieldsProps) =
                 {...field}
                 min={0}
                 placeholder="Enter stock quantity"
-                style={{ width: '100%' }}
+                style={{ width: "100%" }}
               />
             )}
           />
@@ -273,12 +376,10 @@ export const ProductFormFields = ({ control, errors }: ProductFormFieldsProps) =
           validateStatus={errors.active ? "error" : ""}
           help={errors.active?.message}
         >
-           <Controller
+          <Controller
             name="active"
             control={control}
-            render={({ field }) => (
-               <Switch {...field} checked={field.value} />
-            )}
+            render={({ field }) => <Switch {...field} checked={field.value} />}
           />
         </Form.Item>
       </div>

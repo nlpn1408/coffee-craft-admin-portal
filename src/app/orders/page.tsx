@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useCallback } from "react";
-import { Card, message, Spin } from "antd";
+import { message } from "antd";
 import { GenericDataTable } from "@/components/GenericDataTable/GenericDataTable";
 import { Order } from "@/types";
 import UpdateStatusModal from "./UpdateStatusModal";
@@ -18,13 +18,11 @@ export default function OrdersPage() {
   const [isActionLoading, setIsActionLoading] = useState(false);
 
   const {
-    data = [],
+    data,
     isLoading: isLoadingOrders,
     isError,
     refetch,
-  } = useGetOrdersQuery(undefined, {
-    refetchOnMountOrArgChange: true,
-  });
+  } = useGetOrdersQuery();
 
   // Opens the status update modal
   const handleOpenStatusModal = useCallback((order: Order) => {
@@ -75,7 +73,7 @@ export default function OrdersPage() {
       <Header name="Orders" />
       <GenericDataTable<Order>
         columns={columns}
-        dataSource={data} // Use the explicitly typed variable
+        dataSource={data?.data || []}
         loading={isLoadingOrders}
         entityName="Order"
         onCreate={() => {

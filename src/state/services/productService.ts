@@ -19,7 +19,7 @@ export const productService = baseApi.injectEndpoints({
         url: API_ENDPOINTS.PRODUCTS,
         params,
       }),
-      providesTags: ["Products"],
+      providesTags: [{type: "Products", id: "LIST"}],
     }),
     getProduct: build.query<Product, string>({
       query: (id) => `${API_ENDPOINTS.PRODUCTS}/${id}`,

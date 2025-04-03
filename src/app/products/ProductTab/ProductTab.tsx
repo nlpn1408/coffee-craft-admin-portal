@@ -9,6 +9,7 @@ import {
   useGetCategoriesQuery,
   useGetProductsQuery,
   useUpdateProductMutation,
+  useUploadProductImageMutation,
   // Assuming export/import/template hooks exist or need to be added
   // useExportProductsQuery,
   // useImportProductsMutation,
@@ -86,6 +87,8 @@ const ProductTab = () => {
   const [createProduct, { isLoading: isCreating }] = useCreateProductMutation();
   const [updateProduct, { isLoading: isUpdating }] = useUpdateProductMutation();
   const [deleteProduct, { isLoading: isDeleting }] = useDeleteProductMutation();
+
+  const [uploadImage] = useUploadProductImageMutation();
 
   const isActionLoading = isCreating || isUpdating || isDeleting;
 
@@ -170,20 +173,32 @@ const ProductTab = () => {
   }
 
   const handleCreateDummy = async () => {
-    // const formattedDummyProduct: NewProduct = dummyProduct.map((item) => ({
-    //  name: item.name,
-    //  sku: item.sku,
-
-    // }));
-
-    // try {
-    //   await createProduct(formattedDummyProduct).unwrap();
-    //   message.success("Dummy products created successfully");
-    //   refetchProducts(); // Refetch after create
-    // } catch (error) {
-    //   handleApiError(error);
-    // }
-  }
+    dummyProduct.forEach(async (product) => {
+      const formattedProduct: NewProduct = {
+        name: product.name,
+        sku: product.productCode,
+        shortDescription: product.slug,
+        longDescription: product.slug,
+        price: product.priceVAT,
+        discountPrice: product.priceNoVAT,
+        categoryId:
+          categoriesData.find(
+            (category) => category?.name == product.productCategory.categoryName
+          )?.id || categoriesData[0].id,
+        stock: product.quantity,
+      };
+      try {
+        const response = await createProduct(formattedProduct).unwrap();
+        message.success("Product created successfully");
+        const formattedImages = product.imageLanguage.map((image) => ({
+          productId: response.id,
+          url: image.image.secure_url,
+          order: image.index,
+        }));
+        await uploadImage(formattedImages).unwrap();
+      } catch (error) {}
+    });
+  };
 
   return (
     <>
