@@ -6,7 +6,7 @@ import type { TabsProps } from "antd";
 import ProductListTab from "./product-list/ProductListTab";
 import { Product } from "@/types";
 import GlobalTagManager from "./tag-management/GlobalTagManager";
-import ProductDetailView from "./ProductDetailView";
+import ProductDetailView from "./components/ProductDetailView";
 
 // Define type for drawer state
 type DrawerState = {

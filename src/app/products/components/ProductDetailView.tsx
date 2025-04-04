@@ -7,8 +7,9 @@ import { Product, NewProduct } from '@/types';
 // Use absolute path aliases
 import ProductVariantManager from '@/app/products/product-details/ProductVariantManager';
 import ProductImageManager from '@/app/products/product-details/ProductImageManager';
+import ProductReviewsTab from '@/app/products/product-details/ProductReviewsTab';
 import { ProductFormFields } from '@/app/products/components/ProductFormFields';
-import { useCreateProductMutation, useUpdateProductMutation } from '@/state/api';
+import { useCreateProductMutation, useUpdateProductMutation, useGetProductQuery } from '@/state/api';
 import { handleApiError } from '@/lib/api-utils';
 
 type DrawerMode = 'create' | 'edit' | 'view';
@@ -29,21 +30,35 @@ const ProductDetailView: React.FC<ProductDetailViewProps> = ({
     const [form] = Form.useForm();
     const [createProduct, { isLoading: isCreating }] = useCreateProductMutation();
     const [updateProduct, { isLoading: isUpdating }] = useUpdateProductMutation();
-    const isLoading = isCreating || isUpdating;
+
+    // Fetch detailed product data for edit/view modes
+    const productIdToFetch = (mode === 'edit' || mode === 'view') ? product?.id : undefined;
+    const { data: detailedProductData, isLoading: isLoadingDetails, isError: isDetailsError } = useGetProductQuery(
+        productIdToFetch!, // Use non-null assertion as skip handles undefined
+        { skip: !productIdToFetch } // Skip if no ID or in create mode
+    );
+
+    // Combine loading states
+    const isSaving = isCreating || isUpdating;
+    const isLoading = (isLoadingDetails && mode !== 'create') || isSaving; // Loading if fetching details OR saving
     const isViewMode = mode === 'view';
 
-    // Set form values when product or mode changes
+    // Determine which product data to use (fetched or initial prop)
+    const currentProductData = mode === 'create' ? null : (detailedProductData || product);
+
+    // Set form values when data is available or mode changes
     useEffect(() => {
         if (mode === 'create') {
             form.resetFields();
-        } else if (product) {
+        } else if (currentProductData) { // Use fetched/prop data
             form.setFieldsValue({
-                ...product,
+                ...currentProductData,
                 // Ensure tags are just IDs if the form field expects that
-                tags: product.tags?.map(tag => tag.id) ?? [],
+                tags: currentProductData.tags?.map(tag => tag.name) ?? [],
+                // Removed incorrect publicationDate conversion
             });
         }
-    }, [product, mode, form]);
+    }, [currentProductData, mode, form]); // Depend on fetched/prop data
 
     const handleSave = async () => {
         try {
@@ -57,8 +72,9 @@ const ProductDetailView: React.FC<ProductDetailViewProps> = ({
                 // tags should already be an array of IDs from the form's Select component
             };
 
-            if (mode === 'edit' && product) {
-                await updateProduct({ id: product.id, formData: payload }).unwrap();
+            // Use currentProductData?.id for edit
+            if (mode === 'edit' && currentProductData) {
+                await updateProduct({ id: currentProductData.id, formData: payload }).unwrap();
                 notification.success({ message: "Success", description: "Product updated successfully." });
             } else if (mode === 'create') {
                 await createProduct(payload).unwrap();
@@ -96,16 +112,21 @@ const ProductDetailView: React.FC<ProductDetailViewProps> = ({
             {
                 key: 'variants',
                 label: 'Variants',
-                // Use renamed component
-                children: <ProductVariantManager selectedProduct={product} isViewMode={isViewMode} />,
+                // Pass fetched data
+                children: <ProductVariantManager selectedProduct={currentProductData} isViewMode={isViewMode} />,
             },
             {
                 key: 'images',
                 label: 'Images',
-                 // Use renamed component
-                children: <ProductImageManager selectedProduct={product} isViewMode={isViewMode} />,
+                 // Pass fetched data
+                children: <ProductImageManager selectedProduct={currentProductData} isViewMode={isViewMode} />,
+            },
+            {
+                key: 'reviews',
+                label: 'Reviews',
+                // Pass fetched data (assuming it includes reviews)
+                children: <ProductReviewsTab selectedProduct={currentProductData} />,
             }
-            // Removed Tags tab
         );
     }
 

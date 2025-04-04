@@ -147,7 +147,7 @@ export default function UserDetailModal({
                       {format(new Date(order.createdAt), "P")}
                     </Descriptions.Item>
                     <Descriptions.Item label="Total">
-                      {formatCurrency(order.total)}
+                      {formatCurrency(order.finalTotal)}
                     </Descriptions.Item>
                     {/* Add link to order details page if available */}
                   </Descriptions>

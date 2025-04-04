@@ -72,9 +72,9 @@ export const useOrderTableColumns = ({
       title: "Order ID",
       dataIndex: "id",
       key: "id",
-      width: 150,
+      width: 180,
       ...getColumnSearchProps("id"),
-      render: (id: string) => <span>...{id.slice(-8)}</span>, // Show last 8 chars
+      ellipsis: true,
     },
     {
       title: "Customer",
