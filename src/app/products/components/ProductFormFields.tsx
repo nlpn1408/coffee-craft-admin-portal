@@ -12,32 +12,27 @@ import {
   Space,
   InputRef,
   Button,
-  message, // Add message import
+  message,
 } from "antd";
-import { Product, Tag } from "@/types"; // Added Product type
+import { Product, Tag } from "@/types";
 import { useGetBrandsQuery, useGetCategoriesQuery } from "@/state/api";
-
+import RichTextEditor from "@/components/RichTextEditor";
 import ProductTagAssociation from "../product-details/ProductTagAssociation";
 
 const { Option } = Select;
-
-// Removed Zod schema
 
 interface ProductFormFieldsProps {
   isViewMode?: boolean;
 }
 
-export const ProductFormFields = ({ isViewMode = false }: ProductFormFieldsProps) => {
+export const ProductFormFields = ({
+  isViewMode = false,
+}: ProductFormFieldsProps) => {
   const { data: categories = [] } = useGetCategoriesQuery();
   const { data: brands = [] } = useGetBrandsQuery();
   // Removed tag fetching/creation logic, handled by ProductTagAssociation
 
-  // Get the form instance to access the current product data
-  const form = Form.useFormInstance();
-  // Watch the product data (or pass selectedProduct if available)
-  // This is needed to pass the current product to ProductTagAssociation
-  // Note: This might cause re-renders. A more optimized way might involve context or props.
-  const currentProduct = Form.useWatch([], form) as Product | null; // Watch all fields
+  // Removed Form.useWatch as it's no longer needed for tags
 
   return (
     <div className="space-y-4">
@@ -61,8 +56,8 @@ export const ProductFormFields = ({ isViewMode = false }: ProductFormFieldsProps
 
       {/* Short Description */}
       <Form.Item label="Short Description" name="shortDescription">
-        <Input.TextArea
-          rows={2}
+        {/* Replace with RichTextEditor */}
+        <RichTextEditor
           placeholder="Enter short description (optional)"
           disabled={isViewMode}
         />
@@ -70,8 +65,8 @@ export const ProductFormFields = ({ isViewMode = false }: ProductFormFieldsProps
 
       {/* Long Description */}
       <Form.Item label="Long Description" name="longDescription">
-        <Input.TextArea
-          rows={4}
+        {/* Replace with RichTextEditor */}
+        <RichTextEditor
           placeholder="Enter detailed description (optional)"
           disabled={isViewMode}
         />
@@ -83,17 +78,12 @@ export const ProductFormFields = ({ isViewMode = false }: ProductFormFieldsProps
         <Form.Item
           label="Price (VND)"
           name="price"
-          rules={[
-            { required: true, message: "Price is required" },
-            { type: 'number', min: 0, message: 'Price must be non-negative' }
-          ]}
+          // Removed validateTrigger
+          rules={[{ required: true, message: "Price is required" }]}
         >
-          <InputNumber
-            min={0}
+          <Input
             placeholder="Enter price"
-            style={{ width: "100%" }}
-            formatter={(value) => value ? `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",") : ""}
-            // Remove parser again
+            style={{ width: "100%", textAlign: "end" }}
             disabled={isViewMode}
           />
         </Form.Item>
@@ -103,26 +93,42 @@ export const ProductFormFields = ({ isViewMode = false }: ProductFormFieldsProps
           label="Discount Price (VND)"
           name="discountPrice"
           rules={[
-             { type: 'number', min: 0, message: 'Discount price must be non-negative' }
-             // Add custom validator if discountPrice must be less than price
+            // Keep custom validator
+            {
+              validator: (_, value) => {
+                // Explicitly check for undefined, null, or empty string as valid for optional field
+                if (value === undefined || value === null || value === "") {
+                  return Promise.resolve();
+                }
+                // Proceed with validation only if a value is actually present
+                const numValue = Number(value);
+                if (isNaN(numValue)) {
+                  return Promise.reject(
+                    new Error("Discount price must be a valid number")
+                  );
+                }
+                if (numValue < 0) {
+                  return Promise.reject(
+                    new Error("Discount price must be non-negative")
+                  );
+                }
+
+                return Promise.resolve();
+              },
+            },
           ]}
         >
-          <InputNumber
-            min={0}
+          <Input
             placeholder="Optional discount price"
-            style={{ width: "100%" }}
-            formatter={(value) => value ? `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",") : ""}
-            // Remove parser again
+            style={{ width: "100%", textAlign: "end" }} 
             disabled={isViewMode}
           />
         </Form.Item>
       </div>
 
-      {/* Tags - Replace Select with ProductTagAssociation */}
-      {/* We need to wrap ProductTagAssociation in Form.Item to connect it to Ant Form state */}
+      {/* Tags - Use the controlled ProductTagAssociation component */}
       <Form.Item label="Tags" name="tags">
-         {/* Pass the current product data and view mode status */}
-         <ProductTagAssociation selectedProduct={currentProduct} isViewMode={isViewMode} />
+        <ProductTagAssociation disabled={isViewMode} />
       </Form.Item>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -132,7 +138,11 @@ export const ProductFormFields = ({ isViewMode = false }: ProductFormFieldsProps
           name="categoryId"
           rules={[{ required: true, message: "Category is required" }]}
         >
-          <Select placeholder="Select a category" allowClear disabled={isViewMode}>
+          <Select
+            placeholder="Select a category"
+            allowClear
+            disabled={isViewMode}
+          >
             {categories.map((category) => (
               <Option key={category.id} value={category.id}>
                 {category.name}
@@ -162,23 +172,22 @@ export const ProductFormFields = ({ isViewMode = false }: ProductFormFieldsProps
           name="stock"
           rules={[
             { required: true, message: "Stock is required" },
-            { type: 'integer', min: 0, message: 'Stock must be a non-negative integer' }
+            {
+              type: "integer",
+              min: 0,
+              message: "Stock must be a non-negative integer",
+            },
           ]}
         >
-          <InputNumber
-            min={0}
+          <Input
             placeholder="Enter stock quantity"
-            style={{ width: "100%" }}
+            style={{ width: "100%", textAlign: "end" }} // Added textAlign
             disabled={isViewMode}
           />
         </Form.Item>
 
         {/* Active */}
-        <Form.Item
-          label="Active Status"
-          name="active"
-          valuePropName="checked"
-        >
+        <Form.Item label="Active Status" name="active" valuePropName="checked">
           <Switch disabled={isViewMode} />
         </Form.Item>
       </div>

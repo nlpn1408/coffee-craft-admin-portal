@@ -48,7 +48,6 @@ export const useProductTableColumns = ({
   isActionLoading = false,
   isDeleting = false,
 }: UseProductTableColumnsProps): TableColumnsType<Product> => {
-
   const getColumnSearchProps = useColumnSearch<Product>();
 
   const categoryFilters = useMemo(
@@ -102,7 +101,7 @@ export const useProductTableColumns = ({
       dataIndex: "sku",
       key: "sku",
       ...getColumnSearchProps("sku"),
-      width: 120,
+      width: 150,
     },
     {
       title: "Category",
@@ -114,6 +113,7 @@ export const useProductTableColumns = ({
         categoryId
           ? categories.find((cat) => cat.id === categoryId)?.name
           : "-",
+      width: 150,
     },
     {
       title: "Brand",
@@ -123,6 +123,7 @@ export const useProductTableColumns = ({
       ellipsis: true,
       render: (brandId: string) =>
         brandId ? brands.find((brand) => brand.id === brandId)?.name : "-",
+      width: 150,
     },
     {
       title: "Tags",
@@ -142,13 +143,13 @@ export const useProductTableColumns = ({
         );
       },
     },
-    {
-      title: "Short Desc.",
-      dataIndex: "shortDescription",
-      key: "shortDescription",
-      ellipsis: true,
-      width: 200,
-    },
+    // {
+    //   title: "Short Desc.",
+    //   dataIndex: "shortDescription",
+    //   key: "shortDescription",
+    //   ellipsis: true,
+    //   width: 200,
+    // },
     {
       title: "Price",
       dataIndex: "price",

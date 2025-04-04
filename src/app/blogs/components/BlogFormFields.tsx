@@ -2,7 +2,8 @@
 
 import React from 'react';
 import { Form, Input, Switch, DatePicker } from 'antd';
-import ImageUpload from '@/components/ImageUpload'; // Assuming a reusable image upload component
+import ImageUpload from '@/components/ImageUpload';
+import RichTextEditor from '@/components/RichTextEditor'; // Import the new component
 
 interface BlogFormFieldsProps {
   isViewMode?: boolean;
@@ -27,11 +28,11 @@ export const BlogFormFields: React.FC<BlogFormFieldsProps> = ({ isViewMode = fal
         name="content"
         rules={[{ required: true, message: "Please enter the blog post content" }]}
       >
-        {/* Consider using a Rich Text Editor component here instead of TextArea for better content editing */}
-        <Input.TextArea
-          rows={10} // Adjust rows as needed
-          placeholder="Enter blog post content"
-          disabled={isViewMode}
+        {/* Replace Input.TextArea with RichTextEditor */}
+        {/* Note: Ant Form handles value/onChange automatically via name prop */}
+        <RichTextEditor
+            placeholder="Enter blog post content..."
+            disabled={isViewMode}
         />
       </Form.Item>
 
@@ -43,7 +44,7 @@ export const BlogFormFields: React.FC<BlogFormFieldsProps> = ({ isViewMode = fal
          {/* Option 1: Simple Input */}
          <Input placeholder="https://example.com/image.png" disabled={isViewMode} />
 
-         {/* Option 2: Use a dedicated ImageUpload component if available */}
+         {/* Option 00: Use a dedicated ImageUpload component if available */}
          {/* <ImageUpload
              name="thumbnail" // Ensure name matches Form.Item name
              // Pass other necessary props like action, listType etc.

@@ -14,19 +14,18 @@ import {
 import {
   Button,
   Space,
-  Table,
+  // Table, // Removed Table import
   message,
-  Spin,
+  // Spin, // Spin might be handled by GenericDataTable or LoadingScreen
 } from "antd";
-import type { TableProps } from "antd";
-import type { FilterValue, SorterResult } from "antd/es/table/interface";
+// import type { TableProps } from "antd"; // Removed TableProps import
+import type { FilterValue, SorterResult } from "antd/es/table/interface"; // Keep for queryParams
 import { PlusOutlined } from "@ant-design/icons";
-// Note: CreateProductModal is removed as creation is handled by the drawer now
-// import CreateProductModal from "../ProductTab/CreateProductModal";
 import { handleApiError } from "@/lib/api-utils";
 import { useProductTableColumns } from "@/app/products/components/useProductTableColumns";
 import LoadingScreen from "@/components/LoadingScreen";
-import { dummyProduct } from "../dummyProduct"; // Adjust path relative to new location
+import { dummyProduct } from "../dummyProduct";
+import { GenericDataTable } from "@/components/GenericDataTable/GenericDataTable"; // Import GenericDataTable
 
 // Define props interface (Renamed)
 interface ProductListTabProps {
@@ -101,11 +100,39 @@ const ProductListTab: React.FC<ProductListTabProps> = ({ onCreate, onEdit, onVie
     }
   };
 
-  // --- Table Change Handler ---
-  const handleTableChange: TableProps<Product>["onChange"] = (
-    pagination,
-    filters,
-    sorter
+  // Add handler for deleting selected products
+  const handleDeleteSelected = async (selectedIds: React.Key[]): Promise<boolean> => {
+    const key = "deleting_selected_products";
+    message.loading({
+      content: `Deleting ${selectedIds.length} products...`,
+      key,
+      duration: 0,
+    });
+    try {
+      // Assuming deleteProduct mutation handles single ID deletion
+      await Promise.all(
+        selectedIds.map((id) => deleteProduct(id as string).unwrap())
+      );
+      message.success({
+        content: `${selectedIds.length} products deleted successfully`,
+        key,
+      });
+      refetchProducts();
+      return true; // Indicate success
+    } catch (error) {
+      message.error({ content: `Failed to delete selected products`, key });
+      handleApiError(error);
+      return false; // Indicate failure
+    }
+  };
+
+
+  // --- Table Change Handler (May need adjustment if GenericDataTable handles differently) ---
+  // Keep for now, but GenericDataTable might override or use its own internal handling
+  const handleTableChange = ( // Removed TableProps type as it might conflict
+    pagination: any, // Use any for now, adjust if needed based on GenericDataTable's signature
+    filters: Record<string, FilterValue | null>,
+    sorter: SorterResult<Product> | SorterResult<Product>[]
   ) => {
     const currentSorter = sorter as SorterResult<Product>;
     setQueryParams({
@@ -170,56 +197,38 @@ const ProductListTab: React.FC<ProductListTabProps> = ({ onCreate, onEdit, onVie
 
   return (
     <>
-      <div className="p-4 space-y-4">
-        {/* Inline Toolbar */}
-        <div className="flex justify-end items-center flex-wrap gap-2">
-          <Space wrap>
-            {/* Call onCreate prop to open drawer in create mode */}
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={onCreate}
-              disabled={isActionLoading} // Disable if deleting
-            >
-              Create Product
-            </Button>
-          </Space>
+      {/* Use GenericDataTable */}
+      <GenericDataTable<Product>
+        columns={columns}
+        dataSource={products}
+        loading={isFetching} // Use isFetching for table loading state
+        entityName="Product"
+        onCreate={onCreate} // Pass the onCreate handler from props
+        onDeleteSelected={handleDeleteSelected} // Pass the bulk delete handler
+        // Pass other relevant props if GenericDataTable supports them (e.g., import/export)
+        // uploadProps={/* Define uploadProps if needed */}
+        // onExport={/* Define handleExport if needed */}
+        // onDownloadTemplate={/* Define handleDownloadTemplate if needed */}
+        isActionLoading={isActionLoading} // Pass general action loading state
+        isDeleting={isDeleting} // Pass specific deleting state
+        // isImporting={/* Pass isImporting if needed */}
+        // Note: Pagination and onChange might be handled internally by GenericDataTable
+        // If server-side pagination/filtering/sorting is needed with GenericDataTable,
+        // its props/implementation might need adjustments. Assuming basic client-side for now.
+        // totalItems={productsResponse?.total} // Removed totalItems prop
+      />
 
-          <Space wrap>
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={handleCreateDummy}
-              disabled={isActionLoading}
-            >
-              Create Product Dummy
-            </Button>
-            {/* Add Import/Export/Template buttons here if needed */}
-          </Space>
-        </div>
-
-        {/* Table */}
-        <Table<Product>
-          columns={columns}
-          dataSource={products}
-          rowKey="id"
-          pagination={{
-            // Use total from response if available for server-side pagination
-            total: productsResponse?.total ?? products.length,
-            showTotal: (total, range) =>
-              `${range[0]}-${range[1]} of ${total} items`,
-            showSizeChanger: true,
-            pageSizeOptions: ["10", "20", "50", "100"],
-            // Add current and pageSize if implementing server-side pagination fully
-            // current: queryParams.page,
-            // pageSize: queryParams.limit,
-          }}
-          loading={isFetching} // Show table loading indicator on fetch
-          onChange={handleTableChange} // Handle server-side sort/filter changes
-          scroll={{ x: 2000 }}
-          size="small"
-        />
-      </div>
+      {/* Keep Dummy data button separate */}
+       <div className="p-4 pt-0">
+         <Button
+           type="primary"
+           icon={<PlusOutlined />}
+           onClick={handleCreateDummy}
+           disabled={isActionLoading}
+         >
+           Create Product Dummy
+         </Button>
+       </div>
     </>
   );
 };

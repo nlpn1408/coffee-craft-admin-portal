@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useEffect } from 'react';
-import { Drawer, Tabs, Button, Form, Spin, notification, Space } from 'antd'; // Added Space
+import React, { useEffect, useMemo } from 'react'; // Added useMemo
+import { Drawer, Tabs, Button, Form, Spin, notification, Space } from 'antd';
 import type { TabsProps } from 'antd';
-import { Product, NewProduct } from '@/types';
+import { Product, NewProduct } from '@/types'; // Removed TagType
 
 import { useCreateProductMutation, useUpdateProductMutation } from '@/state/api';
+// Removed tag hooks import
 import { handleApiError } from '@/lib/api-utils';
 import { ProductFormFields } from './components/ProductFormFields';
 import ProductVariantManager from './product-details/ProductVariantManager';
@@ -30,33 +31,50 @@ const ProductDetailView: React.FC<ProductDetailViewProps> = ({
     const [form] = Form.useForm();
     const [createProduct, { isLoading: isCreating }] = useCreateProductMutation();
     const [updateProduct, { isLoading: isUpdating }] = useUpdateProductMutation();
+
+    // Removed tag hooks
+    // const { data: allTagsResponse, isLoading: isLoadingTags } = useGetTagsQuery({ limit: 9999, page: 1 });
+    // const [createTag, { isLoading: isCreatingTag }] = useCreateTagMutation();
+
     const isLoading = isCreating || isUpdating;
     const isViewMode = mode === 'view';
 
-    // Set form values when product or mode changes
-    useEffect(() => {
-        if (mode === 'create') {
-            form.resetFields();
-        } else if (product) {
-            form.setFieldsValue({
-                ...product,
-                // Ensure tags are just IDs if the form field expects that
-                tags: product.tags?.map(tag => tag.id) ?? [],
-            });
+    // Removed useEffect for setting form values
+
+    // Prepare initialValues for the Form component
+    const initialValues = useMemo(() => {
+        if (mode === 'create' || !product) {
+            return { active: true }; // Default values for create mode
         }
-    }, [product, mode, form]);
+        // For edit/view mode:
+        return {
+            ...product,
+            price: product.price != null ? Number(product.price) : undefined,
+            discountPrice: product.discountPrice != null ? Number(product.discountPrice) : undefined,
+            tags: product.tags?.map(tag => tag.name) ?? [],
+        };
+    }, [product, mode]);
+
 
     const handleSave = async () => {
         try {
             const values = await form.validateFields();
+
+            // --- Removed Tag Processing Logic ---
+            // Backend will handle creating new tags based on names/IDs sent
+
             const payload: NewProduct = {
+                // Spread other values first
                 ...values,
+                // Assign raw tags array from form (mix of IDs and names)
+                tags: values.tags || [],
                 // Ensure numeric types if needed by API
                 price: Number(values.price),
                 discountPrice: values.discountPrice ? Number(values.discountPrice) : null,
                 stock: Number(values.stock),
-                // tags should already be an array of IDs from the form's Select component
             };
+            // Remove tags from the top level if it was just used for processing
+            // delete payload.tags; // Keep payload.tags = finalTagIds
 
             if (mode === 'edit' && product) {
                 await updateProduct({ id: product.id, formData: payload }).unwrap();
@@ -83,9 +101,13 @@ const ProductDetailView: React.FC<ProductDetailViewProps> = ({
             key: 'details',
             label: 'Details',
             children: (
-                // Pass disabled prop to Ant Form based on mode
-                <Form form={form} layout="vertical" disabled={isViewMode}>
-                    {/* Remove isViewMode prop from ProductFormFields */}
+                // Pass initialValues to the Form component
+                <Form
+                    form={form}
+                    layout="vertical"
+                    initialValues={initialValues} // Use initialValues prop
+                    disabled={isViewMode || isLoading}
+                >
                     <ProductFormFields isViewMode={isViewMode} />
                 </Form>
             ),
@@ -137,8 +159,13 @@ const ProductDetailView: React.FC<ProductDetailViewProps> = ({
                     </Space>
                 )
             }
+            // Mask closet prevents closing while loading
+            maskClosable={!isLoading}
+            // Keyboard false prevents closing with ESC when loading
+            keyboard={!isLoading}
         >
-            <Spin spinning={isLoading && mode !== 'create'}> {/* Show spinner when loading existing data */}
+            {/* Wrap content in Spin for loading state */}
+            <Spin spinning={isLoading}>
                  <Tabs defaultActiveKey="details" items={items} />
             </Spin>
         </Drawer>

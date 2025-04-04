@@ -6,7 +6,7 @@ import { Blog, NewBlog, UpdateBlog } from '@/types';
 import { BlogFormFields } from './BlogFormFields'; // Import the form fields
 import { useCreateBlogMutation, useUpdateBlogMutation } from '@/state/services/blogService';
 import { handleApiError } from '@/lib/api-utils';
-import { format } from "date-fns";
+import moment from 'moment';
 
 
 type DrawerMode = 'create' | 'edit' | 'view';
@@ -40,7 +40,7 @@ const BlogDetailDrawer: React.FC<BlogDetailDrawerProps> = ({
             form.setFieldsValue({
                 ...blog,
                 // Convert publicationDate string/Date from API/type to Moment object for DatePicker
-                publicationDate: blog.publicationDate ? format(blog.publicationDate, 'yyyy-MM-dd') : null,
+                publicationDate: blog.publicationDate ? moment(blog.publicationDate) : null,
             });
         }
     }, [blog, mode, form]);
@@ -50,9 +50,18 @@ const BlogDetailDrawer: React.FC<BlogDetailDrawerProps> = ({
             const values = await form.validateFields();
 
             // Convert Moment object back to ISO string for API, handle null/undefined
-            const publicationDateISO = values.publicationDate
-                ? (values.publicationDate as Date).toISOString()
-                : undefined;
+            let publicationDateISO: string | null = null;
+            if (values.publicationDate && moment.isMoment(values.publicationDate)) {
+                 // Check if it's a valid moment object before converting
+                 if (values.publicationDate.isValid()) {
+                    publicationDateISO = (values.publicationDate as moment.Moment).toISOString();
+                 } else {
+                    // Handle invalid date selected in picker if necessary, maybe clear it?
+                    console.warn("Invalid date selected in DatePicker");
+                    // publicationDateISO = null; // Or keep it null
+                 }
+            }
+            // If it's null/undefined or not a moment object, publicationDateISO remains null
 
             // Construct payload based on mode
             if (mode === 'edit' && blog) {
@@ -60,7 +69,8 @@ const BlogDetailDrawer: React.FC<BlogDetailDrawerProps> = ({
                     title: values.title,
                     content: values.content,
                     thumbnail: values.thumbnail,
-                    publicationDate: publicationDateISO,
+                    // Ensure type is string | undefined
+                    publicationDate: publicationDateISO ?? undefined,
                     active: values.active,
                  };
                 await updateBlog({ id: blog.id, ...payload }).unwrap();
@@ -70,7 +80,8 @@ const BlogDetailDrawer: React.FC<BlogDetailDrawerProps> = ({
                     title: values.title,
                     content: values.content,
                     thumbnail: values.thumbnail,
-                    publicationDate: publicationDateISO,
+                     // Ensure type is string | undefined
+                    publicationDate: publicationDateISO ?? undefined,
                     active: values.active,
                     // userId is likely set on the backend based on logged-in user
                     userId: 'temp-user-id', // Placeholder if needed, REMOVE if backend handles it

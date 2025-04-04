@@ -44,7 +44,8 @@ export const productService = baseApi.injectEndpoints({
       }),
       invalidatesTags: (result, error, { id }) => [
         { type: "Products", id },
-        "Products",
+        { type: "Products", id: "LIST" }, // Ensure list is invalidated too
+        { type: "Tags", id: "LIST" }, // Add this to invalidate the tags list
       ],
     }),
     deleteProduct: build.mutation<void, string>({

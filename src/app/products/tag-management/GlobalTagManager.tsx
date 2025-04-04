@@ -8,53 +8,31 @@ import {
   useUpdateTagMutation,
   useDeleteTagMutation,
 } from "@/state/services/tagService";
-import { Button, Space, Table, message, notification } from "antd";
-import type { TableProps } from "antd";
-import type { FilterValue, SorterResult } from "antd/es/table/interface";
+import { Button, Space, /*Table,*/ message, notification } from "antd"; // Removed Table
+// import type { TableProps } from "antd"; // Removed TableProps
+// import type { FilterValue, SorterResult } from "antd/es/table/interface"; // Removed FilterValue, SorterResult
 import { PlusOutlined } from "@ant-design/icons";
 // Use absolute path aliases
 import CreateEditTagModal from "@/app/products/tag-management/CreateEditTagModal";
 import { handleApiError } from "@/lib/api-utils";
 import { useTagTableColumns } from "@/app/products/tag-management/useTagTableColumns";
 import LoadingScreen from "@/components/LoadingScreen";
+import { GenericDataTable } from "@/components/GenericDataTable/GenericDataTable"; // Import GenericDataTable
 
 const GlobalTagManager = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTag, setEditingTag] = useState<Tag | null>(null);
 
-  const [queryParams, setQueryParams] = useState<{
-    page: number;
-    limit: number;
-    filters: Record<string, FilterValue | null>;
-    sortField?: string;
-    sortOrder?: "ascend" | "descend";
-  }>({
-    page: 1,
-    limit: 10,
-    filters: {},
-  });
+  // Removed queryParams state as GenericDataTable handles client-side filtering/sorting/pagination
+  // const [queryParams, setQueryParams] = useState<{ ... }>(...);
 
   const {
-    data: tagsResponse,
-    isLoading,
+    data: tagsResponse, // Keep the response structure if API returns it
+    isLoading, // Keep loading states
     isFetching,
     isError,
     refetch: refetchTags,
-  } = useGetTagsQuery({
-    page: queryParams.page,
-    limit: queryParams.limit,
-    search: queryParams.filters?.name?.[0] as string | undefined,
-    sortBy: queryParams.sortField,
-    sortOrder:
-      queryParams.sortOrder === "ascend"
-        ? "asc"
-        : queryParams.sortOrder === "descend"
-        ? "desc"
-        : undefined,
-  });
-
-  const tags = useMemo(() => tagsResponse?.data ?? [], [tagsResponse]);
-  const totalTags = useMemo(() => tagsResponse?.total ?? 0, [tagsResponse]);
+  } = useGetTagsQuery(); // Removed query parameters, fetch all tags
 
   const [createTag, { isLoading: isCreating }] = useCreateTagMutation();
   const [updateTag, { isLoading: isUpdating }] = useUpdateTagMutation();
@@ -81,10 +59,16 @@ const GlobalTagManager = () => {
     try {
       if (editingTag) {
         await updateTag({ id: editingTag.id, body: data }).unwrap();
-        notification.success({ message: "Success", description: `Tag "${data.name}" updated successfully` });
+        notification.success({
+          message: "Success",
+          description: `Tag "${data.name}" updated successfully`,
+        });
       } else {
         await createTag(data).unwrap();
-        notification.success({ message: "Success", description: `Tag "${data.name}" created successfully` });
+        notification.success({
+          message: "Success",
+          description: `Tag "${data.name}" created successfully`,
+        });
       }
       handleCloseModal();
       refetchTags();
@@ -96,33 +80,47 @@ const GlobalTagManager = () => {
   const handleDeleteSingle = async (id: string): Promise<void> => {
     try {
       await deleteTag(id).unwrap();
-      notification.success({ message: "Success", description: "Tag deleted successfully" });
-      if (tags.length === 1 && queryParams.page > 1) {
-        setQueryParams(prev => ({ ...prev, page: prev.page - 1 }));
-      } else {
-        refetchTags();
-      }
+      notification.success({
+        message: "Success",
+        description: "Tag deleted successfully",
+      });
+      // Always refetch after single delete
+      refetchTags();
     } catch (error) {
       handleApiError(error);
       throw error;
     }
   };
 
-  const handleTableChange: TableProps<Tag>["onChange"] = (
-    paginationConfig,
-    filters,
-    sorterResult
-  ) => {
-    const currentSorter = sorterResult as SorterResult<Tag>;
-    setQueryParams(prev => ({
-      ...prev,
-      page: paginationConfig.current || 1,
-      limit: paginationConfig.pageSize || 10,
-      filters: filters,
-      sortField: currentSorter.field as string | undefined,
-      sortOrder: currentSorter.order === null ? undefined : currentSorter.order,
-    }));
+  // Add handler for deleting selected tags
+  const handleDeleteSelected = async (selectedIds: React.Key[]): Promise<boolean> => {
+    const key = "deleting_selected_tags";
+    message.loading({
+      content: `Deleting ${selectedIds.length} tags...`,
+      key,
+      duration: 0,
+    });
+    try {
+      await Promise.all(
+        selectedIds.map((id) => deleteTag(id as string).unwrap())
+      );
+      message.success({
+        content: `${selectedIds.length} tags deleted successfully`,
+        key,
+      });
+      // Refetch after delete
+      refetchTags();
+      // Note: Client-side pagination in GenericDataTable will adjust automatically
+      return true; // Indicate success
+    } catch (error) {
+      message.error({ content: `Failed to delete selected tags`, key });
+      handleApiError(error);
+      return false; // Indicate failure
+    }
   };
+
+  // Removed handleTableChange as GenericDataTable handles pagination/sorting internally (client-side by default)
+  // const handleTableChange: TableProps<Tag>["onChange"] = ( ... )
 
   const columns = useTagTableColumns({
     onEdit: handleOpenEditModal,
@@ -145,37 +143,23 @@ const GlobalTagManager = () => {
 
   return (
     <>
-      <div className="p-4 space-y-4">
-        <div className="flex justify-end items-center flex-wrap gap-2">
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={handleOpenCreateModal}
-            disabled={isActionLoading}
-          >
-            Create Tag
-          </Button>
-        </div>
+      {/* Use GenericDataTable */}
+      <GenericDataTable<Tag>
+        columns={columns}
+        dataSource={tagsResponse?.data ?? []} // Provide default empty array
+        loading={isFetching}
+        entityName="Tag"
+        onCreate={handleOpenCreateModal}
+        onDeleteSelected={handleDeleteSelected}
+        isActionLoading={isActionLoading || isDeleting} // Combine action loading states
+        isDeleting={isDeleting}
+        // Note: Pagination and onChange might be handled internally by GenericDataTable
+        // If server-side pagination/filtering/sorting is needed, adjustments might be required.
+        // Pass total for pagination if supported by GenericDataTable (assuming it handles internally)
+        // totalItems={tagsResponse?.total} // Assuming GenericDataTable handles pagination internally based on dataSource length or its own props
+      />
 
-        <Table<Tag>
-          columns={columns}
-          dataSource={tags}
-          rowKey="id"
-          pagination={{
-            current: queryParams.page,
-            pageSize: queryParams.limit,
-            total: totalTags,
-            showSizeChanger: true,
-            pageSizeOptions: ["10", "20", "50", "100"],
-            showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`,
-          }}
-          loading={isFetching}
-          onChange={handleTableChange}
-          scroll={{ x: 'max-content' }}
-          size="small"
-        />
-      </div>
-
+      {/* Keep Modal separate */}
       {isModalOpen && (
         <CreateEditTagModal
           isOpen={isModalOpen}
