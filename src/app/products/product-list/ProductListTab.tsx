@@ -10,22 +10,21 @@ import {
   useGetProductsQuery,
   useUpdateProductMutation,
   useUploadProductImageMutation,
-} from "@/state/api";
-import {
-  Button,
-  Space,
-  // Table, // Removed Table import
-  message,
-  // Spin, // Spin might be handled by GenericDataTable or LoadingScreen
-} from "antd";
-// import type { TableProps } from "antd"; // Removed TableProps import
-import type { FilterValue, SorterResult } from "antd/es/table/interface"; // Keep for queryParams
+  // Import new product hooks
+  useImportProductsMutation,
+  useLazyExportProductsQuery,
+  useLazyGetProductTemplateQuery,
+} from "@/state/api"; // Assuming these are exported from state/api or directly from productService
+import { Button, Space, message, Upload, notification } from "antd";
+import type { UploadProps, TablePaginationConfig, TableProps } from "antd"; // Add TablePaginationConfig, TableProps
+import type { FilterValue, SorterResult } from "antd/es/table/interface";
 import { PlusOutlined } from "@ant-design/icons";
 import { handleApiError } from "@/lib/api-utils";
 import { useProductTableColumns } from "@/app/products/components/useProductTableColumns";
 import LoadingScreen from "@/components/LoadingScreen";
 import { dummyProduct } from "../dummyProduct";
 import { GenericDataTable } from "@/components/GenericDataTable/GenericDataTable"; // Import GenericDataTable
+import { format } from "date-fns";
 
 // Define props interface (Renamed)
 interface ProductListTabProps {
@@ -35,18 +34,31 @@ interface ProductListTabProps {
 }
 
 // Rename component
-const ProductListTab: React.FC<ProductListTabProps> = ({ onCreate, onEdit, onViewDetails }) => {
+const ProductListTab: React.FC<ProductListTabProps> = ({
+  onCreate,
+  onEdit,
+  onViewDetails,
+}) => {
+  // Add page and limit to state
   const [queryParams, setQueryParams] = useState<{
+    page: number;
+    limit: number;
     sortField?: string;
     sortOrder?: "ascend" | "descend";
     filters: Record<string, FilterValue | null>;
   }>({
+    page: 1,
+    limit: 10, // Default page size
     filters: {},
   });
 
-  // Fetch Categories and Brands for filters (needed by the hook)
-  const { data: categoriesData = [] } = useGetCategoriesQuery();
-  const { data: brandsData = [] } = useGetBrandsQuery();
+  // Fetch Categories and Brands for filters
+  const { data: categoriesResponse } = useGetCategoriesQuery({}); // Pass empty object or required params
+  const { data: brandsResponse } = useGetBrandsQuery({}); // Pass empty object or required params
+  // Extract the arrays from the responses
+  const categoriesData = useMemo(() => categoriesResponse?.data ?? [], [categoriesResponse]);
+  const brandsData = useMemo(() => brandsResponse?.data ?? [], [brandsResponse]); // Assuming brands also paginated
+
 
   // Fetch Products based ONLY on server-side filter/sort params
   const {
@@ -55,22 +67,15 @@ const ProductListTab: React.FC<ProductListTabProps> = ({ onCreate, onEdit, onVie
     isFetching,
     isError,
     refetch: refetchProducts,
-  } = useGetProductsQuery({
-    search: queryParams.filters?.name?.[0] as string | undefined,
-    categoryId: queryParams.filters?.category?.[0] as string | undefined,
-    brandId: queryParams.filters?.brand?.[0] as string | undefined,
-    sortBy: queryParams.sortField,
-    sortOrder:
-      queryParams.sortOrder === "ascend"
-        ? "asc"
-        : queryParams.sortOrder === "descend"
-        ? "desc"
-        : undefined,
-    active: queryParams.filters?.active?.[0] as boolean | undefined,
-  });
+  } = useGetProductsQuery(queryParams); // Pass the state object directly
 
   const products = useMemo(
     () => productsResponse?.data ?? [],
+    [productsResponse]
+  );
+  // Define totalProducts
+  const totalProducts = useMemo(
+    () => productsResponse?.total ?? 0,
     [productsResponse]
   );
 
@@ -79,8 +84,16 @@ const ProductListTab: React.FC<ProductListTabProps> = ({ onCreate, onEdit, onVie
   const [uploadImage] = useUploadProductImageMutation();
   // Keep delete mutation
   const [deleteProduct, { isLoading: isDeleting }] = useDeleteProductMutation();
+  // Add import/export hooks
+  const [importProducts, { isLoading: isImporting }] =
+    useImportProductsMutation();
+  const [triggerExport, { isFetching: isExporting }] =
+    useLazyExportProductsQuery();
+  const [triggerTemplate, { isFetching: isDownloadingTemplate }] =
+    useLazyGetProductTemplateQuery();
 
-  const isActionLoading = isDeleting; // Only delete matters for table actions now
+  const isActionLoading =
+    isDeleting || isImporting || isExporting || isDownloadingTemplate; // Include new loading states
 
   // --- Handlers ---
   // Keep handleEdit, but it now calls the prop to open the drawer
@@ -101,7 +114,9 @@ const ProductListTab: React.FC<ProductListTabProps> = ({ onCreate, onEdit, onVie
   };
 
   // Add handler for deleting selected products
-  const handleDeleteSelected = async (selectedIds: React.Key[]): Promise<boolean> => {
+  const handleDeleteSelected = async (
+    selectedIds: React.Key[]
+  ): Promise<boolean> => {
     const key = "deleting_selected_products";
     message.loading({
       content: `Deleting ${selectedIds.length} products...`,
@@ -126,26 +141,110 @@ const ProductListTab: React.FC<ProductListTabProps> = ({ onCreate, onEdit, onVie
     }
   };
 
+  // --- Import/Export Handlers ---
+  const handleExport = async () => {
+    const key = "exporting_products";
+    try {
+      message.loading({ content: "Exporting products...", key, duration: 0 });
+      const result = await triggerExport().unwrap();
+      const url = window.URL.createObjectURL(result);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "products.xlsx";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+      message.success({ content: "Products exported successfully", key });
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : "Unknown error";
+      message.error({ content: `Export failed: ${errorMsg}`, key });
+    }
+  };
+
+  const handleDownloadTemplate = async () => {
+    const key = "downloading_product_template";
+    try {
+      message.loading({ content: "Downloading template...", key, duration: 0 });
+      const result = await triggerTemplate().unwrap();
+      const url = window.URL.createObjectURL(result);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "product_template.xlsx";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+      message.success({ content: "Template downloaded successfully", key });
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : "Unknown error";
+      message.error({ content: `Template download failed: ${errorMsg}`, key });
+    }
+  };
+
+  const uploadProps: UploadProps = {
+    name: "file",
+    accept: ".xlsx, .xls",
+    showUploadList: false,
+    customRequest: async (options) => {
+      const { file, onSuccess, onError } = options;
+      const key = "importing_products";
+      try {
+        message.loading({ content: "Importing products...", key, duration: 0 });
+        const formData = new FormData();
+        formData.append("file", file as Blob);
+        const res = await importProducts(formData).unwrap();
+        if (res?.errors && res.errors.length > 0) {
+          const errorMessages = (
+            <>
+              <p className="text-red-500">Import failed: </p>
+              {res.errors.map((err, index) => {
+                return <p key={index}>{err}</p>;
+              })}
+            </>
+          );
+          message.open({ content: errorMessages, key });
+        } else {
+          message.success({
+            content: res?.message || "Products imported successfully",
+            key,
+          });
+        }
+        if (onSuccess) onSuccess({}, file as any);
+        refetchProducts(); // Refetch after import
+      } catch (error) {
+        const errorMsg =
+          error instanceof Error ? error.message : "Unknown error";
+        message.error({ content: `Import failed: ${errorMsg}`, key });
+        if (onError) onError(error as Error);
+      }
+    },
+    disabled: isImporting,
+  };
 
   // --- Table Change Handler (May need adjustment if GenericDataTable handles differently) ---
-  // Keep for now, but GenericDataTable might override or use its own internal handling
-  const handleTableChange = ( // Removed TableProps type as it might conflict
-    pagination: any, // Use any for now, adjust if needed based on GenericDataTable's signature
+  // Use correct signature from TableProps<Product>["onChange"]
+  const handleTableChange: TableProps<Product>["onChange"] = (
+    pagination: TablePaginationConfig,
     filters: Record<string, FilterValue | null>,
     sorter: SorterResult<Product> | SorterResult<Product>[]
   ) => {
-    const currentSorter = sorter as SorterResult<Product>;
-    setQueryParams({
+    const currentSorter = Array.isArray(sorter) ? sorter[0] : sorter;
+    setQueryParams((prev) => ({
+      ...prev, // Keep existing limit/other params if not changed
+      page: pagination.current || 1,
+      limit: pagination.pageSize || 10, // Update limit from pagination
       filters,
-      sortField: currentSorter.field as string | undefined,
-      sortOrder: currentSorter.order as "ascend" | "descend" | undefined,
-    });
+      sortField: currentSorter?.field as string | undefined, // Use optional chaining
+      sortOrder:
+        currentSorter?.order === null ? undefined : currentSorter?.order, // Handle null case
+    }));
   };
 
   // --- Get Columns from Hook ---
   const columns = useProductTableColumns({
-    categories: categoriesData,
-    brands: brandsData,
+    categories: categoriesData, // Pass the extracted array
+    brands: brandsData, // Pass the extracted array
     onEdit: handleEdit,
     onDelete: handleDeleteSingle,
     onViewDetails: onViewDetails, // Pass onViewDetails prop down
@@ -164,9 +263,10 @@ const ProductListTab: React.FC<ProductListTabProps> = ({ onCreate, onEdit, onVie
         price: product.priceVAT,
         discountPrice: product.priceNoVAT,
         categoryId:
+          // Use the extracted array
           categoriesData.find(
-            (category) => category?.name == product.productCategory.categoryName
-          )?.id || categoriesData[0].id,
+            (category: Category) => category?.name == product.productCategory.categoryName
+          )?.id || categoriesData[0]?.id, // Optional chaining added previously
         stock: product.quantity,
       };
       try {
@@ -182,7 +282,7 @@ const ProductListTab: React.FC<ProductListTabProps> = ({ onCreate, onEdit, onVie
     });
   };
 
-   if (isLoading && !isFetching) {
+  if (isLoading && !isFetching) {
     return <LoadingScreen />;
   }
 
@@ -194,7 +294,6 @@ const ProductListTab: React.FC<ProductListTabProps> = ({ onCreate, onEdit, onVie
     );
   }
 
-
   return (
     <>
       {/* Use GenericDataTable */}
@@ -203,32 +302,40 @@ const ProductListTab: React.FC<ProductListTabProps> = ({ onCreate, onEdit, onVie
         dataSource={products}
         loading={isFetching} // Use isFetching for table loading state
         entityName="Product"
-        onCreate={onCreate} // Pass the onCreate handler from props
-        onDeleteSelected={handleDeleteSelected} // Pass the bulk delete handler
-        // Pass other relevant props if GenericDataTable supports them (e.g., import/export)
-        // uploadProps={/* Define uploadProps if needed */}
-        // onExport={/* Define handleExport if needed */}
-        // onDownloadTemplate={/* Define handleDownloadTemplate if needed */}
-        isActionLoading={isActionLoading} // Pass general action loading state
-        isDeleting={isDeleting} // Pass specific deleting state
-        // isImporting={/* Pass isImporting if needed */}
-        // Note: Pagination and onChange might be handled internally by GenericDataTable
-        // If server-side pagination/filtering/sorting is needed with GenericDataTable,
-        // its props/implementation might need adjustments. Assuming basic client-side for now.
-        // totalItems={productsResponse?.total} // Removed totalItems prop
+        onCreate={onCreate}
+        onDeleteSelected={handleDeleteSelected}
+        // Pass import/export props
+        uploadProps={uploadProps}
+        onExport={handleExport}
+        onDownloadTemplate={handleDownloadTemplate}
+        isActionLoading={isActionLoading}
+        isDeleting={isDeleting}
+        isImporting={isImporting}
+        // Pass pagination config using the correct prop name 'pagination'
+        pagination={{
+          current: queryParams.page,
+          pageSize: queryParams.limit,
+          total: totalProducts,
+          // Add other pagination options if needed by GenericDataTable/AntTable
+          showSizeChanger: true,
+          pageSizeOptions: ["10", "20", "50", "100"],
+          showTotal: (total: number, range: [number, number]) =>
+            `${range[0]}-${range[1]} of ${total} items`,
+        }}
+        onChange={handleTableChange} // Pass the change handler (assuming GenericDataTable uses 'onChange')
       />
 
       {/* Keep Dummy data button separate */}
-       <div className="p-4 pt-0">
-         <Button
-           type="primary"
-           icon={<PlusOutlined />}
-           onClick={handleCreateDummy}
-           disabled={isActionLoading}
-         >
-           Create Product Dummy
-         </Button>
-       </div>
+      <div className="p-4 pt-0">
+        <Button
+          type="primary"
+          icon={<PlusOutlined />}
+          onClick={handleCreateDummy}
+          disabled={isActionLoading}
+        >
+          Create Product Dummy
+        </Button>
+      </div>
     </>
   );
 };

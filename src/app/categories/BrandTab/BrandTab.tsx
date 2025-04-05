@@ -10,7 +10,10 @@ import {
   useGetBrandTemplateQuery,
   useImportBrandsMutation,
   useUpdateBrandMutation,
-} from "@/state/api";
+  // Import lazy hooks from the service file
+  useLazyExportBrandsQuery,
+  useLazyGetBrandTemplateQuery,
+} from "@/state/services/brandService"; // Import from service
 import {
   Upload,
   message,
@@ -27,7 +30,7 @@ import LoadingScreen from "@/components/LoadingScreen";
 const BrandTab = () => {
   // Fetch ALL brands
   const {
-    data: allBrands = [],
+    data: allBrands,
     isError,
     isLoading,
     isFetching,
@@ -38,8 +41,9 @@ const BrandTab = () => {
   const [deleteBrand, { isLoading: isDeleting }] = useDeleteBrandMutation();
   const [updateBrand, { isLoading: isUpdating, isSuccess: isUpdateSuccess }] = useUpdateBrandMutation();
   const [importBrands, { isLoading: isImporting }] = useImportBrandsMutation();
-  const { refetch: refetchExport } = useExportBrandsQuery(undefined, { skip: true });
-  const { refetch: refetchTemplate } = useGetBrandTemplateQuery(undefined, { skip: true });
+  // Use lazy hooks
+  const [triggerExport, { isFetching: isExporting }] = useLazyExportBrandsQuery();
+  const [triggerTemplate, { isFetching: isDownloadingTemplate }] = useLazyGetBrandTemplateQuery();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingBrand, setEditingBrand] = useState<Brand | null>(null);
@@ -107,10 +111,10 @@ const BrandTab = () => {
     const key = "exporting_brands";
     try {
       message.loading({ content: "Exporting brands...", key, duration: 0 });
-      const result = await refetchExport();
-      if (result.data instanceof Blob) {
-        const url = window.URL.createObjectURL(result.data);
-        const a = document.createElement("a");
+      // Use trigger function
+      const result = await triggerExport().unwrap();
+      const url = window.URL.createObjectURL(result);
+      const a = document.createElement("a");
         a.href = url;
         a.download = "brands.xlsx";
         document.body.appendChild(a);
@@ -118,7 +122,7 @@ const BrandTab = () => {
         a.remove();
         window.URL.revokeObjectURL(url);
         message.success({ content: "Brands exported successfully", key });
-      } else { throw new Error("Export failed: Invalid data received"); }
+      // Removed incorrect else block
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Unknown error';
       message.error({ content: `Export failed: ${errorMsg}`, key });
@@ -129,10 +133,10 @@ const BrandTab = () => {
      const key = "downloading_brand_template";
     try {
       message.loading({ content: "Downloading template...", key, duration: 0 });
-      const result = await refetchTemplate();
-       if (result.data instanceof Blob) {
-        const url = window.URL.createObjectURL(result.data);
-        const a = document.createElement("a");
+      // Use trigger function
+      const result = await triggerTemplate().unwrap();
+      const url = window.URL.createObjectURL(result);
+      const a = document.createElement("a");
         a.href = url;
         a.download = "brand_template.xlsx";
         document.body.appendChild(a);
@@ -140,7 +144,7 @@ const BrandTab = () => {
         a.remove();
         window.URL.revokeObjectURL(url);
         message.success({ content: "Template downloaded successfully", key });
-      } else { throw new Error("Template download failed: Invalid data received"); }
+      // Removed incorrect else block
     } catch (error) {
        const errorMsg = error instanceof Error ? error.message : 'Unknown error';
        message.error({ content: `Template download failed: ${errorMsg}`, key });
@@ -195,7 +199,7 @@ const BrandTab = () => {
     <>
       <GenericDataTable
         columns={columns}
-        dataSource={allBrands}
+        dataSource={allBrands?.data || []}
         loading={isDataLoading}
         entityName="Brand"
         uploadProps={uploadProps}

@@ -1,7 +1,9 @@
 "use client";
 
-import React, { useState, useCallback } from "react";
-import { Button, Card, message, Spin, Modal as AntModal } from "antd"; // Import AntModal for confirmation
+import React, { useState, useCallback, useMemo } from "react"; // Import useMemo
+import { Button, Card, message, Spin, Modal as AntModal, notification } from "antd"; // Import notification
+import type { TableProps, TablePaginationConfig } from "antd"; // Import table types
+import type { FilterValue, SorterResult } from "antd/es/table/interface"; // Import table types
 import { PlusOutlined, ExclamationCircleFilled } from "@ant-design/icons";
 import {
   useGetUsersQuery,
@@ -15,8 +17,9 @@ import { User, NewUser } from "@/types";
 import CreateUserModal from "./components/CreateUserModal";
 import UserDetailModal from "./components/UserDetailModal";
 import Header from "@/components/Header";
+import { handleApiError } from "@/lib/api-utils"; // Import handleApiError
 
-const { confirm } = AntModal; // Destructure confirm modal
+const { confirm } = AntModal;
 
 export default function UsersPage() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -28,14 +31,42 @@ export default function UsersPage() {
   const [updateUser, { isLoading: isUpdating }] = useUpdateUserMutation();
   const [deleteUser, { isLoading: isDeleting }] = useDeleteUserMutation(); // Use delete hook
 
+  // State for pagination, sorting, filtering (similar to other list pages)
+  const [queryParams, setQueryParams] = useState<{
+    page: number;
+    limit: number;
+    filters: Record<string, FilterValue | null>;
+    sortBy?: string;
+    sortOrder?: "asc" | "desc";
+    // Add other specific filters like role, isActive if needed
+  }>({
+    page: 1,
+    limit: 10,
+    filters: {},
+  });
+
+
   const {
-    data: usersData,
+    data: usersResponse, // Rename data
     isLoading: isLoadingUsers,
+    isFetching: isFetchingUsers, // Add isFetching
     isError,
     refetch,
-  } = useGetUsersQuery(undefined, {
+  } = useGetUsersQuery({ // Pass queryParams
+      page: queryParams.page,
+      limit: queryParams.limit,
+      sortBy: queryParams.sortBy,
+      sortOrder: queryParams.sortOrder,
+      filters: queryParams.filters,
+      // Pass other specific filters if added to state
+  }, {
     refetchOnMountOrArgChange: true,
   });
+
+  // Extract data and total
+  const usersData = useMemo(() => usersResponse?.data ?? [], [usersResponse]);
+  const totalUsers = useMemo(() => usersResponse?.total ?? 0, [usersResponse]);
+
 
   const handleOpenCreateModal = useCallback((user: User | null = null) => {
     setEditingUser(user);
@@ -107,23 +138,56 @@ export default function UsersPage() {
         },
       });
     },
-    [deleteUser, refetch]
-  ); // Add dependencies
+    [deleteUser, refetch, usersData, queryParams.page] // Add dependencies
+  );
 
-  // Handler for deleting selected rows (placeholder)
-  const handleDeleteSelected = async (selectedIds: React.Key[]) => {
-    // Bulk delete might need a different confirmation/API call
-    console.log("Attempting to delete selected user IDs:", selectedIds);
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    message.warning("Bulk user deletion not implemented.");
-    return false;
+  // Handler for deleting selected rows
+  const handleDeleteSelected = async (selectedIds: React.Key[]): Promise<boolean> => {
+    // Implement bulk delete confirmation and API call if available
+    // For now, similar logic to single delete but mapping over IDs
+    const key = "deleting_selected_users";
+    message.loading({ content: `Deleting ${selectedIds.length} users...`, key, duration: 0 });
+    try {
+      // Assuming deleteUser handles single ID, map over selectedIds
+      // If a bulk delete endpoint exists, call that instead
+      await Promise.all(selectedIds.map(id => deleteUser(id as string).unwrap()));
+      message.success({ content: `${selectedIds.length} users deleted successfully`, key });
+      refetch(); // Refetch list
+      return true; // Indicate success
+    } catch (error: any) {
+      message.error({ content: `Failed to delete selected users`, key });
+      handleApiError(error);
+      return false; // Indicate failure
+    }
   };
 
   const columns = useUserTableColumns({
     onEdit: handleOpenCreateModal,
     onViewDetails: handleOpenDetailModal,
-    onDelete: handleDeleteUser, // Pass the delete handler
+    onDelete: handleDeleteUser,
+    // Pass other props if needed by the columns hook (e.g., for filters)
   });
+
+  // Table change handler for server-side pagination/sort/filter
+  const handleTableChange: TableProps<User>["onChange"] = (
+    pagination: TablePaginationConfig,
+    filters: Record<string, FilterValue | null>,
+    sorter: SorterResult<User> | SorterResult<User>[]
+  ) => {
+    const currentSorter = Array.isArray(sorter) ? sorter[0] : sorter;
+    setQueryParams(prev => ({
+      ...prev,
+      page: pagination.current || 1,
+      limit: pagination.pageSize || 10,
+      filters: filters,
+      sortBy: currentSorter?.field as string | undefined,
+      sortOrder: currentSorter?.order === null ? undefined : (currentSorter?.order === 'ascend' ? 'asc' : 'desc'),
+      // Extract other filters if added
+      isActive: filters.isActive?.[0] as boolean | undefined,
+      role: filters.role?.[0] as string | undefined,
+    }));
+  };
+
 
   if (isError) {
     message.error("Failed to load users.");
@@ -137,13 +201,23 @@ export default function UsersPage() {
       <Header name="Users" />
       <GenericDataTable<User>
         columns={columns}
-        dataSource={usersData ?? []}
-        loading={isLoadingUsers}
+        dataSource={usersData} // Use extracted array
+        loading={isFetchingUsers} // Use isFetching for loading state
         entityName="User"
         onCreate={() => handleOpenCreateModal()}
-        onDeleteSelected={handleDeleteSelected}
+        onDeleteSelected={handleDeleteSelected} // Pass bulk delete handler
         isActionLoading={isLoadingMutation}
         isDeleting={isDeleting}
+        // Pass pagination and onChange for server-side handling
+        pagination={{
+            current: queryParams.page,
+            pageSize: queryParams.limit,
+            total: totalUsers, // Use total from response
+            showSizeChanger: true,
+            pageSizeOptions: ["10", "20", "50", "100"],
+            showTotal: (total: number, range: [number, number]) => `${range[0]}-${range[1]} of ${total} items`,
+        }}
+        onChange={handleTableChange}
       />
 
       {/* Create/Edit Modal */}

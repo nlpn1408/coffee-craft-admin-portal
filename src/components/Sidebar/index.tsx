@@ -15,7 +15,8 @@ import {
   ShoppingCart,
   SlidersHorizontal,
   User,
-  FileText, // Import FileText icon for Blogs
+  FileText,
+  Ticket, // Import Ticket icon for Vouchers
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -115,21 +116,6 @@ const Sidebar = () => {
           label="Dashboard"
           isCollapsed={isSidebarCollapsed}
         />
-
-        {/* <SimpleTreeView multiSelect>
-          <TreeItem
-            itemId="grid"
-            label={
-              <SidebarLink
-                href="/"
-                icon={Archive}
-                label="Categories"
-                isCollapsed={isSidebarCollapsed}
-                isRoot={true}
-              />
-            }
-          ></TreeItem>
-        </SimpleTreeView> */}
         <SidebarLink
           href="/categories"
           icon={Layers2}
@@ -144,7 +130,7 @@ const Sidebar = () => {
         />
         <SidebarLink
           href="/orders"
-          icon={ShoppingCart} // Add Orders link
+          icon={ShoppingCart}
           label="Orders"
           isCollapsed={isSidebarCollapsed}
         />
@@ -154,7 +140,12 @@ const Sidebar = () => {
           label="Users"
           isCollapsed={isSidebarCollapsed}
         />
-        {/* Add Blog Link */}
+        <SidebarLink
+          href="/vouchers"
+          icon={Ticket}
+          label="Vouchers"
+          isCollapsed={isSidebarCollapsed}
+        />
         <SidebarLink
           href="/blogs"
           icon={FileText}

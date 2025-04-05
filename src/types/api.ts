@@ -1,5 +1,12 @@
 import { OrderStatus, PaymentMethod, PaymentStatus, UserRole, VoucherType, GENDER } from './index';
 
+// Generic type for paginated API responses
+export interface PaginatedResponse<T> {
+  data: T[];
+  total: number;
+  // Add other potential pagination fields if needed (e.g., page, limit, hasNextPage)
+}
+
 // Interfaces for creating new entities
 export interface NewProduct {
   sku: string;
@@ -96,7 +103,23 @@ export interface NewVoucher {
   minimumOrderValue?: number | null;
   isActive?: boolean;
   applicableCategoryIds?: string[]; // IDs of categories
-  excludedProductIds?: string[]; // IDs of products
+  excludedProductIds?: string[];
+}
+
+// For updating vouchers, most fields are optional
+export interface UpdateVoucher {
+  code?: string;
+  discountPercent?: number | null;
+  discountAmount?: number | null;
+  maxDiscount?: number | null;
+  // type is likely not updatable
+  startDate?: string;
+  endDate?: string;
+  usageLimit?: number | null;
+  minimumOrderValue?: number | null;
+  isActive?: boolean;
+  applicableCategoryIds?: string[]; // Replaces existing
+  excludedProductIds?: string[];    // Replaces existing
 }
 
 export interface NewBlog {

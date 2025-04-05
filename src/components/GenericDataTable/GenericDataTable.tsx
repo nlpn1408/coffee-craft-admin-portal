@@ -30,8 +30,11 @@ interface GenericDataTableProps<T extends DataItem> {
   onDownloadTemplate?: () => void;
   onDeleteSelected?: (selectedIds: React.Key[]) => Promise<boolean>; // Make optional
   isActionLoading?: boolean; // General loading state for actions
-  isDeleting?: boolean; // Specific loading state for delete actions
-  isImporting?: boolean; // Specific loading state for import
+  isDeleting?: boolean;
+  isImporting?: boolean;
+  // Add props for server-side pagination/sorting/filtering
+  pagination?: TableProps<T>['pagination']; // Accept pagination config
+  onChange?: TableProps<T>['onChange']; // Accept onChange handler
 }
 
 export function GenericDataTable<T extends DataItem>({
@@ -48,15 +51,18 @@ export function GenericDataTable<T extends DataItem>({
   isActionLoading = false,
   isDeleting = false,
   isImporting = false,
+  pagination = {}, // Default pagination to empty object
+  onChange, // Receive onChange handler
 }: GenericDataTableProps<T>) {
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
 
-  const rowSelection = {
+  // Only enable row selection if onDeleteSelected is provided
+  const rowSelection = onDeleteSelected ? {
     selectedRowKeys,
     onChange: (keys: React.Key[]) => {
       setSelectedRowKeys(keys);
     },
-  };
+  } : undefined; // Set to undefined if onDeleteSelected is not provided
 
   const hasSelected = selectedRowKeys.length > 0;
 
@@ -153,13 +159,15 @@ export function GenericDataTable<T extends DataItem>({
           columns={columns}
           dataSource={dataSource}
           rowKey={rowKey}
-          rowSelection={rowSelection}
+          rowSelection={rowSelection} // Pass conditional rowSelection
+          // Pass external pagination config and onChange handler
           pagination={{
-            showSizeChanger: true,
-            showTotal: (total, range) =>
-              `${range[0]}-${range[1]} of ${total} items`,
-            pageSizeOptions: ["10", "20", "50", "100"],
+              ...pagination, // Spread the passed pagination config
+              showSizeChanger: true,
+              showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`,
+              pageSizeOptions: ["10", "20", "50", "100"], // Keep these options
           }}
+          onChange={onChange} // Pass the external onChange handler
           loading={loading}
           scroll={{ x: "max-content" }}
           size="small"

@@ -82,6 +82,7 @@ export interface Category {
   order?: number | null; // Prisma Int maps to number
   createdAt: Date;
   updatedAt: Date;
+  productCount?: number;
 
   parent?: Category | null;
   children?: Category[];
@@ -96,6 +97,7 @@ export interface Brand {
   order?: number | null; // Prisma Int maps to number
   createdAt: Date;
   updatedAt: Date;
+  productCount?: number;
 
   products?: Product[];
 }
@@ -275,6 +277,7 @@ export type {
   NewUser,
   NewOrder,
   NewVoucher,
+  UpdateVoucher, // Add UpdateVoucher
   NewTag,
   NewProductVariant,
   UpdateProductVariant,
@@ -288,6 +291,7 @@ export type {
   ExpenseByCategorySummary,
   DashboardMetrics,
   ImportResult,
+  PaginatedResponse, // Add PaginatedResponse
 } from "./api";
 
 // Note: Prisma's Decimal type is mapped to 'number' in TypeScript.

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import {
   Input,
   Select,
@@ -28,11 +28,17 @@ interface ProductFormFieldsProps {
 export const ProductFormFields = ({
   isViewMode = false,
 }: ProductFormFieldsProps) => {
-  const { data: categories = [] } = useGetCategoriesQuery();
-  const { data: brands = [] } = useGetBrandsQuery();
-  // Removed tag fetching/creation logic, handled by ProductTagAssociation
-
-  // Removed Form.useWatch as it's no longer needed for tags
+  const { data: categoriesResponse } = useGetCategoriesQuery({});
+  const { data: brandsResponse } = useGetBrandsQuery({});
+  // Extract the arrays from the responses
+  const categories = useMemo(
+    () => categoriesResponse?.data ?? [],
+    [categoriesResponse]
+  );
+  const brands = useMemo(
+    () => brandsResponse?.data ?? [],
+    [brandsResponse]
+  );
 
   return (
     <div className="space-y-4">
@@ -120,7 +126,7 @@ export const ProductFormFields = ({
         >
           <Input
             placeholder="Optional discount price"
-            style={{ width: "100%", textAlign: "end" }} 
+            style={{ width: "100%", textAlign: "end" }}
             disabled={isViewMode}
           />
         </Form.Item>

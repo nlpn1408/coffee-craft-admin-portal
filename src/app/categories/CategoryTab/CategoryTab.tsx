@@ -1,40 +1,43 @@
 "use client";
 
-import React, { useState, useEffect } from "react"; // Removed useRef, useMemo, Key
+import React, { useState, useEffect, useMemo } from "react"; // Added useMemo
 import type { Category, NewCategory } from "@/types";
 import {
   useCreateCategoryMutation,
   useDeleteCategoryMutation,
-  useExportCategoriesQuery,
-  useGetCategoriesQuery,
-  useGetCategoryTemplateQuery,
+  useGetCategoriesQuery, // Keep standard query hook
   useImportCategoriesMutation,
   useUpdateCategoryMutation,
-} from "@/state/api";
+  // Import lazy query hooks for on-demand actions
+  useLazyExportCategoriesQuery,
+  useLazyGetCategoryTemplateQuery,
+} from "@/state/services/categoryService";
 import {
-  Button, // Keep Button for dummy data
+  Button,
   Upload,
   message,
-  // Removed other Ant Design table/form components
 } from "antd";
 import type { UploadProps } from "antd";
-// Removed Ant Design table/icon imports related to columns
 import CreateCategoryModal from "./CreateCategoryModal";
 import { handleApiError } from "@/lib/api-utils";
-import { dummyData } from "../dummy"; // Corrected path
-import { GenericDataTable } from "@/components/GenericDataTable/GenericDataTable"; // Import the new component
-import { useCategoryTableColumns } from "./useCategoryTableColumns"; // Import the hook
-import LoadingScreen from "@/components/LoadingScreen"; // Keep LoadingScreen
+import { dummyData } from "../dummy";
+import { GenericDataTable } from "@/components/GenericDataTable/GenericDataTable";
+import { useCategoryTableColumns } from "./useCategoryTableColumns";
+import LoadingScreen from "@/components/LoadingScreen";
 
 const CategoryTab = () => {
-  // Fetch ALL categories
+  // Fetch ALL categories (now expects paginated response)
   const {
-    data: allCategories = [],
+    data: categoriesResponse, // Rename data
     isError,
     isLoading,
     isFetching,
-    refetch: refetchCategories, // Add refetch
-  } = useGetCategoriesQuery();
+    refetch: refetchCategories,
+  } = useGetCategoriesQuery({}); // Pass empty object or required params
+
+  // Extract categories array and total from response using useMemo
+  const allCategories = useMemo(() => categoriesResponse?.data ?? [], [categoriesResponse]);
+  const totalCategories = useMemo(() => categoriesResponse?.total ?? 0, [categoriesResponse]); // Get total if needed
 
   const [
     createCategory,
@@ -46,21 +49,18 @@ const CategoryTab = () => {
     updateCategory,
     { isLoading: isUpdating, isSuccess: isUpdateSuccess },
   ] = useUpdateCategoryMutation();
-  const [importCategories, { isLoading: isImporting }] =
-    useImportCategoriesMutation();
-  const { refetch: refetchExport } = useExportCategoriesQuery(undefined, {
-    skip: true,
-  });
-  const { refetch: refetchTemplate } = useGetCategoryTemplateQuery(undefined, {
-    skip: true,
-  });
+  const [importCategories, { isLoading: isImporting }] = useImportCategoriesMutation();
+  // Use correct lazy query hooks
+  const [triggerExport, { isFetching: isExporting }] = useLazyExportCategoriesQuery();
+  const [triggerTemplate, { isFetching: isDownloadingTemplate }] = useLazyGetCategoryTemplateQuery();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
 
   // Combined loading states
   const isDataLoading = isLoading || isFetching;
-  const isActionLoading = isCreating || isDeleting || isUpdating || isImporting;
+  // Include export/template fetching states in action loading
+  const isActionLoading = isCreating || isDeleting || isUpdating || isImporting || isExporting || isDownloadingTemplate;
 
   // --- Handlers ---
   const handleCreateCategory = async (categoryData: NewCategory) => {
@@ -68,7 +68,7 @@ const CategoryTab = () => {
       await createCategory(categoryData).unwrap();
       message.success("Category created successfully");
       setIsModalOpen(false);
-      refetchCategories(); // Refetch after create
+      refetchCategories();
     } catch (error) {
       handleApiError(error);
     }
@@ -80,7 +80,7 @@ const CategoryTab = () => {
       message.success("Category updated successfully");
       setIsModalOpen(false);
       setEditingCategory(null);
-      refetchCategories(); // Refetch after update
+      refetchCategories();
     } catch (error) {
       handleApiError(error);
     }
@@ -91,21 +91,17 @@ const CategoryTab = () => {
     setIsModalOpen(true);
   };
 
-  // Single delete is now handled within the hook's column definition,
-  // but we need the mutation function for it.
   const handleDeleteSingle = async (id: string): Promise<void> => {
     try {
       await deleteCategory(id).unwrap();
       message.success("Category deleted successfully");
-      refetchCategories(); // Refetch after delete
+      refetchCategories();
     } catch (error) {
       handleApiError(error);
-      // Re-throw or handle error to potentially signal failure if needed
       throw error;
     }
   };
 
-  // Corrected return type to Promise<boolean>
   const handleDeleteSelected = async (
     selectedIds: React.Key[]
   ): Promise<boolean> => {
@@ -124,12 +120,11 @@ const CategoryTab = () => {
         key,
       });
       refetchCategories();
-      // Selection state is reset within GenericDataTable
-      return true; // Indicate success
+      return true;
     } catch (error) {
       message.error({ content: `Failed to delete selected categories`, key });
       handleApiError(error);
-      return false; // Indicate failure
+      return false;
     }
   };
 
@@ -137,20 +132,16 @@ const CategoryTab = () => {
     const key = "exporting";
     try {
       message.loading({ content: "Exporting categories...", key, duration: 0 });
-      const result = await refetchExport();
-      if (result.data instanceof Blob) {
-        const url = window.URL.createObjectURL(result.data);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = "categories.xlsx";
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        window.URL.revokeObjectURL(url);
-        message.success({ content: "Categories exported successfully", key });
-      } else {
-        throw new Error("Export failed: Invalid data received");
-      }
+      const result = await triggerExport().unwrap();
+      const url = window.URL.createObjectURL(result);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "categories.xlsx";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+      message.success({ content: "Categories exported successfully", key });
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : "Unknown error";
       message.error({ content: `Export failed: ${errorMsg}`, key });
@@ -161,20 +152,16 @@ const CategoryTab = () => {
     const key = "downloading_template";
     try {
       message.loading({ content: "Downloading template...", key, duration: 0 });
-      const result = await refetchTemplate();
-      if (result.data instanceof Blob) {
-        const url = window.URL.createObjectURL(result.data);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = "category_template.xlsx";
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        window.URL.revokeObjectURL(url);
-        message.success({ content: "Template downloaded successfully", key });
-      } else {
-        throw new Error("Template download failed: Invalid data received");
-      }
+      const result = await triggerTemplate().unwrap();
+      const url = window.URL.createObjectURL(result);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "category_template.xlsx";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+      message.success({ content: "Template downloaded successfully", key });
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : "Unknown error";
       message.error({ content: `Template download failed: ${errorMsg}`, key });
@@ -199,7 +186,7 @@ const CategoryTab = () => {
         await importCategories(formData).unwrap();
         message.success({ content: "Categories imported successfully", key });
         if (onSuccess) onSuccess({}, file as any);
-        refetchCategories(); // Refetch after import
+        refetchCategories();
       } catch (error) {
         const errorMsg =
           error instanceof Error ? error.message : "Unknown error";
@@ -210,16 +197,14 @@ const CategoryTab = () => {
     disabled: isImporting,
   };
 
-  // Get columns from the hook
   const columns = useCategoryTableColumns({
-    allCategories,
+    allCategories, // Pass the extracted array
     onEdit: handleEdit,
-    onDelete: handleDeleteSingle, // Pass single delete handler
+    onDelete: handleDeleteSingle,
     isActionLoading,
     isDeleting,
   });
 
-  // createDummy function remains the same
   const createDummy = async () => {
     const key = "creating_dummy";
     try {
@@ -230,8 +215,8 @@ const CategoryTab = () => {
       });
       const formattedData = dummyData.map((item) => ({
         name: item.name,
-        description: item.slug, // Assuming slug maps to description for dummy data
-        parentId: null, // Add parentId if needed by schema
+        description: item.slug,
+        parentId: null,
       }));
       for (const item of formattedData) {
         await createCategory(item).unwrap();
@@ -240,7 +225,7 @@ const CategoryTab = () => {
         content: "Dummy Categories created successfully",
         key,
       });
-      refetchCategories(); // Refetch after creating dummy data
+      refetchCategories();
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : "Unknown error";
       message.error({
@@ -250,12 +235,8 @@ const CategoryTab = () => {
     }
   };
 
-  if (isLoading) {
-    return <LoadingScreen />;
-  }
 
   if (isError && !isLoading) {
-    // Check isError after isLoading is false
     return (
       <div className="text-center text-red-500 py-4">
         Failed to fetch categories. Please try again later.
@@ -267,8 +248,8 @@ const CategoryTab = () => {
     <>
       <GenericDataTable
         columns={columns}
-        dataSource={allCategories}
-        loading={isDataLoading}
+        dataSource={allCategories} // Use the extracted array
+        loading={isFetching} // Use isFetching for table loading state
         entityName="Category"
         uploadProps={uploadProps}
         onCreate={() => {
@@ -277,23 +258,20 @@ const CategoryTab = () => {
         }}
         onExport={handleExport}
         onDownloadTemplate={handleDownloadTemplate}
-        onDeleteSelected={handleDeleteSelected} // Now matches Promise<boolean>
+        onDeleteSelected={handleDeleteSelected}
         isActionLoading={isActionLoading}
         isDeleting={isDeleting}
         isImporting={isImporting}
+        // Add pagination config if GenericDataTable supports it
+        // pagination={{ total: totalCategories, /* other props */ }}
       />
 
-      {/* Dummy data button - kept separate for now */}
       <div className="p-4 pt-0">
-        {" "}
-        {/* Add padding to match table */}
         <Button onClick={createDummy} danger disabled={isActionLoading}>
-          {" "}
-          Create Dummy Categories{" "}
+          Create Dummy Categories
         </Button>
       </div>
 
-      {/* Create/Edit Modal */}
       {isModalOpen && (
         <CreateCategoryModal
           isOpen={isModalOpen}
@@ -307,7 +285,7 @@ const CategoryTab = () => {
               : handleCreateCategory
           }
           isSuccess={isCreateSuccess || isUpdateSuccess}
-          parentCategories={allCategories}
+          parentCategories={allCategories} // Pass the extracted array
           initialData={editingCategory}
           isLoading={isCreating || isUpdating}
         />

@@ -91,6 +91,16 @@ export const useCategoryTableColumns = ({
       sorter: (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
       width: 180,
     },
+    // Add Product Count column
+    {
+      title: "Product Count",
+      dataIndex: "productCount", // Assuming the field name is productCount from the updated type
+      key: "productCount",
+      sorter: (a, b) => (a.productCount ?? 0) - (b.productCount ?? 0),
+      render: (count) => count ?? 0, // Display 0 if count is null/undefined
+      width: 120,
+      align: 'right',
+    },
     {
       title: "Actions",
       key: "actions",
