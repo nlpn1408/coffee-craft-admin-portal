@@ -31,7 +31,7 @@ const CreateEditVoucherModal: React.FC<CreateEditVoucherModalProps> = ({
     useEffect(() => {
         if (isOpen) { // Reset/set values only when modal opens
             if (voucher) {
-                // Set form values for editing
+                // Set form values for editing, explicitly handling number fields
                 form.setFieldsValue({
                     ...voucher,
                     // Convert dates to moment objects for RangePicker

@@ -27,7 +27,7 @@ const ProductDetailView: React.FC<ProductDetailViewProps> = ({
     onClose,
     onSaveSuccess,
 }) => {
-    const [form] = Form.useForm();
+    const [form] = Form.useForm<NewProduct>();
     const [createProduct, { isLoading: isCreating }] = useCreateProductMutation();
     const [updateProduct, { isLoading: isUpdating }] = useUpdateProductMutation();
 
@@ -99,9 +99,8 @@ const ProductDetailView: React.FC<ProductDetailViewProps> = ({
             label: 'Details',
             children: (
                 // Pass disabled prop to Ant Form based on mode
-                <Form form={form} layout="vertical" disabled={isViewMode}>
-                    {/* Use component from the same directory */}
-                    <ProductFormFields /> {/* Removed isViewMode prop as Form handles disable */}
+                <Form form={form} layout="vertical" disabled={isViewMode} name="productForm">
+                    <ProductFormFields isViewMode={isViewMode} />
                 </Form>
             ),
         },
