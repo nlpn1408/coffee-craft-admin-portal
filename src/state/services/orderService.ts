@@ -39,7 +39,11 @@ export const orderService = baseApi.injectEndpoints({
         method: "PUT",
         body: { status }, // Send status in the body
       }),
-      invalidatesTags: (result, error, { id }) => [{ type: "Order", id }],
+      invalidatesTags: (result, error, { id }) => [
+        { type: "Order", id }, // Invalidate the specific order
+        "StatsRevenue",       // Invalidate revenue stats
+        "StatsOrders",        // Also invalidate order stats as counts might change
+      ],
     }),
 
     // Cancel an order

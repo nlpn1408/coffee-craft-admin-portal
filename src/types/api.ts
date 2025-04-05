@@ -214,15 +214,68 @@ export interface ExpenseByCategorySummary {
   date: string; // Consider using Date type
 }
 
-// Assuming Product type will be imported from index.ts where needed
-// import { Product } from './index'; // Example import
-export interface DashboardMetrics {
-  popularProducts: any[]; // Use 'any' for now, or import Product from index.ts
-  salesSummary: SalesSummary[];
-  purchaseSummary: PurchaseSummary[];
-  expenseSummary: ExpenseSummary[];
-  expenseByCategorySummary: ExpenseByCategorySummary[];
+// --- New Statistics API Types ---
+
+// /stats/revenue/summary
+export interface RevenueSummary {
+  startDate: string; // ISO Date string
+  endDate: string;   // ISO Date string
+  totalRevenue: number;
+  totalOrders: number;
+  averageOrderValue: number;
 }
+
+// Item within /stats/revenue/orders/by-status response
+export interface OrderStatusStat {
+  status: OrderStatus; // Use existing enum
+  orderCount: number;
+  totalValue: number;
+}
+
+// Response type for /stats/revenue/orders/by-status
+export interface OrderStatusStatsResponse {
+    startDate: string;
+    endDate: string;
+    data: OrderStatusStat[];
+}
+
+
+// Item within /stats/products/top-selling response
+export interface TopSellingProduct {
+  productId: string;
+  name: string;
+  sku: string;
+  totalQuantitySold: number;
+  totalRevenue: number;
+}
+
+// Response type for /stats/products/top-selling
+export interface TopSellingProductsResponse {
+    startDate: string;
+    endDate: string;
+    sortBy: 'quantity' | 'revenue';
+    limit: number;
+    data: TopSellingProduct[];
+}
+
+// Item within /stats/products/inventory lowStockProducts array
+export interface LowStockProduct {
+  productId: string;
+  name: string;
+  sku: string;
+  stock: number;
+}
+
+// Response type for /stats/products/inventory
+export interface ProductInventorySummary {
+  lowStockThreshold: number;
+  lowStockProducts: LowStockProduct[];
+  totalInventoryValue: number;
+  totalActiveProducts: number;
+  totalStockCount: number;
+}
+
+// Add other stats response types if needed (e.g., ByPaymentMethod, Financials, etc.)
 
 // Utility types
 export interface ImportResult {
