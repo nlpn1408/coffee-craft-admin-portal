@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useState, useCallback, useMemo } from "react"; // Import useMemo
-import { Button, Card, message, Spin, Modal as AntModal, notification } from "antd"; // Import notification
-import type { TableProps, TablePaginationConfig } from "antd"; // Import table types
-import type { FilterValue, SorterResult } from "antd/es/table/interface"; // Import table types
-import { PlusOutlined, ExclamationCircleFilled } from "@ant-design/icons";
+import React, { useState, useCallback, useMemo } from "react";
+import { Button, Card, message, Spin, Modal as AntModal, notification, Breadcrumb } from "antd"; // Import Breadcrumb
+import type { TableProps, TablePaginationConfig } from "antd";
+import type { FilterValue, SorterResult } from "antd/es/table/interface";
+import { PlusOutlined, ExclamationCircleFilled, HomeOutlined } from "@ant-design/icons"; // Import HomeOutlined
 import {
   useGetUsersQuery,
   useCreateUserMutation,
@@ -197,8 +197,13 @@ export default function UsersPage() {
   const isLoadingMutation = isCreating || isUpdating || isDeleting;
 
   return (
-    <>
-      <Header name="Users" />
+    <div className="space-y-6 pb-4"> {/* Add wrapper and spacing */}
+      <Breadcrumb
+        items={[
+          { href: '/', title: <HomeOutlined /> },
+          { title: 'Users' }, // Current page
+        ]}
+      />
       <GenericDataTable<User>
         columns={columns}
         dataSource={usersData} // Use extracted array
@@ -239,6 +244,6 @@ export default function UsersPage() {
           userId={viewingUserId}
         />
       )}
-    </>
+    </div>
   );
 }

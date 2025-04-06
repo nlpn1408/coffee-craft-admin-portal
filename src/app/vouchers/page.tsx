@@ -5,7 +5,8 @@
 "use client";
 
 import React, { useState } from "react";
-import { Button, message } from "antd"; // Import Button and message
+import { Button, message, Breadcrumb } from "antd"; // Import Breadcrumb
+import { HomeOutlined } from "@ant-design/icons"; // Import Home icon
 import { Voucher } from "@/types";
 import VoucherList from "@/app/vouchers/components/VoucherList";
 import CreateEditVoucherModal from "@/app/vouchers/components/CreateEditVoucherModal";
@@ -89,9 +90,15 @@ const VouchersPage = () => {
   };
 
   return (
-    <div className="mx-auto pb-5 w-full">
+    <div className="space-y-6 pb-5 w-full"> {/* Add space-y-6 */}
+      <Breadcrumb
+        items={[
+          { href: '/', title: <HomeOutlined /> },
+          { title: 'Vouchers' }, // Current page
+        ]}
+      />
       {/* Add button for dummy data creation */}
-      <div className="mb-4 flex justify-end">
+      {/* <div className="mb-4 flex justify-end">
          <Button
            onClick={handleCreateDummyData}
            loading={isDummyLoading || isCreating} // Disable if general creation is also loading
@@ -99,7 +106,7 @@ const VouchersPage = () => {
          >
            Create Dummy Vouchers
          </Button>
-      </div>
+      </div> */}
 
       {/* Render the main voucher list component */}
       <VoucherList

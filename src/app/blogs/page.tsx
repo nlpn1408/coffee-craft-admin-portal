@@ -9,16 +9,18 @@ import { Blog } from "@/types";
 import BlogList from "@/app/blogs/components/BlogList"; // Use absolute path alias
 import BlogDetailDrawer from "@/app/blogs/components/BlogDetailDrawer"; // Use absolute path alias
 import { useGetBlogsQuery } from "@/state/services/blogService";
+import { Breadcrumb } from "antd";
+import { HomeOutlined } from "@ant-design/icons";
 
 const BlogsPage = () => {
   // State for managing the drawer (similar to products page)
   const [drawerState, setDrawerState] = useState<{
     isOpen: boolean;
-    mode: 'create' | 'edit' | 'view';
+    mode: "create" | "edit" | "view";
     blog: Blog | null;
   }>({
     isOpen: false,
-    mode: 'view',
+    mode: "view",
     blog: null,
   });
 
@@ -27,20 +29,20 @@ const BlogsPage = () => {
 
   // Handlers to open the drawer
   const handleOpenCreateDrawer = () => {
-    setDrawerState({ isOpen: true, mode: 'create', blog: null });
+    setDrawerState({ isOpen: true, mode: "create", blog: null });
   };
 
   const handleOpenEditDrawer = (blog: Blog) => {
-    setDrawerState({ isOpen: true, mode: 'edit', blog: blog });
+    setDrawerState({ isOpen: true, mode: "edit", blog: blog });
   };
 
   const handleOpenViewDrawer = (blog: Blog) => {
-    setDrawerState({ isOpen: true, mode: 'view', blog: blog });
+    setDrawerState({ isOpen: true, mode: "view", blog: blog });
   };
 
   // Handler to close the drawer
   const handleCloseDrawer = () => {
-    setDrawerState({ isOpen: false, mode: 'view', blog: null });
+    setDrawerState({ isOpen: false, mode: "view", blog: null });
   };
 
   // Handler for successful save (create/update)
@@ -51,7 +53,12 @@ const BlogsPage = () => {
 
   return (
     <div className="mx-auto pb-5 w-full">
-      {/* Render the main blog list component */}
+      <Breadcrumb
+        items={[
+          { href: "/", title: <HomeOutlined /> },
+          { title: "Blog" }, // Current page
+        ]}
+      />
       <BlogList
         onCreate={handleOpenCreateDrawer}
         onEdit={handleOpenEditDrawer}

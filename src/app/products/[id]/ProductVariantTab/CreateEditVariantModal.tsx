@@ -2,12 +2,12 @@
 
 import React, { useEffect } from 'react';
 import { Modal, Form, notification } from 'antd';
-import VariantForm from '@/app/products/product-details/VariantForm'; // Use absolute path alias
 import { ProductVariant, NewProductVariant, UpdateProductVariant } from '@/types';
 import {
     useCreateProductVariantMutation,
     useUpdateProductVariantMutation,
 } from '@/state/services/productVariantService';
+import VariantForm from './VariantForm';
 
 interface CreateEditVariantModalProps {
     isOpen: boolean;

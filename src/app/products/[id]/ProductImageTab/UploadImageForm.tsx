@@ -283,7 +283,6 @@ export const UploadImageForm: React.FC<Props> = ({
             </Form.Item>
         )}
       </Form>
-
       <Modal
         open={previewOpen}
         title={previewTitle}

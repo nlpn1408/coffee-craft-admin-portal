@@ -8,23 +8,16 @@ import {
   useUpdateTagMutation,
   useDeleteTagMutation,
 } from "@/state/services/tagService";
-import { Button, Space, /*Table,*/ message, notification } from "antd"; // Removed Table
-// import type { TableProps } from "antd"; // Removed TableProps
-// import type { FilterValue, SorterResult } from "antd/es/table/interface"; // Removed FilterValue, SorterResult
-import { PlusOutlined } from "@ant-design/icons";
-// Use absolute path aliases
-import CreateEditTagModal from "@/app/products/tag-management/CreateEditTagModal";
+import {message, notification } from "antd"; 
 import { handleApiError } from "@/lib/api-utils";
-import { useTagTableColumns } from "@/app/products/tag-management/useTagTableColumns";
 import LoadingScreen from "@/components/LoadingScreen";
-import { GenericDataTable } from "@/components/GenericDataTable/GenericDataTable"; // Import GenericDataTable
+import { GenericDataTable } from "@/components/GenericDataTable/GenericDataTable";
+import { useTagTableColumns } from "./useTagTableColumns";
+import CreateEditTagModal from "./CreateEditTagModal";
 
 const GlobalTagManager = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTag, setEditingTag] = useState<Tag | null>(null);
-
-  // Removed queryParams state as GenericDataTable handles client-side filtering/sorting/pagination
-  // const [queryParams, setQueryParams] = useState<{ ... }>(...);
 
   const {
     data: tagsResponse, // Keep the response structure if API returns it

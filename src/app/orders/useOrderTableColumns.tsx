@@ -3,11 +3,12 @@
 import React from "react";
 import { Order, OrderStatus, PaymentMethod } from "@/types"; // Import necessary types
 import { format } from "date-fns";
-import { Button, Dropdown, Menu, Tag, message } from "antd";
-import type { MenuProps, TableProps } from "antd";
-import { MoreOutlined } from "@ant-design/icons";
-import { useColumnSearch } from "@/hooks/useColumnSearch"; // Assuming this hook is generic enough
+import { Button, Space, Tag, message } from "antd"; // Remove Dropdown, Menu; Add Space
+import type { TableProps } from "antd"; // Remove MenuProps
+import { MoreOutlined, EyeOutlined, EditOutlined } from "@ant-design/icons"; // Import EyeOutlined, EditOutlined
+import { useColumnSearch } from "@/hooks/useColumnSearch";
 import { formatCurrency } from "@/utils/utils";
+import { renderOrderStatusTag } from "./utils/renderOrderStatusTag"; // Import utility
 // import { useAuth } from "@/contexts/AuthContext"; // May not be needed unless actions depend on user role
 
 // Hook Arguments Interface
@@ -23,35 +24,7 @@ export const useOrderTableColumns = ({
   const getColumnSearchProps = useColumnSearch<Order>();
   // const { user: currentUser } = useAuth(); // Uncomment if needed
 
-  // --- Action Menu Logic ---
-  const handleMenuClick = (e: { key: string }, order: Order) => {
-    if (e.key === "copyId") {
-      navigator.clipboard.writeText(order.id);
-      message.success("Order ID copied to clipboard");
-    } else if (e.key === "edit") {
-      onEdit(order); // Trigger edit action
-    } else if (e.key === 'details') {
-      onViewDetails(order.id); // Call the handler with the order ID
-    } else {
-      message.info(`Action '${e.key}' clicked for order ID: ${order.id}`);
-    }
-  };
-
-  const getMenuItems = (order: Order): MenuProps["items"] => {
-    const items: MenuProps["items"] = [
-      { label: "Copy Order ID", key: "copyId" },
-      { label: "View Details", key: "details" },
-    ];
-
-    // Only allow editing status if it's not Delivered or Canceled
-    if (order.status !== OrderStatus.DELIVERED && order.status !== OrderStatus.CANCELED) {
-      items.push({ label: "Edit Order Status", key: "edit" });
-    }
-
-    // TODO: Add logic for 'Cancel Order' action if needed, potentially checking status too
-    return items;
-  };
-  // --- End Action Menu Logic ---
+  // Remove Action Menu Logic
 
   // --- Status Filter Logic ---
   const statusFilters = Object.values(OrderStatus).map((status) => ({
@@ -77,7 +50,7 @@ export const useOrderTableColumns = ({
       ellipsis: true,
     },
     {
-      title: "Customer",
+      title: "Customer Email",
       dataIndex: ["user", "email"], // Access nested user email
       key: "customerEmail",
       sorter: (a, b) =>
@@ -100,31 +73,7 @@ export const useOrderTableColumns = ({
       filters: statusFilters,
       onFilter: (value, record) => record.status === value,
       sorter: (a, b) => a.status.localeCompare(b.status),
-      render: (status: OrderStatus) => {
-        let color = "default";
-        switch (status) {
-          case OrderStatus.PENDING:
-            color = "orange";
-            break;
-          case OrderStatus.CONFIRMED:
-            color = "processing";
-            break;
-          case OrderStatus.SHIPPED:
-            color = "blue";
-            break;
-          case OrderStatus.DELIVERED:
-            color = "success";
-            break;
-          case OrderStatus.CANCELED:
-            color = "error";
-            break;
-        }
-        return (
-          <Tag color={color}>
-            {status.charAt(0) + status.slice(1).toLowerCase()}
-          </Tag>
-        );
-      },
+      render: (status: OrderStatus) => renderOrderStatusTag({ status }), // Use utility function
       width: 120,
     },
     {
@@ -137,21 +86,37 @@ export const useOrderTableColumns = ({
       render: (method: PaymentMethod) => method.replace("_", " "),
       width: 130,
     },
+    // Add Order Date column
+    {
+      title: "Order Date",
+      dataIndex: "createdAt",
+      key: "createdAt",
+      sorter: (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+      render: (createdAt) => createdAt ? format(new Date(createdAt), 'dd/MM/yyyy') : '-', // Updated format
+      width: 120,
+    },
     {
       title: "Actions",
       key: "actions",
       align: "center",
-      width: 80,
+      width: 100, // Adjust width for buttons
       render: (_, record) => (
-        <Dropdown
-          menu={{ // Use menu prop instead of overlay
-            items: getMenuItems(record),
-            onClick: (e) => handleMenuClick(e, record),
-          }}
-          trigger={['click']} // Optional: specify trigger if needed
-        >
-          <Button type="text" icon={<MoreOutlined />} />
-        </Dropdown>
+        <Space size="small">
+          <Button
+            icon={<EyeOutlined />}
+            onClick={() => onViewDetails(record.id)}
+            size="small"
+            title="View Details"
+          />
+          {/* Always render Edit Status button, disable based on status */}
+          <Button
+            icon={<EditOutlined />}
+            onClick={() => onEdit(record)}
+            size="small"
+            title="Edit Status"
+            disabled={record.status === OrderStatus.DELIVERED || record.status === OrderStatus.CANCELED} // Disable if Delivered or Canceled
+          />
+        </Space>
       ),
     },
   ];

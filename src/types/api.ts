@@ -238,6 +238,19 @@ export interface OrderStatusStatsResponse {
     endDate: string;
     data: OrderStatusStat[];
 }
+// Item within /stats/orders/trend response
+export interface OrderTrendStat {
+  date: string; // Format depends on groupBy (YYYY-MM-DD, YYYY-MM, YYYY)
+  count: number;
+}
+
+// Response type for /stats/orders/trend
+export interface OrderTrendResponse {
+  startDate: string;
+  endDate: string;
+  groupBy: 'day' | 'month' | 'year';
+  data: OrderTrendStat[];
+}
 
 
 // Item within /stats/products/top-selling response

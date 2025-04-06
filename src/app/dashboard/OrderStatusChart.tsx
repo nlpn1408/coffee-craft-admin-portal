@@ -19,7 +19,7 @@ const orderStatusDisplay: Record<
 > = {
   [OrderStatus.PENDING]: { name: "Pending", color: "text-yellow-600", hexColor: "#ca8a04" },
   [OrderStatus.CONFIRMED]: { name: "Confirmed", color: "text-blue-600", hexColor: "#2563eb" },
-  [OrderStatus.SHIPPED]: { name: "Shipped", color: "text-purple-600", hexColor: "#9333ea" },
+  [OrderStatus.SHIPPED]: { name: "Shipping", color: "text-purple-600", hexColor: "#9333ea" },
   [OrderStatus.DELIVERED]: { name: "Delivered", color: "text-green-600", hexColor: "#16a34a" },
   [OrderStatus.CANCELED]: { name: "Canceled", color: "text-red-600", hexColor: "#dc2626" },
 };

@@ -3,22 +3,21 @@
 import React, { useState } from "react";
 import { notification, Button } from "antd";
 import { GenericDataTable } from "@/components/GenericDataTable/GenericDataTable";
-// Use absolute path aliases
-import { useVariantTableColumns } from "@/app/products/product-details/useVariantTableColumns";
-import CreateEditVariantModal from "@/app/products/product-details/CreateEditVariantModal";
+// Use relative path aliases for components within the same feature folder
+
 import {
   useGetProductVariantsQuery,
   useDeleteProductVariantMutation,
 } from "@/state/services/productVariantService";
 import { Product, ProductVariant } from "@/types";
+import CreateEditVariantModal from "./CreateEditVariantModal";
+import { useVariantTableColumns } from "./useVariantTableColumns";
 
 interface ProductVariantManagerProps {
-  // Renamed props interface
   selectedProduct: Product | null;
   isViewMode?: boolean;
 }
 
-// Renamed component
 const ProductVariantManager: React.FC<ProductVariantManagerProps> = ({
   selectedProduct,
   isViewMode = false,
@@ -32,7 +31,7 @@ const ProductVariantManager: React.FC<ProductVariantManagerProps> = ({
   const {
     data: variants,
     isLoading: isVariantsLoading,
-    isError: isVariantsError, // Keep track of error state
+    isError: isVariantsError,
     refetch: refetchVariants,
   } = useGetProductVariantsQuery(selectedProduct?.id!, {
     skip: !selectedProduct?.id,
@@ -69,8 +68,6 @@ const ProductVariantManager: React.FC<ProductVariantManagerProps> = ({
   // --- Columns Definition ---
   const columns = useVariantTableColumns({
     onEdit: (variant: ProductVariant) => {
-      // Add explicit type here
-      // Prevent opening edit modal in view mode
       if (!isViewMode) {
         setSelectedVariant(variant);
         setIsModalOpen(true);
@@ -82,7 +79,6 @@ const ProductVariantManager: React.FC<ProductVariantManagerProps> = ({
 
   // --- Modal Handlers ---
   const handleOpenCreateModal = () => {
-    // Prevent opening create modal in view mode
     if (!isViewMode) {
       setSelectedVariant(null);
       setIsModalOpen(true);
@@ -92,7 +88,6 @@ const ProductVariantManager: React.FC<ProductVariantManagerProps> = ({
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setSelectedVariant(null);
-    // Refetch variants when modal closes (after create/edit)
     if (selectedProduct) {
       refetchVariants();
     }
@@ -106,7 +101,6 @@ const ProductVariantManager: React.FC<ProductVariantManagerProps> = ({
     );
   }
 
-  // Optional: Show error message if fetching variants failed
   if (isVariantsError) {
     return (
       <div className="p-4 text-center text-red-500">
@@ -117,8 +111,6 @@ const ProductVariantManager: React.FC<ProductVariantManagerProps> = ({
 
   return (
     <div className="p-4 space-y-4">
-      {/* Add Variant Button - Conditionally render */}
-      {/* Modal is only opened via handlers which check isViewMode */}
       {isModalOpen && selectedProduct && (
         <CreateEditVariantModal
           isOpen={isModalOpen}
@@ -132,16 +124,13 @@ const ProductVariantManager: React.FC<ProductVariantManagerProps> = ({
         columns={columns}
         loading={isVariantsLoading}
         entityName="Variant"
-        // Pass create handler, disable button via isViewMode check above
         onCreate={handleOpenCreateModal}
-        // Pass single delete loading state to disable actions column buttons
         isActionLoading={isDeletingSingle}
         rowKey="id"
-        // Remove bulk delete props as they are not supported/needed here
+        // createDisabled={isViewMode}
       />
     </div>
   );
 };
 
-// Update export default
 export default ProductVariantManager;

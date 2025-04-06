@@ -1,11 +1,13 @@
 "use client";
 
-import React, { useEffect } from "react";
-import { Modal, Form, Select, Button, Spin, message, Space } from "antd";
+import React, { useEffect, useMemo } from "react"; // Add useMemo
+import { Modal, Tag, Button, Spin, message, Space, Popconfirm } from "antd"; // Import Tag, Popconfirm
+import { ExclamationCircleFilled } from "@ant-design/icons"; // Import icon
 import { Order, OrderStatus } from "@/types";
 import { useUpdateOrderStatusMutation } from "@/state/services/orderService";
-
-const { Option } = Select;
+import { handleApiError } from "@/lib/api-utils";
+import { renderOrderStatusTag } from "./utils/renderOrderStatusTag"; // Import the utility function
+// Remove unused Option
 
 interface UpdateStatusModalProps {
   isOpen: boolean;
@@ -20,51 +22,49 @@ export default function UpdateStatusModal({
   order,
   refetchOrders,
 }: UpdateStatusModalProps) {
-  const [form] = Form.useForm<{ status: OrderStatus }>();
-  const [updateOrderStatus, { isLoading: isUpdating, error }] =
-    useUpdateOrderStatusMutation();
+  const [updateOrderStatus, { isLoading: isUpdating }] = useUpdateOrderStatusMutation();
 
-  useEffect(() => {
-    if (order && isOpen) {
-      form.setFieldsValue({ status: order.status });
-    } else if (!isOpen) {
-      form.resetFields();
+  // Define allowed transitions
+  const nextStatusMap: Partial<Record<OrderStatus, OrderStatus>> = {
+    [OrderStatus.PENDING]: OrderStatus.CONFIRMED,
+    [OrderStatus.CONFIRMED]: OrderStatus.SHIPPED,
+    [OrderStatus.SHIPPED]: OrderStatus.DELIVERED,
+    // DELIVERED and CANCELED are terminal
+  };
+
+  const currentStatus = order?.status;
+  const nextStatus = currentStatus ? nextStatusMap[currentStatus] : undefined;
+
+  // Memoize status options to display
+  const availableActions = useMemo(() => {
+    const actions: OrderStatus[] = [];
+    if (nextStatus) {
+      actions.push(nextStatus);
     }
-  }, [order, isOpen, form]);
+    // Always allow cancellation unless already delivered or canceled
+    if (currentStatus && currentStatus !== OrderStatus.DELIVERED && currentStatus !== OrderStatus.CANCELED) {
+      actions.push(OrderStatus.CANCELED);
+    }
+    return actions;
+  }, [currentStatus, nextStatus]);
 
-  const handleFinish = async (values: { status: OrderStatus }) => {
+  const handleStatusUpdate = async (newStatus: OrderStatus) => {
     if (!order) return;
 
     try {
-      await updateOrderStatus({ id: order.id, status: values.status }).unwrap();
+      await updateOrderStatus({ id: order.id, status: newStatus }).unwrap();
       message.success(
-        `Order ${order.id.slice(-8)} status updated successfully!`
+        `Order ${order.id.slice(-8)} status updated to ${newStatus}!`
       );
-      refetchOrders(); // Refetch the list to show the update
-      onClose(); // Close the modal on success
+      refetchOrders();
+      onClose();
     } catch (err: unknown) {
-      // Type err as unknown
       console.error("Failed to update order status:", err);
-      // Type guard to check for FetchBaseQueryError structure
-      let errorMessage = "An unknown error occurred";
-      if (typeof err === "object" && err !== null && "status" in err) {
-        // It might be FetchBaseQueryError, check for data property
-        if (
-          "data" in err &&
-          typeof err.data === "object" &&
-          err.data !== null &&
-          "message" in err.data
-        ) {
-          errorMessage = err.data.message as string;
-        } else if ("error" in err) {
-          errorMessage = err.error as string; // Handle SerializedError
-        }
-      } else if (err instanceof Error) {
-        errorMessage = err.message;
-      }
-      message.error(`Failed to update status: ${errorMessage}`);
+      handleApiError(err); // Use centralized error handler
     }
   };
+
+  // Remove the local helper function
 
   const handleCancel = () => {
     onClose();
@@ -75,43 +75,53 @@ export default function UpdateStatusModal({
       title={`Update Status for Order ...${order?.id.slice(-8)}`}
       open={isOpen}
       onCancel={handleCancel}
-      footer={null} // Use Form buttons for footer
+      footer={[ // Custom footer with only Close button
+        <Button key="close" onClick={handleCancel}>
+          Close
+        </Button>,
+      ]}
       destroyOnClose
       maskClosable={false}
     >
       <Spin spinning={isUpdating}>
-        <Form
-          form={form}
-          layout="vertical"
-          onFinish={handleFinish}
-          className="mt-6"
-          initialValues={{ status: order?.status }}
-        >
-          <Form.Item
-            name="status"
-            label="Order Status"
-            rules={[{ required: true, message: "Please select a status" }]}
-          >
-            <Select placeholder="Select new status">
-              {Object.values(OrderStatus).map((status) => (
-                <Option key={status} value={status}>
-                  {status.charAt(0) + status.slice(1).toLowerCase()}
-                </Option>
-              ))}
-            </Select>
-          </Form.Item>
+        <div className="space-y-4">
+          <div>
+            <span className="font-semibold mr-2">Current Status:</span>
+            {currentStatus ? renderOrderStatusTag({ status: currentStatus }) : 'N/A'}
+          </div>
 
-          <Form.Item className="text-right mb-0">
-            <Space>
-              <Button onClick={handleCancel} disabled={isUpdating}>
-                Cancel
-              </Button>
-              <Button type="primary" htmlType="submit" loading={isUpdating}>
-                Update Status
-              </Button>
-            </Space>
-          </Form.Item>
-        </Form>
+          {availableActions.length > 0 && (
+            <div>
+              <span className="font-semibold mr-2">Available Actions:</span>
+              <Space wrap>
+                {availableActions.map((status) =>
+                  status === OrderStatus.CANCELED ? (
+                    <Popconfirm
+                      key={status}
+                      title="Cancel Order?"
+                      description="Are you sure you want to cancel this order?"
+                      onConfirm={() => handleStatusUpdate(OrderStatus.CANCELED)}
+                      okText="Yes, Cancel Order"
+                      cancelText="No"
+                      icon={<ExclamationCircleFilled style={{ color: 'red' }} />}
+                    >
+                      {/* Render the tag, Popconfirm handles the click */}
+                      {renderOrderStatusTag({ status: OrderStatus.CANCELED, clickable: true })}
+                    </Popconfirm>
+                  ) : (
+                    // Render clickable tag for next status
+                    renderOrderStatusTag({ status: status, clickable: true, onClick: () => handleStatusUpdate(status) })
+                  )
+                )}
+              </Space>
+            </div>
+          )}
+
+          {availableActions.length === 0 && currentStatus && (
+             <p className="text-gray-500">No further status updates available for this order.</p>
+          )}
+
+        </div>
       </Spin>
     </Modal>
   );

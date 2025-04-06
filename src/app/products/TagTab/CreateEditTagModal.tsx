@@ -1,7 +1,7 @@
 import React from 'react';
 import { Modal } from 'antd';
-import { TagForm } from '@/app/products/tag-management/TagForm'; // Use absolute path alias
 import { Tag, NewTag } from '@/types';
+import { TagForm } from './TagForm';
 
 interface CreateEditTagModalProps {
   isOpen: boolean;

@@ -266,11 +266,11 @@ const CategoryTab = () => {
         // pagination={{ total: totalCategories, /* other props */ }}
       />
 
-      <div className="p-4 pt-0">
+      {/* <div className="p-4 pt-0">
         <Button onClick={createDummy} danger disabled={isActionLoading}>
           Create Dummy Categories
         </Button>
-      </div>
+      </div> */}
 
       {isModalOpen && (
         <CreateCategoryModal

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useCallback } from "react";
-import { message } from "antd";
+import { Breadcrumb, message } from "antd";
 import { GenericDataTable } from "@/components/GenericDataTable/GenericDataTable";
 import { Order } from "@/types";
 import UpdateStatusModal from "./UpdateStatusModal";
@@ -9,6 +9,7 @@ import OrderDetailModal from "./OrderDetailModal"; // Import the detail modal
 import { useGetOrdersQuery } from "@/state/services/orderService";
 import { useOrderTableColumns } from "./useOrderTableColumns";
 import Header from "@/components/Header";
+import { HomeOutlined } from "@ant-design/icons";
 
 export default function OrdersPage() {
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
@@ -70,7 +71,12 @@ export default function OrdersPage() {
 
   return (
     <>
-      <Header name="Orders" />
+      <Breadcrumb
+        items={[
+          { href: "/", title: <HomeOutlined /> },
+          { title: "Order" }, // Current page
+        ]}
+      />
       <GenericDataTable<Order>
         columns={columns}
         dataSource={data?.data || []}

@@ -75,7 +75,7 @@ export default function LoginForm() {
           render={({ field }) => (
             <Input
               {...field} // Spread field props (onChange, onBlur, value, ref)
-              prefix={<MailOutlined className="site-form-item-icon" />}
+              prefix={<MailOutlined className="site-form-item-icon mr-2" />}
               placeholder="Enter your email"
               disabled={isLoading}
               size="large"
@@ -98,7 +98,7 @@ export default function LoginForm() {
           render={({ field }) => (
             <Input.Password
               {...field}
-              prefix={<LockOutlined className="site-form-item-icon" />}
+              prefix={<LockOutlined className="site-form-item-icon mr-2" />}
               placeholder="Enter your password"
               disabled={isLoading}
               size="large"

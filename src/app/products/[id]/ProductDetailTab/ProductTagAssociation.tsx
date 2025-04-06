@@ -54,7 +54,7 @@ const ProductTagAssociation: React.FC<ProductTagAssociationProps> = ({
   return (
     <Spin spinning={isLoadingTags}>
       <Select
-        mode="tags" 
+        mode="tags"
         allowClear
         style={{ width: "100%" }}
         placeholder="Select or type to add new tags" // Updated placeholder

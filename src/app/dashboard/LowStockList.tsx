@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link"; // Import Link
 import { ProductInventorySummary } from "@/types/api";
 import { formatNumber } from "@/utils/utils";
 import { AlertTriangle } from "lucide-react";
@@ -25,12 +26,14 @@ const LowStockList: React.FC<LowStockListProps> = ({ data }) => {
               key={product.productId}
               className="flex justify-between items-center text-sm border-b pb-1 last:border-b-0"
             >
-              <span
-                className="text-gray-800 truncate pr-2"
-                title={`${product.name} (${product.sku})`} // Add SKU to title
-              >
-                {product.name} ({product.sku})
-              </span>
+              <Link href={`/products/${product.productId}`} passHref>
+                <span
+                  className="text-blue-600 hover:underline cursor-pointer truncate pr-2" // Add link styles
+                  title={`${product.name} (${product.sku})`}
+                >
+                  {product.name} ({product.sku})
+                </span>
+              </Link>
               <span className="text-red-600 font-medium whitespace-nowrap"> {/* Prevent wrapping */}
                 {formatNumber(product.stock)} Units Left
               </span>

@@ -1,44 +1,43 @@
 "use client";
 
 import React, { useState } from "react";
-import { Tabs } from "antd";
+import { useRouter } from 'next/navigation';
+import { Tabs, Breadcrumb } from "antd"; // Import Breadcrumb
+import { HomeOutlined } from "@ant-design/icons"; // Import Home icon
 import type { TabsProps } from "antd";
-import ProductListTab from "./product-list/ProductListTab";
 import { Product } from "@/types";
-import GlobalTagManager from "./tag-management/GlobalTagManager";
-import ProductDetailView from "./components/ProductDetailView";
-
-// Define type for drawer state
-type DrawerState = {
-  isOpen: boolean;
-  mode: 'create' | 'edit' | 'view';
-  product: Product | null;
-};
+import ProductCreateDrawer from "./ProductTab/ProductCreateDrawer";
+import ProductListTab from "./ProductTab/ProductListTab";
+import GlobalTagManager from "./TagTab/GlobalTagManager"; 
 
 const Products = () => {
   // State for managing the drawer
-  const [drawerState, setDrawerState] = useState<DrawerState>({
-    isOpen: false,
-    mode: 'view', // Default mode doesn't matter much when closed
-    product: null,
-  });
+  // State only for the create drawer
+  const [isCreateDrawerOpen, setIsCreateDrawerOpen] = useState(false);
 
   // Handlers to open the drawer in different modes
+  const router = useRouter(); // Initialize router
+
+  // Handler to open the create drawer
   const handleOpenCreateDrawer = () => {
-    setDrawerState({ isOpen: true, mode: 'create', product: null });
+    setIsCreateDrawerOpen(true);
   };
 
-  const handleOpenEditDrawer = (product: Product) => {
-    setDrawerState({ isOpen: true, mode: 'edit', product: product });
-  };
-
-  const handleOpenViewDrawer = (product: Product) => {
-    setDrawerState({ isOpen: true, mode: 'view', product: product });
+  // Handler to navigate to the detail page for edit/view
+  // Accepts the Product object to match the expected prop type
+  const handleNavigateToDetail = (product: Product) => {
+    if (product?.id) { // Ensure product and id exist
+        router.push(`/products/${product.id}`);
+    } else {
+        console.error("Cannot navigate: Product or Product ID is missing.");
+        // Optionally show a user notification here
+    }
   };
 
   // Handler to close the detail view drawer
-  const handleCloseDetailView = () => {
-    setDrawerState({ isOpen: false, mode: 'view', product: null });
+  // Handler to close the create drawer
+  const handleCloseCreateDrawer = () => {
+    setIsCreateDrawerOpen(false);
   };
 
   // Define Tabs items
@@ -46,12 +45,12 @@ const Products = () => {
     {
       key: "products",
       label: "Products",
-      // Pass handlers for create, edit, and view to ProductListTab
+      // Pass handlers for create and navigation to ProductListTab
       children: (
         <ProductListTab
           onCreate={handleOpenCreateDrawer}
-          onEdit={handleOpenEditDrawer}
-          onViewDetails={handleOpenViewDrawer}
+          onEdit={handleNavigateToDetail} // Use navigation handler for edit action
+          onViewDetails={handleNavigateToDetail} // Use navigation handler for view action
         />
       ),
     },
@@ -63,7 +62,13 @@ const Products = () => {
   ];
 
   return (
-    <div className="mx-auto pb-5 w-full">
+    <div className="space-y-6 pb-5 w-full"> {/* Add space-y-6 */}
+      <Breadcrumb
+        items={[
+          { href: '/', title: <HomeOutlined /> },
+          { title: 'Products' }, // Current page
+        ]}
+      />
       {/* Render top-level Tabs */}
       <Tabs
         defaultActiveKey="products"
@@ -74,15 +79,15 @@ const Products = () => {
       />
 
       {/* Detail View Drawer - controlled by drawerState */}
-      {drawerState.isOpen && (
-        <ProductDetailView
-          product={drawerState.product}
-          mode={drawerState.mode}
-          onClose={handleCloseDetailView}
+      {/* Create Drawer - only renders when isCreateDrawerOpen is true */}
+      {isCreateDrawerOpen && (
+        <ProductCreateDrawer
+          isOpen={isCreateDrawerOpen} // Pass state directly
+          onClose={handleCloseCreateDrawer}
           onSaveSuccess={() => {
-             handleCloseDetailView();
+             handleCloseCreateDrawer();
              // TODO: Add refetch logic for the product list if needed
-             // refetchProducts(); // Assuming refetchProducts is available here or passed down
+             // This might need to be triggered from ProductListTab or via state management
           }}
         />
       )}

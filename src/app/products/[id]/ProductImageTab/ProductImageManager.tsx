@@ -9,17 +9,14 @@ import {
 } from "@/state/api";
 import { notification } from "antd";
 import { handleApiError } from "@/lib/api-utils";
-// Use absolute path aliases
-import { ProductImageTable } from "@/app/products/product-details/ProductImageTable";
-import UploadImageModal from "@/app/products/product-details/UploadImageModal";
+import { ProductImageTable } from "./ProductImageTable";
+import UploadImageModal from "./UploadImageModal";
 
-// Define props
-interface ProductImageManagerProps { // Renamed props
+interface ProductImageManagerProps {
   selectedProduct: Product | null;
   isViewMode?: boolean;
 }
 
-// Renamed component
 const ProductImageManager: React.FC<ProductImageManagerProps> = ({
   selectedProduct,
   isViewMode = false,

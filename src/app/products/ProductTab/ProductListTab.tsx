@@ -20,11 +20,11 @@ import type { UploadProps, TablePaginationConfig, TableProps } from "antd"; // A
 import type { FilterValue, SorterResult } from "antd/es/table/interface";
 import { PlusOutlined } from "@ant-design/icons";
 import { handleApiError } from "@/lib/api-utils";
-import { useProductTableColumns } from "@/app/products/components/useProductTableColumns";
 import LoadingScreen from "@/components/LoadingScreen";
 import { dummyProduct } from "../dummyProduct";
 import { GenericDataTable } from "@/components/GenericDataTable/GenericDataTable"; // Import GenericDataTable
 import { format } from "date-fns";
+import { useProductTableColumns } from "./useProductTableColumns";
 
 // Define props interface (Renamed)
 interface ProductListTabProps {

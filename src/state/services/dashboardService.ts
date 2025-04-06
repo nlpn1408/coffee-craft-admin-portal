@@ -4,6 +4,7 @@ import {
   TopSellingProductsResponse,
   ProductInventorySummary,
   UserSummaryStats, // Add UserSummaryStats
+  OrderTrendResponse, // Add OrderTrendResponse
   // Import other needed types from api.ts if endpoints are added later
 } from "@/types/api";
 import { API_ENDPOINTS } from "@/lib/constants/api";
@@ -25,6 +26,11 @@ type TopSellingQueryArgs = StatsQueryArgs & {
 // Define type for inventory specific args (doesn't need date range)
 type InventoryQueryArgs = {
   lowStockThreshold?: number;
+};
+
+// Define type for order trend specific args
+type OrderTrendQueryArgs = StatsQueryArgs & {
+  groupBy?: 'day' | 'month' | 'year';
 };
 
 
@@ -90,7 +96,21 @@ export const dashboardService = baseApi.injectEndpoints({
           params,
         };
       },
-      providesTags: ["StatsUsers"], // Add new tag type
+      providesTags: ["StatsUsers"],
+    }),
+
+    // Fetch Order Trend data - Accepts date range and groupBy args
+    getOrderTrend: build.query<OrderTrendResponse, OrderTrendQueryArgs | void>({
+      query: (args) => {
+        const { groupBy = 'day', period, startDate, endDate } = args ?? {}; // Default groupBy to 'day'
+        // Construct date params only if a specific period is chosen
+        const dateParams = period && period !== 'last30days' ? { period, startDate, endDate } : {};
+        return {
+          url: API_ENDPOINTS.STATS_ORDERS_TREND,
+          params: { groupBy, ...dateParams }, // Combine params
+        };
+      },
+      providesTags: ["StatsOrders"], // Re-use StatsOrders tag as it relates to orders
     }),
 
   }),
@@ -102,5 +122,6 @@ export const {
   useGetOrderStatusStatsQuery,
   useGetTopSellingProductsQuery,
   useGetProductInventorySummaryQuery,
-  useGetUserSummaryStatsQuery, // Export new hook
+  useGetUserSummaryStatsQuery,
+  useGetOrderTrendQuery, // Export new hook
 } = dashboardService;

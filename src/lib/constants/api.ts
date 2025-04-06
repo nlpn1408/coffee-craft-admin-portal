@@ -32,6 +32,7 @@ export const API_ENDPOINTS = {
   STATS_REVENUE_ORDERS_BY_STATUS: '/stats/revenue/orders/by-status',
   STATS_REVENUE_ORDERS_BY_PAYMENT_STATUS: '/stats/revenue/orders/by-payment-status',
   STATS_REVENUE_ORDERS_FINANCIALS: '/stats/revenue/orders/financials',
+  STATS_ORDERS_TREND: '/stats/revenue/orders/trend',
   STATS_PRODUCTS_TOP_SELLING: '/stats/products/top-selling',
   STATS_PRODUCTS_PERFORMANCE: '/stats/products/performance',
   STATS_PRODUCTS_INVENTORY: '/stats/products/inventory',

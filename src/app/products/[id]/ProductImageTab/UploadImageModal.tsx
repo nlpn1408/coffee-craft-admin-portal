@@ -3,7 +3,7 @@
 import React from 'react';
 import { Modal } from 'antd';
 import { NewProductImage, ProductImage } from "@/types";
-import { UploadImageForm } from "@/app/products/product-details/UploadImageForm"; // Use absolute path alias
+import { UploadImageForm } from "./UploadImageForm"; // Use relative path
 
 interface UploadImageModalProps {
   productId: string;
