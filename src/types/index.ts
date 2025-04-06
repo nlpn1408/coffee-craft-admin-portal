@@ -289,7 +289,6 @@ export type {
   PurchaseSummary,
   ExpenseSummary,
   ExpenseByCategorySummary,
-  DashboardMetrics,
   ImportResult,
   PaginatedResponse, // Add PaginatedResponse
 } from "./api";

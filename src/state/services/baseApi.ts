@@ -50,7 +50,6 @@ export const baseApi = createApi({
   baseQuery: baseQueryWithReauth, // Use the wrapped query
   endpoints: () => ({}),
   tagTypes: [
-    "DashboardMetrics",
     "Products",
     "Users",
     "Expenses",
