@@ -3,6 +3,7 @@ import {
   OrderStatusStatsResponse,
   TopSellingProductsResponse,
   ProductInventorySummary,
+  UserSummaryStats, // Add UserSummaryStats
   // Import other needed types from api.ts if endpoints are added later
 } from "@/types/api";
 import { API_ENDPOINTS } from "@/lib/constants/api";
@@ -78,6 +79,20 @@ export const dashboardService = baseApi.injectEndpoints({
       providesTags: ["StatsInventory", "StatsProducts"],
     }),
 
+    // Fetch User Summary Stats (for KPIs and User Activity) - Accepts date range args
+    getUserSummaryStats: build.query<UserSummaryStats, StatsQueryArgs | void>({
+      query: (args) => {
+        const params = args && args.period !== 'last30days' ? { period: args.period, startDate: args.startDate, endDate: args.endDate } : undefined;
+        // Add activeThresholdDays if needed, or rely on API default
+        // if (args?.activeThresholdDays) params.activeThresholdDays = args.activeThresholdDays;
+        return {
+          url: API_ENDPOINTS.STATS_USERS_SUMMARY,
+          params,
+        };
+      },
+      providesTags: ["StatsUsers"], // Add new tag type
+    }),
+
   }),
 });
 
@@ -87,4 +102,5 @@ export const {
   useGetOrderStatusStatsQuery,
   useGetTopSellingProductsQuery,
   useGetProductInventorySummaryQuery,
+  useGetUserSummaryStatsQuery, // Export new hook
 } = dashboardService;

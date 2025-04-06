@@ -36,4 +36,19 @@ export const API_ENDPOINTS = {
   STATS_PRODUCTS_PERFORMANCE: '/stats/products/performance',
   STATS_PRODUCTS_INVENTORY: '/stats/products/inventory',
   STATS_PRODUCTS_VARIANTS_PERFORMANCE: '/stats/products/variants/performance',
+
+  // User Stats
+  STATS_USERS_SUMMARY: '/stats/users/summary',
+  STATS_USERS_ROLE_DISTRIBUTION: '/stats/users/role-distribution',
+  STATS_USERS_TOP_SPENDERS: '/stats/users/top-spenders',
+  STATS_USERS_NEW_REGISTRATIONS: '/stats/users/new-registrations',
+
+  // Voucher Stats
+  STATS_VOUCHERS_USAGE: '/stats/vouchers/usage',
+  STATS_VOUCHERS_EFFECTIVENESS: '/stats/vouchers/effectiveness',
+
+  // Review Stats
+  STATS_REVIEWS_SUMMARY: '/stats/reviews/summary',
+  STATS_REVIEWS_RATING_DISTRIBUTION: '/stats/reviews/rating-distribution',
+  STATS_REVIEWS_BY_PRODUCT: '/stats/reviews/by-product',
 };

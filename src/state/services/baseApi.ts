@@ -60,11 +60,11 @@ export const baseApi = createApi({
     "Tags",
     "ProductVariant",
     "Blogs",
-    "Vouchers", // Add Vouchers tag type
-    // Statistics Tags
+    "Vouchers", 
     "StatsRevenue",
     "StatsOrders",
     "StatsProducts",
     "StatsInventory",
+    "StatsUsers",
   ],
 });

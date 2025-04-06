@@ -5,35 +5,50 @@ import type { FilterValue } from "antd/es/table/interface"; // Import FilterValu
 
 // Define the query argument type matching the state structure (outside endpoints)
 type GetProductsQueryParams = {
-    page: number;
-    limit: number;
-    sortField?: string;
-    sortOrder?: "ascend" | "descend";
-    filters: Record<string, FilterValue | null>;
+  page: number;
+  limit: number;
+  sortField?: string;
+  sortOrder?: "ascend" | "descend";
+  filters: Record<string, FilterValue | null>;
 };
 
 export const productService = baseApi.injectEndpoints({
   endpoints: (build) => ({
-    getProducts: build.query<{ data: Product[]; total: number }, GetProductsQueryParams>({
+    getProducts: build.query<
+      { data: Product[]; total: number },
+      GetProductsQueryParams
+    >({
       query: (queryParams) => {
-          // Map the queryParams state to the actual API parameters
-          const params: any = { // Use 'any' temporarily for easier key deletion
-              page: queryParams.page,
-              limit: queryParams.limit,
-              search: queryParams.filters?.name?.[0] as string | undefined,
-              categoryId: queryParams.filters?.categoryId?.join(",") as string | undefined,
-              brandId: queryParams.filters?.brandId?.[0] as string | undefined,
-              sortBy: queryParams.sortField,
-              sortOrder: queryParams.sortOrder === "ascend" ? "asc" : queryParams.sortOrder === "descend" ? "desc" : undefined,
-              active: queryParams.filters?.active?.[0] as boolean | undefined,
-          };
-          // Remove undefined/null params before sending
-          Object.keys(params).forEach(key => (params[key] === undefined || params[key] === null) && delete params[key]);
+        // Map the queryParams state to the actual API parameters
+        const params: any = {
+          // Use 'any' temporarily for easier key deletion
+          page: queryParams.page,
+          limit: queryParams.limit,
+          search: queryParams.filters?.name?.[0] as string | undefined,
+          categoryId: queryParams.filters?.categoryId?.join(",") as
+            | string
+            | undefined,
+          brandId: queryParams.filters?.brandId?.[0] as string | undefined,
+          sortBy: queryParams.sortField,
+          sortOrder:
+            queryParams.sortOrder === "ascend"
+              ? "asc"
+              : queryParams.sortOrder === "descend"
+              ? "desc"
+              : undefined,
+          active: queryParams.filters?.active?.[0] as boolean | undefined,
+        };
+        // Remove undefined/null params before sending
+        Object.keys(params).forEach(
+          (key) =>
+            (params[key] === undefined || params[key] === null) &&
+            delete params[key]
+        );
 
-          return {
-              url: API_ENDPOINTS.PRODUCTS,
-              params,
-          };
+        return {
+          url: API_ENDPOINTS.PRODUCTS,
+          params,
+        };
       },
       providesTags: [{ type: "Products", id: "LIST" }],
     }),
@@ -47,7 +62,7 @@ export const productService = baseApi.injectEndpoints({
         method: "POST",
         body: formData,
       }),
-      invalidatesTags: ["Products"],
+      invalidatesTags: ["Products", "StatsProducts", "StatsInventory"],
     }),
     updateProduct: build.mutation<
       Product,
@@ -60,8 +75,10 @@ export const productService = baseApi.injectEndpoints({
       }),
       invalidatesTags: (result, error, { id }) => [
         { type: "Products", id },
-        { type: "Products", id: "LIST" }, // Ensure list is invalidated too
-        { type: "Tags", id: "LIST" }, // Add this to invalidate the tags list
+        { type: "Products", id: "LIST" },
+        { type: "Tags", id: "LIST" },
+        "StatsProducts",
+        "StatsInventory",
       ],
     }),
     deleteProduct: build.mutation<void, string>({
@@ -69,7 +86,7 @@ export const productService = baseApi.injectEndpoints({
         url: `${API_ENDPOINTS.PRODUCTS}/${id}`,
         method: "DELETE",
       }),
-      invalidatesTags: ["Products"],
+      invalidatesTags: ["Products", "StatsProducts", "StatsInventory"],
     }),
     // Export Products
     exportProducts: build.query<Blob, void>({
@@ -96,7 +113,7 @@ export const productService = baseApi.injectEndpoints({
         method: "POST",
         body: formData,
       }),
-      invalidatesTags: ["Products"], // Invalidate product list on successful import
+      invalidatesTags: ["Products", "StatsProducts", "StatsInventory"], // Invalidate product list on successful import
     }),
     // Get Product Template
     getProductTemplate: build.query<Blob, void>({

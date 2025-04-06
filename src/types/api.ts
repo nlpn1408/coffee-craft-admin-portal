@@ -267,15 +267,161 @@ export interface LowStockProduct {
 }
 
 // Response type for /stats/products/inventory
+// Updated Response type for /stats/products/inventory
 export interface ProductInventorySummary {
   lowStockThreshold: number;
+  summary: {
+      totalProducts: number;
+      productsInStock: number;
+      productsLowStock: number;
+      productsOutOfStock: number;
+      totalInventoryValue: number;
+  };
   lowStockProducts: LowStockProduct[];
-  totalInventoryValue: number;
-  totalActiveProducts: number;
-  totalStockCount: number;
+  outOfStockProducts: LowStockProduct[]; // Add outOfStockProducts
+}
+
+// --- User Stats Types ---
+
+// /stats/users/summary
+export interface UserSummaryStats {
+  startDate: string;
+  endDate: string;
+  totalUsers: number;
+  newUsersInPeriod: number;
+  activeUsers: number;
+}
+
+// Item within /stats/users/role-distribution
+export interface UserRoleDistribution {
+  role: UserRole; // Use existing enum
+  count: number;
+}
+
+// Response for /stats/users/role-distribution
+export interface UserRoleDistributionResponse {
+  data: UserRoleDistribution[];
+}
+
+// Item within /stats/users/top-spenders
+export interface TopSpender {
+  userId: string;
+  name: string | null; // Name can be null
+  email: string;
+  totalSpent: number;
+  orderCount: number;
+}
+
+// Response for /stats/users/top-spenders
+export interface TopSpendersResponse {
+  startDate: string;
+  endDate: string;
+  limit: number;
+  data: TopSpender[];
+}
+
+// Item within /stats/users/new-registrations
+export interface NewRegistrationStat {
+  date: string; // Date string (YYYY-MM-DD, YYYY-WW, YYYY-MM)
+  count: number;
+}
+
+// Response for /stats/users/new-registrations
+export interface NewRegistrationsResponse {
+  startDate: string;
+  endDate: string;
+  groupBy: 'day' | 'week' | 'month';
+  data: NewRegistrationStat[];
+}
+
+
+// --- Voucher Stats Types ---
+
+// Item within /stats/vouchers/usage
+export interface VoucherUsageStat {
+  voucherId: string;
+  code: string;
+  type: VoucherType; // Use existing enum
+  usageCount: number;
+  totalDiscountGiven: number;
+}
+
+// Response for /stats/vouchers/usage
+export interface VoucherUsageResponse {
+  startDate: string;
+  endDate: string;
+  limit: number;
+  sortBy: 'usageCount' | 'totalDiscount';
+  data: VoucherUsageStat[];
+}
+
+// Item within /stats/vouchers/effectiveness
+export interface VoucherEffectivenessStat {
+  voucherId: string;
+  code: string;
+  type: VoucherType;
+  usageCount: number;
+  totalDiscountGiven: number;
+  totalRevenueFromOrders: number;
+}
+
+// Response for /stats/vouchers/effectiveness
+export interface VoucherEffectivenessResponse {
+  startDate: string;
+  endDate: string;
+  data: VoucherEffectivenessStat[];
+}
+
+
+// --- Review Stats Types ---
+
+// /stats/reviews/summary
+export interface ReviewSummaryStats {
+  startDate: string;
+  endDate: string;
+  averageRating: number;
+  totalReviews: number;
+  newReviewsInPeriod: number;
+}
+
+// Item within /stats/reviews/rating-distribution
+export interface RatingDistributionStat {
+  rating: number; // 1-5
+  count: number;
+}
+
+// Response for /stats/reviews/rating-distribution
+export interface RatingDistributionResponse {
+  startDate: string;
+  endDate: string;
+  productId: string | null;
+  data: RatingDistributionStat[];
+}
+
+// Item within /stats/reviews/by-product
+export interface ProductReviewStat {
+  productId: string;
+  name: string;
+  sku: string;
+  averageRating: number;
+  reviewCount: number;
+}
+
+// Response for /stats/reviews/by-product (Paginated)
+export interface ProductReviewStatsResponse {
+  page: number;
+  limit: number;
+  totalPages: number;
+  totalProducts: number;
+  data: ProductReviewStat[];
 }
 
 // Add other stats response types if needed (e.g., ByPaymentMethod, Financials, etc.)
+// Example:
+// export interface RevenueByPaymentMethod { paymentMethod: PaymentMethod; totalRevenue: number; orderCount: number; }
+// export interface RevenueByPaymentMethodResponse { startDate: string; endDate: string; data: RevenueByPaymentMethod[]; }
+// export interface OrderFinancials { totalShippingFee: number; totalDiscountAmount: number; }
+// export interface OrderFinancialsResponse { startDate: string; endDate: string; totalShippingFee: number; totalDiscountAmount: number; }
 
 // Utility types
 export interface ImportResult {

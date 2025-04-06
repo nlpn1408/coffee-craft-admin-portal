@@ -4,20 +4,20 @@ import {
   DollarSign,
   ShoppingCart,
   BadgeDollarSign,
-  Package,
+  Users,
 } from "lucide-react";
 import StatCard from "./StatCard";
-import { RevenueSummary, ProductInventorySummary } from "@/types/api";
-import { formatCurrency, formatNumber } from "@/utils/utils"; // Assuming formatNumber is also in utils
+import { RevenueSummary, UserSummaryStats } from "@/types/api"; // Import UserSummaryStats, remove ProductInventorySummary
+import { formatCurrency, formatNumber } from "@/utils/utils";
 
 interface KpiCardsProps {
   revenueSummary: RevenueSummary | undefined;
-  inventorySummary: ProductInventorySummary | undefined;
+  userSummary: UserSummaryStats | undefined; // Change prop name and type
 }
 
 const KpiCards: React.FC<KpiCardsProps> = ({
   revenueSummary,
-  inventorySummary,
+  userSummary,
 }) => {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -52,12 +52,12 @@ const KpiCards: React.FC<KpiCardsProps> = ({
         ]}
       />
       <StatCard
-        title="Active Products"
-        primaryIcon={<Package className="text-orange-600 w-6 h-6" />}
+        title="Total Users"
+        primaryIcon={<Users className="text-indigo-600 w-6 h-6" />} // Change icon and color
         details={[
           {
-            title: "Products",
-            amount: formatNumber(inventorySummary?.totalStockCount),
+            title: "Users", // Change detail title
+            amount: formatNumber(userSummary?.totalUsers), // Use userSummary data
           },
         ]}
       />
