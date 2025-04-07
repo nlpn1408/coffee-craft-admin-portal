@@ -75,7 +75,6 @@ const Products = () => {
         // activeKey={activeTabKey} // Optional: control active tab if needed
         // onChange={setActiveTabKey}
         items={items}
-        className="mt-6"
       />
 
       {/* Detail View Drawer - controlled by drawerState */}

@@ -1,5 +1,5 @@
 import { baseApi } from "./baseApi";
-import { Order, OrderStatus } from "@/types"; // Import necessary types
+import { Order, OrderStatus, OrderHistoryResponse } from "@/types"; // Import necessary types, added OrderHistoryResponse
 import { API_ENDPOINTS } from "@/lib/constants/api"; // Correct constant name
 
 // Define a type for the API response if it's nested (e.g., { data: Order[] })
@@ -42,7 +42,8 @@ export const orderService = baseApi.injectEndpoints({
       invalidatesTags: (result, error, { id }) => [
         { type: "Order", id }, // Invalidate the specific order
         "StatsRevenue",       // Invalidate revenue stats
-        "StatsOrders",        // Also invalidate order stats as counts might change
+        "StatsOrders",
+        { type: 'OrderHistory', id }, // Invalidate history for this order
       ],
     }),
 
@@ -53,9 +54,17 @@ export const orderService = baseApi.injectEndpoints({
         url: `${API_ENDPOINTS.ORDERS}/${id}/cancel`,
         method: "PUT", // Assuming PUT based on endpoint description
       }),
-      invalidatesTags: (result, error, id) => [{ type: "Order", id }],
+      invalidatesTags: (result, error, id) => [{ type: "Order", id }, { type: 'OrderHistory', id }], // Invalidate history
     }),
 
+    // Get Order History
+    getOrderHistory: builder.query<OrderHistoryResponse, string>({ // Takes orderId as string argument
+      query: (orderId) => ({
+        url: API_ENDPOINTS.ORDER_HISTORY(orderId), // Use function to generate URL
+        method: 'GET',
+      }),
+      providesTags: (result, error, orderId) => [{ type: 'OrderHistory', id: orderId }], // Tag specific to order history
+    }),
     // Optional: Create Order (if needed for admin)
     // createOrder: builder.mutation<Order, NewOrder>({
     //   query: (newOrder) => ({
@@ -75,5 +84,6 @@ export const {
   useGetOrderByIdQuery,
   useUpdateOrderStatusMutation,
   useCancelOrderMutation,
+  useGetOrderHistoryQuery, // Export the new hook
   // useCreateOrderMutation, // Uncomment if implemented
 } = orderService;

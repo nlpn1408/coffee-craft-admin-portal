@@ -25,7 +25,7 @@ interface GenericDataTableProps<T extends DataItem> {
   loading: boolean;
   entityName: string; // e.g., "Category", "Brand"
   uploadProps?: UploadProps;
-  onCreate: () => void;
+  onCreate?: () => void;
   onExport?: () => void;
   onDownloadTemplate?: () => void;
   onDeleteSelected?: (selectedIds: React.Key[]) => Promise<boolean>; // Make optional
@@ -33,8 +33,8 @@ interface GenericDataTableProps<T extends DataItem> {
   isDeleting?: boolean;
   isImporting?: boolean;
   // Add props for server-side pagination/sorting/filtering
-  pagination?: TableProps<T>['pagination']; // Accept pagination config
-  onChange?: TableProps<T>['onChange']; // Accept onChange handler
+  pagination?: TableProps<T>["pagination"]; // Accept pagination config
+  onChange?: TableProps<T>["onChange"]; // Accept onChange handler
 }
 
 export function GenericDataTable<T extends DataItem>({
@@ -57,41 +57,47 @@ export function GenericDataTable<T extends DataItem>({
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
 
   // Only enable row selection if onDeleteSelected is provided
-  const rowSelection = onDeleteSelected ? {
-    selectedRowKeys,
-    onChange: (keys: React.Key[]) => {
-      setSelectedRowKeys(keys);
-    },
-  } : undefined; // Set to undefined if onDeleteSelected is not provided
+  const rowSelection = onDeleteSelected
+    ? {
+        selectedRowKeys,
+        onChange: (keys: React.Key[]) => {
+          setSelectedRowKeys(keys);
+        },
+      }
+    : undefined; // Set to undefined if onDeleteSelected is not provided
 
   const hasSelected = selectedRowKeys.length > 0;
 
   const handleDelete = async () => {
     // Only proceed if the handler exists
     if (onDeleteSelected) {
-        const success = await onDeleteSelected(selectedRowKeys);
-        // Reset selection after delete is attempted (success/fail handled by parent)
-        if (success) {
-            setSelectedRowKeys([]);
-        }
+      const success = await onDeleteSelected(selectedRowKeys);
+      // Reset selection after delete is attempted (success/fail handled by parent)
+      if (success) {
+        setSelectedRowKeys([]);
+      }
     } else {
-        console.warn("onDeleteSelected handler is not provided to GenericDataTable.");
+      console.warn(
+        "onDeleteSelected handler is not provided to GenericDataTable."
+      );
     }
   };
 
   return (
-    <div className="flex flex-col space-y-4 p-4">
+    <div className="flex flex-col space-y-4">
       {/* Toolbar */}
       <div className="flex justify-end items-center flex-wrap gap-2">
         <Space wrap>
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={onCreate}
-            disabled={isActionLoading}
-          >
-            Create {entityName}
-          </Button>
+          {onCreate ? (
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={onCreate}
+              disabled={isActionLoading}
+            >
+              Create {entityName}
+            </Button>
+          ) : null}
           {uploadProps && (
             <Upload {...uploadProps}>
               <Button
@@ -162,15 +168,17 @@ export function GenericDataTable<T extends DataItem>({
           rowSelection={rowSelection} // Pass conditional rowSelection
           // Pass external pagination config and onChange handler
           pagination={{
-              ...pagination, // Spread the passed pagination config
-              showSizeChanger: true,
-              showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`,
-              pageSizeOptions: ["10", "20", "50", "100"], // Keep these options
+            ...pagination, // Spread the passed pagination config
+            showSizeChanger: true,
+            showTotal: (total, range) =>
+              `${range[0]}-${range[1]} of ${total} items`,
+            pageSizeOptions: ["10", "20", "50", "100"], // Keep these options
           }}
           onChange={onChange} // Pass the external onChange handler
           loading={loading}
           scroll={{ x: "max-content" }}
           size="small"
+          bordered={true}
         />
       </Spin>
     </div>

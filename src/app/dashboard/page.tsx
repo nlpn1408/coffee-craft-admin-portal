@@ -1,58 +1,68 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
-import { Breadcrumb, DatePicker, Space, Typography, Radio } from "antd"; // Import Radio
+import React, { useState, useMemo, useRef, useEffect } from "react";
+import { Breadcrumb, DatePicker, Space, Typography } from "antd";
 import { HomeOutlined } from "@ant-design/icons";
-import moment from "moment"; // Import moment
-// import type { Moment } from "moment"; // Import Moment type if needed for strict typing - removed for simplicity
+import dayjs from 'dayjs';
+import type { Dayjs } from 'dayjs';
 
-import { Activity, ListOrdered, Users as UsersIcon } from "lucide-react";
+import { Activity, ListOrdered, TicketPercent, BarChart3 } from "lucide-react"; // Added BarChart3
 import KpiCards from "./KpiCards";
 import OrderStatusChart from "./OrderStatusChart";
 import TopSellingProductsChart from "./TopSellingProductsChart";
 import LowStockList from "./LowStockList";
 import UserActivitySummary from "./UserActivitySummary";
-import OrderTrendChart from "./OrderTrendChart"; // Import the new chart component
+import OrderTrendChart from "./OrderTrendChart";
+import NewRegistrationsChart from "./NewRegistrationsChart";
+import ProductPerformanceChart from "./ProductPerformanceChart";
+import VoucherUsageChart from "./VoucherUsageChart";
 import {
   useGetRevenueSummaryQuery,
   useGetOrderStatusStatsQuery,
   useGetTopSellingProductsQuery,
   useGetProductInventorySummaryQuery,
   useGetUserSummaryStatsQuery,
-  useGetOrderTrendQuery, // Import the new query hook
+  useGetReviewSummaryQuery,
 } from "@/state/services/dashboardService";
-const { Text } = Typography; // Destructure Text
+const { Text } = Typography;
+
+// Helper to check if two Dayjs dates represent the same calendar day
+const isSameDay = (date1: Dayjs | null, date2: Dayjs | null): boolean => {
+    if (!date1 || !date2) return false;
+    return date1.isSame(date2, 'day');
+}
 
 const Dashboard = () => {
-  // State for date range
-  // State for date range, default to last 30 days
-  const [dateRange, setDateRange] = useState<
-    [moment.Moment | null, moment.Moment | null]
-  >([moment().subtract(30, "days"), moment()]);
-  // State for groupBy
-  const [groupBy, setGroupBy] = useState<'day' | 'month' | 'year'>('day'); // Add groupBy state, default to 'day'
+  // Define initial default dates
+  const initialStartDate = useMemo(() => dayjs().subtract(30, "days"), []);
+  const initialEndDate = useMemo(() => dayjs(), []);
 
-  // Prepare query arguments based on date range state
+  // State for date range using Dayjs, initialized with defaults
+  const [dateRange, setDateRange] = useState<
+    [Dayjs | null, Dayjs | null]
+  >([initialStartDate, initialEndDate]);
+
+  // Flag to track if the user has interacted with the date picker
+  const hasUserSelectedDate = useRef(false);
+
+  // Prepare query arguments based ONLY on date range state
   const queryArgs = useMemo(() => {
+    if (!hasUserSelectedDate.current &&
+        isSameDay(dateRange[0], initialStartDate) &&
+        isSameDay(dateRange[1], initialEndDate)) {
+      return undefined; // Let API use its default
+    }
     if (dateRange && dateRange[0] && dateRange[1]) {
       return {
-        period: "custom" as const, // Explicitly set period to 'custom'
+        period: "custom" as const,
         startDate: dateRange[0].format("YYYY-MM-DD"),
         endDate: dateRange[1].format("YYYY-MM-DD"),
       };
     }
-    // Return undefined if no range is selected to use API default (Last 30 days)
     return undefined;
-  }, [dateRange]);
+  }, [dateRange, initialStartDate, initialEndDate]);
 
-  // Prepare query arguments for order trend, including groupBy
-  const orderTrendArgs = useMemo(() => {
-      // Combine dateRangeArgs and groupBy. Pass undefined for date args if dateRangeArgs is undefined.
-      return { ...queryArgs, groupBy }; // Use queryArgs here as it contains date info or is undefined
-  }, [queryArgs, groupBy]);
-
-
-  // Fetch data using individual hooks, passing queryArgs
+  // Fetch data for components managed by this page
   const {
     data: revenueSummary,
     isLoading: isLoadingRevenue,
@@ -67,89 +77,72 @@ const Dashboard = () => {
     data: topProducts,
     isLoading: isLoadingTopProducts,
     error: errorTopProducts,
-  } = useGetTopSellingProductsQuery(queryArgs); // Assuming top products also accepts date range
+  } = useGetTopSellingProductsQuery(queryArgs);
   const {
     data: inventorySummary,
     isLoading: isLoadingInventory,
     error: errorInventory,
-  } = useGetProductInventorySummaryQuery(); // Inventory doesn't take date range
+  } = useGetProductInventorySummaryQuery();
   const {
     data: userSummary,
     isLoading: isLoadingUserSummary,
     error: errorUserSummary,
   } = useGetUserSummaryStatsQuery(queryArgs);
   const {
-    data: orderTrend,
-    isLoading: isLoadingOrderTrend,
-    error: errorOrderTrend,
-  } = useGetOrderTrendQuery(orderTrendArgs); // Use orderTrendArgs (contains groupBy)
+    data: reviewSummary,
+    isLoading: isLoadingReviewSummary,
+    error: errorReviewSummary,
+  } = useGetReviewSummaryQuery(queryArgs);
 
-  // Combined loading and error states
+  // Combined loading state
   const isLoading =
     isLoadingRevenue ||
     isLoadingOrderStatus ||
     isLoadingTopProducts ||
     isLoadingInventory ||
     isLoadingUserSummary ||
-    isLoadingOrderTrend; // Add order trend loading
+    isLoadingReviewSummary;
+
+  // Combined error state
   const error =
     errorRevenue ||
     errorOrderStatus ||
     errorTopProducts ||
     errorInventory ||
     errorUserSummary ||
-    errorOrderTrend; // Add order trend error
-
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center h-screen">
-        Loading dashboard data...
-      </div>
-    );
-  }
-
-  if (error) {
-    console.error("Dashboard Loading Error:", error);
-    return (
-      <div className="text-red-600 text-center p-4 border border-red-300 rounded bg-red-50 mt-4">
-        Error loading dashboard data. Please check the console or try again
-        later.
-      </div>
-    );
-  }
+    errorReviewSummary;
 
   // Function to handle date range changes
-  const handleDateChange = (dates: any, dateStrings: [string, string]) => {
-    if (dates && dates.length === 2) {
+  const handleDateChange = (dates: [Dayjs | null, Dayjs | null] | null) => {
+    hasUserSelectedDate.current = true;
+    if (dates) {
       setDateRange(dates);
     } else {
       setDateRange([null, null]);
     }
   };
 
-  // Determine the title suffix based on selected range or API response dates
+  // Determine the title suffix
   const getDateRangeSuffix = () => {
-    if (dateRange && dateRange[0] && dateRange[1]) {
-      return `(${dateRange[0].format("DD/MM/YYYY")} - ${dateRange[1].format(
-        "DD/MM/YYYY"
-      )})`;
-    }
-    // Use dates from one of the API responses if available and no custom range selected
-    if (revenueSummary?.startDate && revenueSummary?.endDate) {
-      const start = moment(revenueSummary.startDate).format("DD/MM/YYYY");
-      const end = moment(revenueSummary.endDate).format("DD/MM/YYYY");
-      return `(${start} - ${end})`; // Reflects API default or calculated period
-    }
-    return "(Last 30 Days)"; // Fallback default text
+     if (queryArgs?.period === 'custom') {
+         return `(${dayjs(queryArgs.startDate).format("DD/MM/YYYY")} - ${dayjs(queryArgs.endDate).format("DD/MM/YYYY")})`;
+     }
+     if (!queryArgs && revenueSummary?.startDate && revenueSummary?.endDate) {
+         const start = dayjs(revenueSummary.startDate).format("DD/MM/YYYY");
+         const end = dayjs(revenueSummary.endDate).format("DD/MM/YYYY");
+         return `(${start} - ${end})`;
+     }
+     return "(Last 30 Days)";
   };
 
+
   const titleSuffix = getDateRangeSuffix();
+  const sharedStartDate = queryArgs?.startDate;
+  const sharedEndDate = queryArgs?.endDate;
 
   return (
     <div className="space-y-6 pb-4">
       <div className="flex justify-between items-center">
-        {" "}
-        {/* Flex container for Breadcrumb and DatePicker */}
         <Breadcrumb
           items={[
             { href: "/", title: <HomeOutlined /> },
@@ -159,12 +152,9 @@ const Dashboard = () => {
         <Space>
           <Text>Date Range:</Text>
           <DatePicker.RangePicker
+            value={dateRange}
             onChange={handleDateChange}
-            // Remove defaultValue to make it fully uncontrolled by React state
-            disabledDate={(current) => {
-              // Can not select days after today
-              return current && current > moment().endOf("day");
-            }}
+            disabledDate={(current) => current && current.isAfter(dayjs().endOf("day"))}
           />
         </Space>
       </div>
@@ -172,60 +162,101 @@ const Dashboard = () => {
       <h2 className="text-xl font-semibold text-gray-700">
         Key Metrics {titleSuffix}
       </h2>
-      {/* Pass userSummary to KpiCards, remove inventorySummary */}
-      <KpiCards revenueSummary={revenueSummary} userSummary={userSummary} />
+      <KpiCards
+        revenueSummary={revenueSummary}
+        userSummary={userSummary}
+        reviewSummary={reviewSummary}
+        isLoadingRevenue={isLoadingRevenue}
+        isLoadingUser={isLoadingUserSummary}
+        isLoadingReview={isLoadingReviewSummary}
+        errorRevenue={errorRevenue}
+        errorUser={errorUserSummary}
+        errorReview={errorReviewSummary}
+      />
 
-      {/* Section 4: Order Trend Chart */}
+      {/* Section 2: Trends & Insights */}
       <h2 className="text-xl font-semibold text-gray-700">
-        Order Creation {titleSuffix}
+        Trends & Insights {titleSuffix}
       </h2>
-      <div className="bg-white p-4 rounded-lg shadow">
-        <div className="mb-4 flex justify-end">
-           <Radio.Group onChange={(e) => setGroupBy(e.target.value as 'day' | 'month' | 'year')} value={groupBy}>
-              <Radio.Button value="day">By Day</Radio.Button>
-              <Radio.Button value="month">By Month</Radio.Button>
-              <Radio.Button value="year">By Year</Radio.Button>
-           </Radio.Group>
-        </div>
-        <OrderTrendChart data={orderTrend} />
-      </div>
-
-      {/* Section 2: Order & Product Insights */}
-      <h2 className="text-xl font-semibold text-gray-700">
-        Insights {titleSuffix}
-      </h2>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* First Grid: Status, Performance, Trends */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6"> {/* Added mb-6 */}
         {/* Order Status Distribution Chart */}
-        <div className="bg-white p-4 rounded-lg shadow">
+        <div className="bg-white p-4 rounded-lg shadow min-h-[300px]">
           <h3 className="text-lg font-medium mb-3 flex items-center">
-            <Activity className="w-5 h-5 mr-2 text-gray-600" /> Order Status
-            Distribution
+            <Activity className="w-5 h-5 mr-2 text-gray-600" /> Order Status Distribution
           </h3>
-          <OrderStatusChart data={orderStatusStats} />
+          <OrderStatusChart
+            data={orderStatusStats}
+            isLoading={isLoadingOrderStatus}
+            error={errorOrderStatus}
+          />
         </div>
 
-        {/* Top Selling Products Chart */}
-        <div className="bg-white p-4 rounded-lg shadow">
+         {/* Product Performance Chart (Moved Up) */}
+        <div className="bg-white p-4 rounded-lg shadow min-h-[350px]">
           <h3 className="text-lg font-medium mb-3 flex items-center">
-            <ListOrdered className="w-5 h-5 mr-2 text-gray-600" /> Top 5 Selling
-            Products (by Quantity)
+             <BarChart3 className="w-5 h-5 mr-2 text-cyan-600" /> Product Performance {/* Added Icon */}
           </h3>
-          <TopSellingProductsChart data={topProducts} />
+          <ProductPerformanceChart initialStartDate={sharedStartDate} initialEndDate={sharedEndDate} />
+        </div>
+
+        {/* Order Creation Trend Chart */}
+        <div className="bg-white p-4 rounded-lg shadow min-h-[300px]">
+          <h3 className="text-lg font-medium mb-3">Order Creation Trend</h3>
+          <OrderTrendChart initialStartDate={sharedStartDate} initialEndDate={sharedEndDate} />
+        </div>
+
+        {/* New User Registrations Trend Chart */}
+        <div className="bg-white p-4 rounded-lg shadow min-h-[300px]">
+          <h3 className="text-lg font-medium mb-3">New User Registrations Trend</h3>
+          <NewRegistrationsChart initialStartDate={sharedStartDate} initialEndDate={sharedEndDate} />
         </div>
       </div>
 
-      {/* Section 3: User & Inventory Insights */}
-      {/* Inventory title doesn't need date range */}
+      {/* Second Grid: Top Products & Vouchers */}
+       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+         {/* Top Selling Products Chart (Moved Down) */}
+        <div className="bg-white p-4 rounded-lg shadow min-h-[300px]">
+          <h3 className="text-lg font-medium mb-3 flex items-center">
+            <ListOrdered className="w-5 h-5 mr-2 text-gray-600" /> Top 5 Selling Products (by Quantity)
+          </h3>
+          <TopSellingProductsChart
+            data={topProducts}
+            isLoading={isLoadingTopProducts}
+            error={errorTopProducts}
+           />
+        </div>
+
+         {/* Voucher Usage Chart (Moved Here) */}
+        <div className="bg-white p-4 rounded-lg shadow min-h-[300px]">
+          <h3 className="text-lg font-medium mb-3 flex items-center">
+             <TicketPercent className="w-5 h-5 mr-2 text-orange-500" /> Top 5 Voucher Usage
+          </h3>
+          <VoucherUsageChart initialStartDate={sharedStartDate} initialEndDate={sharedEndDate} />
+        </div>
+      </div>
+
+
+      {/* Section 3: User & Inventory */}
       <h2 className="text-xl font-semibold text-gray-700">
-        User Activity & Inventory
+        User & Inventory {/* Updated Title */}
       </h2>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6"> {/* Changed to 2 cols */}
         {/* User Activity Summary */}
-        <UserActivitySummary data={userSummary} />
+        <UserActivitySummary
+          data={userSummary}
+          isLoading={isLoadingUserSummary}
+          error={errorUserSummary}
+        />
 
-        {/* Inventory Overview (using LowStockList component) */}
-        <LowStockList data={inventorySummary} />
+        {/* Inventory Overview */}
+        <LowStockList
+          data={inventorySummary}
+          isLoading={isLoadingInventory}
+          error={errorInventory}
+        />
       </div>
+
     </div>
   );
 };

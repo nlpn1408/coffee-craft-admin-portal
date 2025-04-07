@@ -30,7 +30,7 @@ const CategoriesPage = () => {
         ]}
       />
       {/* <Header name="Categories & Brands" /> */}
-      <Tabs defaultActiveKey="categories" items={items} className="mt-6" />
+      <Tabs defaultActiveKey="categories" items={items}  />
     </div>
   );
 };

@@ -41,7 +41,7 @@ const StatCard = ({
       </div>
 
       {/* BODY */}
-      <div className="flex mb-4 mt-4 items-center justify-around gap-4 px-5">
+      <div className="flex mb-4 mt-4 items-center justify-around gap-4 px-3">
         <div className="rounded-full p-5 bg-blue-50 border-sky-300 border-[1px]">
           {primaryIcon}
         </div>

@@ -3,9 +3,12 @@ import {
   OrderStatusStatsResponse,
   TopSellingProductsResponse,
   ProductInventorySummary,
-  UserSummaryStats, // Add UserSummaryStats
-  OrderTrendResponse, // Add OrderTrendResponse
-  // Import other needed types from api.ts if endpoints are added later
+  UserSummaryStats,
+  OrderTrendResponse,
+  ReviewSummaryStats,
+  NewRegistrationsResponse,
+  ProductPerformanceResponse,
+  VoucherUsageResponse, // Import VoucherUsageResponse
 } from "@/types/api";
 import { API_ENDPOINTS } from "@/lib/constants/api";
 import { baseApi } from "./baseApi";
@@ -31,6 +34,22 @@ type InventoryQueryArgs = {
 // Define type for order trend specific args
 type OrderTrendQueryArgs = StatsQueryArgs & {
   groupBy?: 'day' | 'month' | 'year';
+};
+
+// Define type for new registrations specific args
+type NewRegistrationsQueryArgs = StatsQueryArgs & {
+    groupBy?: 'day' | 'week' | 'month';
+};
+
+// Define type for product performance specific args
+type ProductPerformanceQueryArgs = StatsQueryArgs & {
+    groupBy: 'category' | 'brand';
+};
+
+// Define type for voucher usage specific args
+type VoucherUsageQueryArgs = StatsQueryArgs & {
+    limit?: number;
+    sortBy?: 'usageCount' | 'totalDiscount';
 };
 
 
@@ -113,6 +132,57 @@ export const dashboardService = baseApi.injectEndpoints({
       providesTags: ["StatsOrders"], // Re-use StatsOrders tag as it relates to orders
     }),
 
+    // Fetch Review Summary Stats - Accepts date range args
+    getReviewSummary: build.query<ReviewSummaryStats, StatsQueryArgs | void>({
+      query: (args) => {
+        const params = args && args.period !== 'last30days' ? { period: args.period, startDate: args.startDate, endDate: args.endDate } : undefined;
+        return {
+          url: API_ENDPOINTS.STATS_REVIEWS_SUMMARY,
+          params,
+        };
+      },
+      providesTags: ["StatsReviews"],
+    }),
+
+    // Fetch New User Registrations Trend - Accepts date range and groupBy args
+    getNewRegistrations: build.query<NewRegistrationsResponse, NewRegistrationsQueryArgs | void>({
+        query: (args) => {
+            const { groupBy = 'day', period, startDate, endDate } = args ?? {}; // Default groupBy to 'day'
+            const dateParams = period && period !== 'last30days' ? { period, startDate, endDate } : {};
+            return {
+                url: API_ENDPOINTS.STATS_USERS_NEW_REGISTRATIONS,
+                params: { groupBy, ...dateParams },
+            };
+        },
+        providesTags: ["StatsUsers"],
+    }),
+
+    // Fetch Product Performance data - Accepts date range and groupBy args
+    getProductPerformance: build.query<ProductPerformanceResponse, ProductPerformanceQueryArgs>({ // Removed void, groupBy is required
+        query: (args) => {
+            const { groupBy, period, startDate, endDate } = args;
+            const dateParams = period && period !== 'last30days' ? { period, startDate, endDate } : {};
+            return {
+                url: API_ENDPOINTS.STATS_PRODUCTS_PERFORMANCE,
+                params: { groupBy, ...dateParams },
+            };
+        },
+        providesTags: ["StatsProductPerformance"],
+    }),
+
+     // Fetch Voucher Usage data - Accepts date range and specific args
+    getVoucherUsage: build.query<VoucherUsageResponse, VoucherUsageQueryArgs | void>({
+        query: (args) => {
+            const { limit = 5, sortBy = 'usageCount', period, startDate, endDate } = args ?? {}; // Default limit 5, sort by count
+            const dateParams = period && period !== 'last30days' ? { period, startDate, endDate } : {};
+            return {
+                url: API_ENDPOINTS.STATS_VOUCHERS_USAGE,
+                params: { limit, sortBy, ...dateParams },
+            };
+        },
+        providesTags: ["StatsVouchers"], // New tag
+    }),
+
   }),
 });
 
@@ -123,5 +193,9 @@ export const {
   useGetTopSellingProductsQuery,
   useGetProductInventorySummaryQuery,
   useGetUserSummaryStatsQuery,
-  useGetOrderTrendQuery, // Export new hook
+  useGetOrderTrendQuery,
+  useGetReviewSummaryQuery,
+  useGetNewRegistrationsQuery,
+  useGetProductPerformanceQuery,
+  useGetVoucherUsageQuery, // Export the new hook
 } = dashboardService;

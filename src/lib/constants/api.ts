@@ -13,6 +13,7 @@ export const API_ENDPOINTS = {
   BRAND_TEMPLATE: '/brands/template',
   TAGS: '/tags', // Added Tags endpoint
   ORDERS: '/orders',
+  ORDER_HISTORY: (id: string) => `/orders/${id}/history`, // Added Order History endpoint
   VOUCHERS: '/vouchers', // Already exists, ensure it's correct
   BLOGS: '/blogs',
   REVIEWS: '/reviews',

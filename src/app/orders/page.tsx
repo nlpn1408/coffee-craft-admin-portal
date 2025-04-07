@@ -82,9 +82,9 @@ export default function OrdersPage() {
         dataSource={data?.data || []}
         loading={isLoadingOrders}
         entityName="Order"
-        onCreate={() => {
-          message.info("Create Order functionality not implemented.");
-        }}
+        // onCreate={() => {
+        //   message.info("Create Order functionality not implemented.");
+        // }}
         onDeleteSelected={handleDeleteSelected}
         isActionLoading={isActionLoading}
         isDeleting={isActionLoading}

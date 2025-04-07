@@ -1,18 +1,24 @@
 "use client";
 
 import { OrderStatus } from "@/types";
-import { OrderStatusStatsResponse } from "@/types/api";
+import { OrderStatusStatsResponse, OrderStatusStat } from "@/types/api"; // Import OrderStatusStat
+import { Spin, Alert } from 'antd';
+import { AlertCircle } from 'lucide-react';
 import {
-  PieChart,
-  Pie,
-  Cell,
+  BarChart, // Changed from PieChart
+  Bar,      // Changed from Pie
+  XAxis,    // Added
+  YAxis,    // Added
+  CartesianGrid, // Added
   Tooltip,
   Legend,
   ResponsiveContainer,
 } from "recharts";
-import { formatNumber } from "@/utils/utils";
+import { formatNumber, formatCurrency } from "@/utils/utils"; // Import formatCurrency
+import { FetchBaseQueryError } from "@reduxjs/toolkit/query";
+import { SerializedError } from "@reduxjs/toolkit";
 
-// Map OrderStatus enum to display names and colors
+// Map OrderStatus enum to display names and colors (color used for bars now)
 const orderStatusDisplay: Record<
   OrderStatus,
   { name: string; color: string; hexColor?: string }
@@ -26,47 +32,85 @@ const orderStatusDisplay: Record<
 
 interface OrderStatusChartProps {
   data: OrderStatusStatsResponse | undefined;
+  isLoading: boolean;
+  error: FetchBaseQueryError | SerializedError | undefined;
 }
 
-const OrderStatusChart: React.FC<OrderStatusChartProps> = ({ data }) => {
-  // Prepare data for Recharts PieChart
+const OrderStatusChart: React.FC<OrderStatusChartProps> = ({ data, isLoading, error }) => {
+
+  if (isLoading) {
+    return <div className="flex justify-center items-center h-[250px]"><Spin size="large" /></div>;
+  }
+
+  if (error) {
+    console.error("Order Status Chart Error:", error);
+    return (
+        <div className="flex justify-center items-center h-[250px]">
+             <Alert
+                message="Error Loading Chart"
+                description="Could not load order status data."
+                type="error"
+                showIcon
+                icon={<AlertCircle size={20}/>}
+            />
+        </div>
+    );
+  }
+
+  // Prepare data for Recharts BarChart
   const chartData =
     data?.data
-      ?.filter((stat) => stat.orderCount > 0)
-      .map((stat) => ({
+      // ?.filter((stat) => stat.orderCount > 0 || stat.totalValue > 0) // Keep statuses even if count/value is 0? Optional.
+      ?.map((stat: OrderStatusStat) => ({
         name: orderStatusDisplay[stat.status]?.name ?? stat.status,
-        value: stat.orderCount,
-        fill: orderStatusDisplay[stat.status]?.hexColor ?? "#cccccc",
+        count: stat.orderCount,
+        value: stat.totalValue,
+        // We might not need fill here if we assign colors per bar
       })) ?? [];
 
   if (!chartData || chartData.length === 0) {
     return (
-      <p className="text-gray-500 text-sm text-center py-10">
+      <p className="text-gray-500 text-sm text-center py-10 h-[250px] flex items-center justify-center">
         No order status data available for this period.
       </p>
     );
   }
 
+  // Custom Tooltip Formatter
+  const customTooltipFormatter = (value: number, name: string, props: any) => {
+    if (name === 'Order Count') {
+      return [formatNumber(value), name];
+    }
+    if (name === 'Total Value') {
+       return [formatCurrency(value), name];
+    }
+    return [value, name];
+  };
+
   return (
+    // Using BarChart now
     <ResponsiveContainer width="100%" height={250}>
-      <PieChart>
-        <Pie
-          data={chartData}
-          cx="50%"
-          cy="50%"
-          labelLine={false}
-          outerRadius={80}
-          fill="#8884d8"
-          dataKey="value"
-          nameKey="name"
+      <BarChart
+        data={chartData}
+        margin={{
+            top: 5,
+            right: 30, // Margin for right YAxis labels
+            left: 0,
+            bottom: 5,
+          }}
         >
-          {chartData.map((entry, index) => (
-            <Cell key={`cell-${index}`} fill={entry.fill} />
-          ))}
-        </Pie>
-        <Tooltip formatter={(value: number, name: string) => [`${formatNumber(value)} Orders`, name]} />
+        <CartesianGrid strokeDasharray="3 3" />
+        <XAxis dataKey="name" />
+        {/* Left YAxis for Count */}
+        <YAxis yAxisId="left" orientation="left" stroke="#8884d8" allowDecimals={false} />
+        {/* Right YAxis for Value */}
+        <YAxis yAxisId="right" orientation="right" stroke="#82ca9d" tickFormatter={(value) => formatCurrency(value)} />
+        <Tooltip formatter={customTooltipFormatter} />
         <Legend />
-      </PieChart>
+        {/* Define two bars */}
+        <Bar yAxisId="left" dataKey="count" fill="#8884d8" name="Order Count" />
+        <Bar yAxisId="right" dataKey="value" fill="#82ca9d" name="Total Value" />
+      </BarChart>
     </ResponsiveContainer>
   );
 };

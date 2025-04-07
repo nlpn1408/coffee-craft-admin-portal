@@ -66,5 +66,9 @@ export const baseApi = createApi({
     "StatsProducts",
     "StatsInventory",
     "StatsUsers",
+    "StatsReviews",
+    "StatsProductPerformance",
+    "StatsVouchers",
+    "OrderHistory", // Add tag for order history
   ],
 });

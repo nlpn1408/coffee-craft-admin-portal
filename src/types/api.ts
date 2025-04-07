@@ -242,6 +242,7 @@ export interface OrderStatusStatsResponse {
 export interface OrderTrendStat {
   date: string; // Format depends on groupBy (YYYY-MM-DD, YYYY-MM, YYYY)
   count: number;
+  totalRevenue?: number;
 }
 
 // Response type for /stats/orders/trend
@@ -292,6 +293,22 @@ export interface ProductInventorySummary {
   };
   lowStockProducts: LowStockProduct[];
   outOfStockProducts: LowStockProduct[]; // Add outOfStockProducts
+}
+
+// Item within /stats/products/performance response
+export interface ProductPerformanceStat {
+  id: string; // categoryId or brandId
+  name: string; // categoryName or brandName
+  totalQuantitySold: number;
+  totalRevenue: number;
+}
+
+// Response type for /stats/products/performance
+export interface ProductPerformanceResponse {
+  startDate: string;
+  endDate: string;
+  groupBy: 'category' | 'brand';
+  data: ProductPerformanceStat[];
 }
 
 // --- User Stats Types ---
@@ -442,3 +459,26 @@ export interface ImportResult {
   success: number;
   errors: string[];
 }
+
+// --- Order History Types ---
+
+// Represents a single event in the order history
+export interface OrderHistoryEvent {
+  id: string;
+  orderId: string;
+  userId: string | null; // User who performed the action (null if system?)
+  timestamp: string; // ISO Date string
+  field: string | null; // e.g., 'status', 'paymentStatus', or null for general actions
+  oldValue: string | null;
+  newValue: string | null;
+  action: string; // e.g., 'CREATE_ORDER', 'UPDATE_STATUS', 'CANCEL_ORDER'
+  user: { // Details of the user who performed the action
+    id: string;
+    name: string | null;
+    email: string;
+    role: UserRole;
+  } | null; // User might be null for system actions
+}
+
+// Response type for GET /orders/:id/history
+export type OrderHistoryResponse = OrderHistoryEvent[];
