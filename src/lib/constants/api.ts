@@ -2,7 +2,6 @@ export const API_ENDPOINTS = {
   DASHBOARD: '/home',
   PRODUCTS: '/products',
   USERS: '/users',
-  EXPENSES: '/expenses',
   CATEGORIES: '/categories',
   BRANDS: '/brands',
   EXPORT_CATEGORIES: '/categories/export',

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import { Breadcrumb, message } from "antd";
 import { GenericDataTable } from "@/components/GenericDataTable/GenericDataTable";
 import { Order } from "@/types";
@@ -8,10 +8,12 @@ import UpdateStatusModal from "./UpdateStatusModal";
 import OrderDetailModal from "./OrderDetailModal"; // Import the detail modal
 import { useGetOrdersQuery } from "@/state/services/orderService";
 import { useOrderTableColumns } from "./useOrderTableColumns";
-import Header from "@/components/Header";
 import { HomeOutlined } from "@ant-design/icons";
+import { useSearchParams } from "next/navigation";
 
 export default function OrdersPage() {
+  const searchParams = useSearchParams()
+
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false); // State for detail modal
   const [editingOrder, setEditingOrder] = useState<Order | null>(null); // For status modal
@@ -24,6 +26,7 @@ export default function OrdersPage() {
     isError,
     refetch,
   } = useGetOrdersQuery();
+  
 
   // Opens the status update modal
   const handleOpenStatusModal = useCallback((order: Order) => {
@@ -67,7 +70,12 @@ export default function OrdersPage() {
     // Optionally return an error component
   }
 
-  // Use the data directly, providing an empty array as fallback
+  useEffect(() => {
+    if (searchParams.get("id")) {
+      const orderId = searchParams.get("id") as string;
+      handleOpenDetailModal(orderId);
+    }
+  }, [searchParams]);
 
   return (
     <>

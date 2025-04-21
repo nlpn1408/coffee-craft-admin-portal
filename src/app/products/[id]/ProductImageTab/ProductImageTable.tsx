@@ -1,9 +1,16 @@
-import React from 'react';
+import React from "react";
 import { ActionColumn } from "@/components/TableActionRow/ActionColumn";
 import { TableToolbar } from "@/components/TableToolbar/TableToolbar";
 import { useGetProductImagesQuery } from "@/state/services/productImageService";
 import { ProductImage } from "@/types";
-import { Switch, Table, TableColumnsType, Image as AntImage } from "antd"; // Added AntImage
+import {
+  Switch,
+  Table,
+  TableColumnsType,
+  Image as AntImage,
+  Button,
+} from "antd"; // Added AntImage
+import { PlusOutlined } from "@ant-design/icons";
 
 type Props = {
   selectedProductId?: string;
@@ -28,9 +35,12 @@ export const ProductImageTable = ({
     data: imgsResponse, // Rename to avoid conflict with map variable
     isLoading,
     isError,
-  } = useGetProductImagesQuery({ productId: selectedProductId }, {
+  } = useGetProductImagesQuery(
+    { productId: selectedProductId },
+    {
       skip: !selectedProductId, // Skip if no ID
-  });
+    }
+  );
 
   // Remove the unnecessary fetch for all products
   // const { data: products } = useGetProductsQuery({});
@@ -39,8 +49,8 @@ export const ProductImageTable = ({
 
   // Handle loading and error states
   if (isLoading) {
-      // Optional: Render a loading indicator specifically for the table
-      // return <Spin spinning={isLoading} />;
+    // Optional: Render a loading indicator specifically for the table
+    // return <Spin spinning={isLoading} />;
   }
 
   if (isError) {
@@ -56,14 +66,15 @@ export const ProductImageTable = ({
       title: "Image",
       dataIndex: "url",
       key: "images",
-      render: (url: string, record: ProductImage) => { // Added record for key
+      render: (url: string, record: ProductImage) => {
+        // Added record for key
         return url ? (
           // Use Ant Design Image for preview capability
           <AntImage
             width={60}
             height={60}
             src={url}
-            alt={`Product Image ${record.order ?? ''}`}
+            alt={`Product Image ${record.order ?? ""}`}
             style={{ objectFit: "cover", borderRadius: "4px" }}
           />
         ) : (
@@ -97,7 +108,7 @@ export const ProductImageTable = ({
       key: "order",
       width: 80, // Adjusted width
       sorter: (a, b) => (a.order ?? Infinity) - (b.order ?? Infinity), // Sort by order
-      defaultSortOrder: 'ascend', // Default sort by order
+      defaultSortOrder: "ascend", // Default sort by order
     },
     {
       title: "Created At",
@@ -111,7 +122,10 @@ export const ProductImageTable = ({
     {
       title: "Actions",
       key: "actions",
-      render: (_, record: ProductImage) => ( // Added type for record
+      render: (
+        _,
+        record: ProductImage // Added type for record
+      ) => (
         <ActionColumn
           onEdit={() => onEdit(record)}
           onDelete={() => onDelete(record.id)}
@@ -129,15 +143,14 @@ export const ProductImageTable = ({
   ];
 
   return (
-    <div className="mt-5">
+    <div>
       {/* Conditionally render toolbar */}
       {!isViewMode && (
-          <div className="mb-4">
-              <TableToolbar
-                  onCreate={onCreate}
-                  createButtonLabel="Upload Product Image"
-              />
-          </div>
+        <div className="mb-6 flex justify-end items-center">
+            <Button type="primary" icon={<PlusOutlined />} onClick={onCreate}>
+              Upload Product Image
+            </Button>
+        </div>
       )}
 
       <Table<ProductImage>

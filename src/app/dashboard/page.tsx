@@ -1,55 +1,157 @@
 "use client";
 
-import React, { useState, useMemo, useRef, useEffect } from "react";
-import { Breadcrumb, DatePicker, Space, Typography } from "antd";
-import { HomeOutlined } from "@ant-design/icons";
-import dayjs from 'dayjs';
-import type { Dayjs } from 'dayjs';
+import React, { useState, useMemo, useRef } from "react";
+import { useRouter } from "next/navigation";
+import {
+  Breadcrumb,
+  DatePicker,
+  Space,
+  Typography,
+  Card,
+  List,
+  Avatar,
+  Skeleton,
+} from "antd"; // Added Card, List, Avatar, Skeleton
+import { HomeOutlined, UserOutlined } from "@ant-design/icons";
+import dayjs from "dayjs";
+import type { Dayjs } from "dayjs";
 
-import { Activity, ListOrdered, TicketPercent, BarChart3 } from "lucide-react"; // Added BarChart3
-import KpiCards from "./KpiCards";
-import OrderStatusChart from "./OrderStatusChart";
-import TopSellingProductsChart from "./TopSellingProductsChart";
-import LowStockList from "./LowStockList";
-import UserActivitySummary from "./UserActivitySummary";
-import OrderTrendChart from "./OrderTrendChart";
-import NewRegistrationsChart from "./NewRegistrationsChart";
-import ProductPerformanceChart from "./ProductPerformanceChart";
-import VoucherUsageChart from "./VoucherUsageChart";
+import {
+  DollarSign,
+  ShoppingCart,
+  BadgeDollarSign,
+  Users,
+  Repeat,
+  Percent,
+  ListOrdered,
+  Package,
+  User,
+} from "lucide-react"; // Updated icons
+import StatCard from "./StatCard";
+import OrderTrendChart from "./OrderTrendChart"; // Keep OrderTrendChart
 import {
   useGetRevenueSummaryQuery,
-  useGetOrderStatusStatsQuery,
-  useGetTopSellingProductsQuery,
-  useGetProductInventorySummaryQuery,
   useGetUserSummaryStatsQuery,
-  useGetReviewSummaryQuery,
+  useGetOrderTrendQuery,
+  useGetTopSellingProductsQuery,
+  useGetRecentOrdersQuery, // Added new hook
+  useGetTopCustomersQuery, // Added new hook
 } from "@/state/services/dashboardService";
-const { Text } = Typography;
+import { formatCurrency, formatNumber } from "@/utils/utils"; // Import formatNumber
+import { TopSellingProduct } from "@/types/api"; // Import TopSellingProduct type
+import { Order } from "@/types"; // Import Order type
+import { renderOrderStatusTag } from "../orders/utils/renderOrderStatusTag";
+const { Text, Title } = Typography; // Added Title
 
 // Helper to check if two Dayjs dates represent the same calendar day
 const isSameDay = (date1: Dayjs | null, date2: Dayjs | null): boolean => {
-    if (!date1 || !date2) return false;
-    return date1.isSame(date2, 'day');
-}
+  if (!date1 || !date2) return false;
+  return date1.isSame(date2, "day");
+};
+
+// Placeholder component for Recent Orders
+const RecentOrdersList: React.FC<{
+  data: Order[] | undefined;
+  isLoading: boolean;
+}> = ({ data, isLoading }) => {
+  const router = useRouter();
+
+  return (
+    <Card title="Recent Orders" className="shadow-md rounded-2xl min-h-[300px]">
+      {isLoading ? (
+        <Skeleton active />
+      ) : (
+        <List
+          itemLayout="horizontal"
+          dataSource={data}
+          renderItem={(item) => (
+            <List.Item
+              key={item.id} // Added key
+              onClick={() => router.push(`/orders?id=${item.id}`)} // Added onClick for navigation
+              style={{ cursor: "pointer" }} // Added cursor style
+            >
+              <List.Item.Meta
+                avatar={
+                  <Avatar
+                    size={60}
+                    src={item.orderItems?.[0]?.product?.images?.[0]?.url}
+                  />
+                } // Assuming product and image are available
+                title={`Order #${item.id}`}
+                description={
+                  <>
+                    Customer: {item.user?.name || "N/A"} | Status:{" "}
+                    {renderOrderStatusTag({ status: item.status })}
+                  </>
+                }
+              />
+              <div>{formatCurrency(item.finalTotal)}</div>
+            </List.Item>
+          )}
+        />
+      )}
+    </Card>
+  );
+};
+
+// Placeholder component for Top Customers
+const TopCustomersList: React.FC<{
+  data: any[] | undefined;
+  isLoading: boolean;
+}> = ({ data, isLoading }) => {
+  console.log("🚀 ~ data:", data);
+  // Use 'any' for now, replace with actual type
+  return (
+    <Card title="Top Customers" className="shadow-md rounded-2xl min-h-[300px]">
+      {isLoading ? (
+        <Skeleton active />
+      ) : (
+        <List
+          itemLayout="horizontal"
+          dataSource={data}
+          renderItem={(item) => (
+            <List.Item
+              key={item.userId} // Added key
+            >
+              <List.Item.Meta
+                avatar={
+                  <Avatar src={item.user?.imgUrl} icon={<UserOutlined />} />
+                }
+                title={item.name || item.email}
+                description={`${item.orderCount} Orders`}
+              />
+              <div>{formatCurrency(item.totalSpent)}</div>
+            </List.Item>
+          )}
+        />
+      )}
+    </Card>
+  );
+};
 
 const Dashboard = () => {
+  const router = useRouter(); // Initialize useRouter
+
   // Define initial default dates
   const initialStartDate = useMemo(() => dayjs().subtract(30, "days"), []);
   const initialEndDate = useMemo(() => dayjs(), []);
 
   // State for date range using Dayjs, initialized with defaults
-  const [dateRange, setDateRange] = useState<
-    [Dayjs | null, Dayjs | null]
-  >([initialStartDate, initialEndDate]);
+  const [dateRange, setDateRange] = useState<[Dayjs | null, Dayjs | null]>([
+    initialStartDate,
+    initialEndDate,
+  ]);
 
   // Flag to track if the user has interacted with the date picker
   const hasUserSelectedDate = useRef(false);
 
   // Prepare query arguments based ONLY on date range state
   const queryArgs = useMemo(() => {
-    if (!hasUserSelectedDate.current &&
-        isSameDay(dateRange[0], initialStartDate) &&
-        isSameDay(dateRange[1], initialEndDate)) {
+    if (
+      !hasUserSelectedDate.current &&
+      isSameDay(dateRange[0], initialStartDate) &&
+      isSameDay(dateRange[1], initialEndDate)
+    ) {
       return undefined; // Let API use its default
     }
     if (dateRange && dateRange[0] && dateRange[1]) {
@@ -62,55 +164,42 @@ const Dashboard = () => {
     return undefined;
   }, [dateRange, initialStartDate, initialEndDate]);
 
-  // Fetch data for components managed by this page
+  // Fetch data for the simplified dashboard
   const {
     data: revenueSummary,
     isLoading: isLoadingRevenue,
     error: errorRevenue,
   } = useGetRevenueSummaryQuery(queryArgs);
-  const {
-    data: orderStatusStats,
-    isLoading: isLoadingOrderStatus,
-    error: errorOrderStatus,
-  } = useGetOrderStatusStatsQuery(queryArgs);
-  const {
-    data: topProducts,
-    isLoading: isLoadingTopProducts,
-    error: errorTopProducts,
-  } = useGetTopSellingProductsQuery(queryArgs);
-  const {
-    data: inventorySummary,
-    isLoading: isLoadingInventory,
-    error: errorInventory,
-  } = useGetProductInventorySummaryQuery();
+
   const {
     data: userSummary,
     isLoading: isLoadingUserSummary,
     error: errorUserSummary,
   } = useGetUserSummaryStatsQuery(queryArgs);
+
   const {
-    data: reviewSummary,
-    isLoading: isLoadingReviewSummary,
-    error: errorReviewSummary,
-  } = useGetReviewSummaryQuery(queryArgs);
+    data: orderTrendData, // Renamed for clarity
+    isLoading: isLoadingOrderTrend,
+    error: errorOrderTrend,
+  } = useGetOrderTrendQuery(queryArgs);
 
-  // Combined loading state
-  const isLoading =
-    isLoadingRevenue ||
-    isLoadingOrderStatus ||
-    isLoadingTopProducts ||
-    isLoadingInventory ||
-    isLoadingUserSummary ||
-    isLoadingReviewSummary;
+  const {
+    data: topProducts,
+    isLoading: isLoadingTopProducts,
+    error: errorTopProducts,
+  } = useGetTopSellingProductsQuery(queryArgs);
 
-  // Combined error state
-  const error =
-    errorRevenue ||
-    errorOrderStatus ||
-    errorTopProducts ||
-    errorInventory ||
-    errorUserSummary ||
-    errorReviewSummary;
+  const {
+    data: recentOrders,
+    isLoading: isLoadingRecentOrders,
+    error: errorRecentOrders,
+  } = useGetRecentOrdersQuery({ limit: 5 }); // Fetching last 5 recent orders
+
+  const {
+    data: topCustomers,
+    isLoading: isLoadingTopCustomers,
+    error: errorTopCustomers,
+  } = useGetTopCustomersQuery({ ...queryArgs, limit: 3 }); // Fetching top 3 customers
 
   // Function to handle date range changes
   const handleDateChange = (dates: [Dayjs | null, Dayjs | null] | null) => {
@@ -124,21 +213,20 @@ const Dashboard = () => {
 
   // Determine the title suffix
   const getDateRangeSuffix = () => {
-     if (queryArgs?.period === 'custom') {
-         return `(${dayjs(queryArgs.startDate).format("DD/MM/YYYY")} - ${dayjs(queryArgs.endDate).format("DD/MM/YYYY")})`;
-     }
-     if (!queryArgs && revenueSummary?.startDate && revenueSummary?.endDate) {
-         const start = dayjs(revenueSummary.startDate).format("DD/MM/YYYY");
-         const end = dayjs(revenueSummary.endDate).format("DD/MM/YYYY");
-         return `(${start} - ${end})`;
-     }
-     return "(Last 30 Days)";
+    if (queryArgs?.period === "custom") {
+      return `(${dayjs(queryArgs.startDate).format("DD/MM/YYYY")} - ${dayjs(
+        queryArgs.endDate
+      ).format("DD/MM/YYYY")})`;
+    }
+    if (!queryArgs && revenueSummary?.startDate && revenueSummary?.endDate) {
+      const start = dayjs(revenueSummary.startDate).format("DD/MM/YYYY");
+      const end = dayjs(revenueSummary.endDate).format("DD/MM/YYYY");
+      return `(${start} - ${end})`;
+    }
+    return "(Last 30 Days)";
   };
 
-
   const titleSuffix = getDateRangeSuffix();
-  const sharedStartDate = queryArgs?.startDate;
-  const sharedEndDate = queryArgs?.endDate;
 
   return (
     <div className="space-y-6 pb-4">
@@ -154,109 +242,156 @@ const Dashboard = () => {
           <DatePicker.RangePicker
             value={dateRange}
             onChange={handleDateChange}
-            disabledDate={(current) => current && current.isAfter(dayjs().endOf("day"))}
+            disabledDate={(current) =>
+              current && current.isAfter(dayjs().endOf("day"))
+            }
           />
         </Space>
       </div>
-      {/* Section 1: KPIs */}
-      <h2 className="text-xl font-semibold text-gray-700">
-        Key Metrics {titleSuffix}
-      </h2>
-      <KpiCards
-        revenueSummary={revenueSummary}
-        userSummary={userSummary}
-        reviewSummary={reviewSummary}
-        isLoadingRevenue={isLoadingRevenue}
-        isLoadingUser={isLoadingUserSummary}
-        isLoadingReview={isLoadingReviewSummary}
-        errorRevenue={errorRevenue}
-        errorUser={errorUserSummary}
-        errorReview={errorReviewSummary}
-      />
 
-      {/* Section 2: Trends & Insights */}
-      <h2 className="text-xl font-semibold text-gray-700">
-        Trends & Insights {titleSuffix}
-      </h2>
-      {/* First Grid: Status, Performance, Trends */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6"> {/* Added mb-6 */}
-        {/* Order Status Distribution Chart */}
-        <div className="bg-white p-4 rounded-lg shadow min-h-[300px]">
-          <h3 className="text-lg font-medium mb-3 flex items-center">
-            <Activity className="w-5 h-5 mr-2 text-gray-600" /> Order Status Distribution
-          </h3>
-          <OrderStatusChart
-            data={orderStatusStats}
-            isLoading={isLoadingOrderStatus}
-            error={errorOrderStatus}
-          />
-        </div>
-
-         {/* Product Performance Chart (Moved Up) */}
-        <div className="bg-white p-4 rounded-lg shadow min-h-[350px]">
-          <h3 className="text-lg font-medium mb-3 flex items-center">
-             <BarChart3 className="w-5 h-5 mr-2 text-cyan-600" /> Product Performance {/* Added Icon */}
-          </h3>
-          <ProductPerformanceChart initialStartDate={sharedStartDate} initialEndDate={sharedEndDate} />
-        </div>
-
-        {/* Order Creation Trend Chart */}
-        <div className="bg-white p-4 rounded-lg shadow min-h-[300px]">
-          <h3 className="text-lg font-medium mb-3">Order Creation Trend</h3>
-          <OrderTrendChart initialStartDate={sharedStartDate} initialEndDate={sharedEndDate} />
-        </div>
-
-        {/* New User Registrations Trend Chart */}
-        <div className="bg-white p-4 rounded-lg shadow min-h-[300px]">
-          <h3 className="text-lg font-medium mb-3">New User Registrations Trend</h3>
-          <NewRegistrationsChart initialStartDate={sharedStartDate} initialEndDate={sharedEndDate} />
-        </div>
-      </div>
-
-      {/* Second Grid: Top Products & Vouchers */}
-       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-         {/* Top Selling Products Chart (Moved Down) */}
-        <div className="bg-white p-4 rounded-lg shadow min-h-[300px]">
-          <h3 className="text-lg font-medium mb-3 flex items-center">
-            <ListOrdered className="w-5 h-5 mr-2 text-gray-600" /> Top 5 Selling Products (by Quantity)
-          </h3>
-          <TopSellingProductsChart
-            data={topProducts}
-            isLoading={isLoadingTopProducts}
-            error={errorTopProducts}
-           />
-        </div>
-
-         {/* Voucher Usage Chart (Moved Here) */}
-        <div className="bg-white p-4 rounded-lg shadow min-h-[300px]">
-          <h3 className="text-lg font-medium mb-3 flex items-center">
-             <TicketPercent className="w-5 h-5 mr-2 text-orange-500" /> Top 5 Voucher Usage
-          </h3>
-          <VoucherUsageChart initialStartDate={sharedStartDate} initialEndDate={sharedEndDate} />
-        </div>
-      </div>
-
-
-      {/* Section 3: User & Inventory */}
-      <h2 className="text-xl font-semibold text-gray-700">
-        User & Inventory {/* Updated Title */}
-      </h2>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6"> {/* Changed to 2 cols */}
-        {/* User Activity Summary */}
-        <UserActivitySummary
-          data={userSummary}
+      {/* Row 1: KPIs */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {" "}
+        {/* Adjusted grid columns */}
+        {/* Total Revenue Card */}
+        <StatCard
+          title="Total Revenue"
+          primaryIcon={<DollarSign className="text-green-600 w-6 h-6" />}
+          details={[
+            {
+              title: "Revenue",
+              amount:
+                revenueSummary?.totalRevenue !== undefined
+                  ? formatCurrency(revenueSummary.totalRevenue)
+                  : "Loading...",
+            },
+          ]}
+          isLoading={isLoadingRevenue}
+          error={errorRevenue}
+        />
+        {/* New Customers Card */}
+        <StatCard
+          title="New Customers"
+          primaryIcon={<Users className="text-indigo-600 w-6 h-6" />}
+          details={[
+            {
+              title: "New Users",
+              amount:
+                userSummary?.newUsersInPeriod !== undefined
+                  ? formatNumber(userSummary.newUsersInPeriod)
+                  : "Loading...",
+            },
+          ]}
           isLoading={isLoadingUserSummary}
           error={errorUserSummary}
         />
-
-        {/* Inventory Overview */}
-        <LowStockList
-          data={inventorySummary}
-          isLoading={isLoadingInventory}
-          error={errorInventory}
+        {/* Repeat Purchase Rate Card */}
+        <StatCard
+          title="Repeat Purchase Rate"
+          primaryIcon={<Repeat className="text-blue-600 w-6 h-6" />}
+          details={[
+            {
+              title: "Rate",
+              amount:
+                revenueSummary?.repeatPurchaseRate !== undefined
+                  ? `${revenueSummary.repeatPurchaseRate.toFixed(2)}%`
+                  : "Loading...",
+            },
+          ]}
+          isLoading={isLoadingRevenue} // Assuming this comes from revenue summary
+          error={errorRevenue}
         />
+        {/* Avg. Order Value Card */}
+        <StatCard
+          title="Avg. Order Value"
+          primaryIcon={<BadgeDollarSign className="text-purple-600 w-6 h-6" />}
+          details={[
+            {
+              title: "Average",
+              amount:
+                revenueSummary?.averageOrderValue !== undefined
+                  ? formatCurrency(revenueSummary.averageOrderValue)
+                  : "Loading...",
+            },
+          ]}
+          isLoading={isLoadingRevenue}
+          error={errorRevenue}
+        />
+        {/* Conversion Rate Card */}
+        {/* <StatCard
+          title="Conversion Rate"
+          primaryIcon={<Percent className="text-orange-500 w-6 h-6" />}
+          details={[
+            {
+              title: "Rate",
+              amount:
+                revenueSummary?.conversionRate !== undefined
+                  ? `${revenueSummary.conversionRate.toFixed(2)}%`
+                  : "Loading...",
+            },
+          ]}
+          isLoading={isLoadingRevenue} // Assuming this comes from revenue summary
+          error={errorRevenue}
+        /> */}
       </div>
 
+      {/* Row 2: Summary Chart & Most Selling Products */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Recent Orders List (Placeholder) */}
+        <RecentOrdersList
+          data={recentOrders?.data}
+          isLoading={isLoadingRecentOrders}
+        />
+
+        {/* Order & Income Trend Chart */}
+        <Card
+          title={`Summary ${titleSuffix}`}
+          className="shadow-md rounded-2xl min-h-[350px]"
+        >
+          <OrderTrendChart
+            initialStartDate={queryArgs?.startDate} // Pass initialStartDate
+            initialEndDate={queryArgs?.endDate} // Pass initialEndDate
+          />
+        </Card>
+      </div>
+
+      {/* Row 3: Recent Orders & Top Customers */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Most Selling Products List */}
+        <Card
+          title="Most Selling Products"
+          className="shadow-md rounded-2xl min-h-[350px]"
+        >
+          {isLoadingTopProducts ? (
+            <Skeleton active />
+          ) : (
+            <List
+              itemLayout="horizontal"
+              dataSource={topProducts?.data}
+              renderItem={(item: TopSellingProduct) => (
+                <List.Item
+                  key={item.productId}
+                  onClick={() => router.push(`/products/${item.productId}`)}
+                  style={{ cursor: "pointer" }}
+                >
+                  <List.Item.Meta
+                    avatar={<Avatar src={item.imageUrl} size={60} />} // Use item.imageUrl for product image
+                    title={item.name}
+                    description={`SKU: ${item.sku}`}
+                  />
+                  <div>{item.totalQuantitySold} Sales</div>
+                </List.Item>
+              )}
+            />
+          )}
+        </Card>
+
+        {/* Top Customers List (Placeholder) */}
+        <TopCustomersList
+          data={topCustomers?.data}
+          isLoading={isLoadingTopCustomers}
+        />
+      </div>
     </div>
   );
 };

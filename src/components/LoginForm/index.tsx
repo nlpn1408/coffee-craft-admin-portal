@@ -38,13 +38,16 @@ export default function LoginForm() {
   // Use react-hook-form's handleSubmit to wrap the logic
   const onSubmit = async (values: LoginFormValues) => {
     setIsLoading(true);
-    message.loading({ content: 'Logging in...', key: 'login' }); // Use Ant Design message
+    // message.loading({ content: 'Logging in...', key: 'login' }); // Use Ant Design message
     console.log('Login form submitted with:', values);
 
     try {
       const user = await login(values.email, values.password);
-      message.success({ content: `Welcome back, ${user.name}!`, key: 'login', duration: 2 });
-      // AuthContext handles redirection
+      // Only show success message if login returned a valid user (not null for CUSTOMER)
+      if (user) {
+        message.success({ content: `Welcome back, ${user.name || 'Admin'}!`, key: 'login', duration: 2 }); // Added fallback for name
+      }
+      // AuthContext handles redirection or error message for CUSTOMER role
     } catch (error) {
       console.error('Login failed:', error);
       message.error({

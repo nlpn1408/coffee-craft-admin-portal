@@ -223,6 +223,8 @@ export interface RevenueSummary {
   totalRevenue: number;
   totalOrders: number;
   averageOrderValue: number;
+  repeatPurchaseRate?: number; // Added based on API docs
+  conversionRate?: number; // Added based on API docs
 }
 
 // Item within /stats/revenue/orders/by-status response
@@ -260,6 +262,7 @@ export interface TopSellingProduct {
   name: string;
   sku: string;
   totalQuantitySold: number;
+  imageUrl?: string; // Added optional imageUrl field
   totalRevenue: number;
 }
 
@@ -482,3 +485,26 @@ export interface OrderHistoryEvent {
 
 // Response type for GET /orders/:id/history
 export type OrderHistoryResponse = OrderHistoryEvent[];
+
+// // Export the Order interface
+// export interface Order {
+//   id: string;
+//   userId: string;
+//   total: number;
+//   shippingFee: number;
+//   discountAmount: number;
+//   finalTotal: number;
+//   status: OrderStatus;
+//   paymentStatus: PaymentStatus;
+//   voucherId?: string | null;
+//   shippingAddressId: string;
+//   paymentMethod: PaymentMethod;
+//   note?: string | null;
+//   transactionId?: string | null;
+//   createdAt: Date;
+//   updatedAt: Date;
+//   user?: User; // Assuming User interface is defined elsewhere and imported
+//   voucher?: Voucher | null; // Assuming Voucher interface is defined elsewhere and imported
+//   shippingAddress?: ShippingAddress; // Assuming ShippingAddress interface is defined elsewhere and imported
+//   orderItems?: OrderItem[]; // Assuming OrderItem interface is defined elsewhere and imported
+// }

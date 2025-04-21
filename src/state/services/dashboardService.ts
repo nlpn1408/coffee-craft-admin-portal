@@ -9,7 +9,10 @@ import {
   NewRegistrationsResponse,
   ProductPerformanceResponse,
   VoucherUsageResponse, // Import VoucherUsageResponse
+  TopSpendersResponse, // Import TopSpendersResponse for top customers
+  PaginatedResponse, // Import PaginatedResponse
 } from "@/types/api";
+import { Order } from "@/types"; // Import Order from types/index
 import { API_ENDPOINTS } from "@/lib/constants/api";
 import { baseApi } from "./baseApi";
 
@@ -66,6 +69,35 @@ export const dashboardService = baseApi.injectEndpoints({
         };
       },
       providesTags: ["StatsRevenue"],
+    }),
+
+    // Fetch Recent Orders - Accepts limit and sorting
+    getRecentOrders: build.query<PaginatedResponse<Order>, { limit?: number } | void>({
+      query: (args) => {
+        const { limit = 5 } = args ?? {}; // Default limit to 5
+        return {
+          url: API_ENDPOINTS.ORDERS, // Using the general orders endpoint
+          params: {
+              sortBy: 'createdAt', // Sort by creation date
+              sortOrder: 'desc',     // In descending order (most recent first)
+            limit: limit,      // Limit the number of results
+          },
+        };
+      },
+      providesTags: ["Order"], // Corrected tag to "Order"
+    }),
+
+    // Fetch Top Customers (Top Spenders) - Accepts date range and limit
+    getTopCustomers: build.query<TopSpendersResponse, StatsQueryArgs & { limit?: number } | void>({
+      query: (args) => {
+        const { limit = 3, period, startDate, endDate } = args ?? {}; // Default limit to 3
+        const dateParams = period && period !== 'last30days' ? { period, startDate, endDate } : {};
+        return {
+          url: API_ENDPOINTS.STATS_USERS_TOP_SPENDERS,
+          params: { limit, ...dateParams },
+        };
+      },
+      providesTags: ["StatsUsers"], // Re-use StatsUsers tag
     }),
 
     // Fetch Order Status Stats - Accepts date range args
@@ -198,4 +230,6 @@ export const {
   useGetNewRegistrationsQuery,
   useGetProductPerformanceQuery,
   useGetVoucherUsageQuery, // Export the new hook
+  useGetRecentOrdersQuery, // Export the new hook
+  useGetTopCustomersQuery, // Export the new hook
 } = dashboardService;

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo } from "react"; // Removed useRef, Key
+import React, { useMemo } from "react";
 import {
   Product,
   Category,
@@ -15,18 +15,13 @@ import {
   Popconfirm,
   Tag as AntTag,
   Image,
-  // InputRef, // Removed unused
-  // Menu, // Removed unused
-  // Dropdown, // Removed unused
+  Tooltip,
 } from "antd";
-import type { TableProps, TableColumnsType } from "antd"; // Removed MenuProps
-// import type { ColumnType } from "antd/es/table/interface"; // Removed unused
+import type { TableProps, TableColumnsType } from "antd";
 import { EditOutlined, DeleteOutlined, EyeOutlined } from "@ant-design/icons";
 import { format } from "date-fns";
 import { formatCurrency } from "@/utils/utils";
 import { useColumnSearch } from "@/hooks/useColumnSearch";
-
-// Removed DataIndex type alias
 
 // Hook Arguments Interface
 interface UseProductTableColumnsProps {
@@ -154,27 +149,139 @@ export const useProductTableColumns = ({
       title: "Price",
       dataIndex: "price",
       key: "price",
-      sorter: true,
-      render: (price) => formatCurrency(price),
+      sorter: true, // Note: Sorting might become complex with variants
+      render: (price, record: Product) => {
+        if (record.variants && record.variants.length > 0) {
+          return (
+            <Space direction="vertical" size="small" align="end">
+              {record.variants.map((variant) => (
+                <Tooltip key={variant.id} title={`${variant.name}`}>
+                  <AntTag
+                    style={{
+                      margin: 0,
+                      maxWidth: "50%",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                      display: "inline-block",
+                      verticalAlign: "bottom",
+                    }}
+                  >
+                    <span
+                      style={{
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {variant.name}
+                    </span>
+                  </AntTag>
+                  <span> : {formatCurrency(variant.price)}</span>
+                </Tooltip>
+              ))}
+            </Space>
+          );
+        }
+        return formatCurrency(price);
+      },
       align: "right",
-      width: 150,
+      width: 250,
     },
     {
       title: "Discount Price",
       dataIndex: "discountPrice",
       key: "discountPrice",
-      sorter: true,
-      render: (price) => (price ? formatCurrency(price) : "-"),
+      sorter: true, // Note: Sorting might become complex with variants
+      render: (discountPrice, record: Product) => {
+        if (record.variants && record.variants.length > 0) {
+          return (
+            <Space direction="vertical" size="small" align="end">
+              {record.variants.map((variant) => (
+                <Tooltip key={variant.id} title={`${variant.name}`}>
+                  <AntTag
+                    style={{
+                      margin: 0,
+                      maxWidth: "50%",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                      display: "inline-block",
+                      verticalAlign: "bottom",
+                    }}
+                  >
+                    <span
+                      style={{
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {variant.name}
+                    </span>
+                  </AntTag>
+                  <span>
+                    {" "}
+                    :{" "}
+                    {variant.discountPrice
+                      ? formatCurrency(variant.discountPrice)
+                      : " - "}
+                  </span>
+                </Tooltip>
+              ))}
+            </Space>
+          );
+        }
+        return discountPrice ? formatCurrency(discountPrice) : "-";
+      },
       align: "right",
-      width: 150,
+      width: 180, // Increased width
     },
     {
       title: "Stock",
       dataIndex: "stock",
       key: "stock",
-      sorter: true,
+      sorter: true, // Note: Sorting might become complex with variants
+      render: (stock, record: Product) => {
+        if (record.variants && record.variants.length > 0) {
+          return (
+            <Space direction="vertical" size="small" align="end">
+              {record.variants.map((variant) => (
+                <Tooltip
+                  key={variant.id}
+                  title={`${variant.name}: ${variant.stock}`}
+                >
+                  <AntTag
+                    style={{
+                      margin: 0,
+                      maxWidth: "50%",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                      display: "inline-block",
+                      verticalAlign: "bottom",
+                    }}
+                  >
+                    <span
+                      style={{
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {variant.name}
+                    </span>
+                  </AntTag>
+                  <span> : {variant.stock}</span>
+                </Tooltip>
+              ))}
+            </Space>
+          );
+        }
+        return stock;
+      },
       align: "right",
-      width: 100,
+      width: 150, // Increased width
     },
     {
       title: "Rating",
