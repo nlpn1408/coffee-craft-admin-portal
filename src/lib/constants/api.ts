@@ -52,4 +52,6 @@ export const API_ENDPOINTS = {
   STATS_REVIEWS_SUMMARY: '/stats/reviews/summary',
   STATS_REVIEWS_RATING_DISTRIBUTION: '/stats/reviews/rating-distribution',
   STATS_REVIEWS_BY_PRODUCT: '/stats/reviews/by-product',
+
+  EXPENSES: '/expenses',
 };
