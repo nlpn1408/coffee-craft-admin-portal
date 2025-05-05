@@ -325,8 +325,7 @@ const ProductListTab: React.FC<ProductListTabProps> = ({
         onChange={handleTableChange} // Pass the change handler (assuming GenericDataTable uses 'onChange')
       />
 
-      {/* Keep Dummy data button separate */}
-      <div className="p-4 pt-0">
+      {/* <div className="p-4 pt-0">
         <Button
           type="primary"
           icon={<PlusOutlined />}
@@ -335,10 +334,9 @@ const ProductListTab: React.FC<ProductListTabProps> = ({
         >
           Create Product Dummy
         </Button>
-      </div>
+      </div> */}
     </>
   );
 };
 
-// Update export default
 export default ProductListTab;
