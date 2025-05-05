@@ -3,87 +3,202 @@
 import Header from "@/components/Header";
 import { useAuth } from "@/contexts/AuthContext";
 import { LogoutOutlined } from "@ant-design/icons";
-import { Button } from "antd";
-import React, { useState } from "react";
+import { Button, Form, Input, message, Card, Modal } from "antd";
+import React, { useState, useEffect } from "react";
+import { API_ENDPOINTS } from "@/lib/constants/api";
+import { useRouter } from "next/navigation";
+import { FetchBaseQueryError } from "@reduxjs/toolkit/query";
+import { SerializedError } from "@reduxjs/toolkit";
+import { useUpdateUserMutation } from "@/state/api";
 
-type UserSetting = {
-  label: string;
-  value: string | boolean;
-  type: "text" | "toggle";
-};
-
-const mockSettings: UserSetting[] = [
-  { label: "Username", value: "john_doe", type: "text" },
-  { label: "Email", value: "john.doe@example.com", type: "text" },
-  { label: "Notification", value: true, type: "toggle" },
-  { label: "Dark Mode", value: false, type: "toggle" },
-  { label: "Language", value: "English", type: "text" },
-];
+interface ChangePasswordForm {
+  currentPassword?: string;
+  newPassword?: string;
+  confirmPassword?: string;
+}
 
 const Settings = () => {
-  const [userSettings, setUserSettings] = useState<UserSetting[]>(mockSettings);
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
+  const [form] = Form.useForm();
+  const [passwordForm] = Form.useForm<ChangePasswordForm>();
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] =
+    useState(false);
 
-  const handleToggleChange = (index: number) => {
-    const settingsCopy = [...userSettings];
-    settingsCopy[index].value = !settingsCopy[index].value as boolean;
-    setUserSettings(settingsCopy);
+  const [updateUser, { isLoading: isUpdating }] = useUpdateUserMutation();
+
+  const [initialValues, setInitialValues] = useState({
+    name: user?.name || "",
+    email: user?.email || "",
+    phone: user?.phone || "",
+    // address: user?.address || "",
+  });
+
+  useEffect(() => {
+    if (user) {
+      setInitialValues({
+        name: user.name || "",
+        email: user.email || "",
+        phone: user.phone || "",
+        // address: user.address || "",
+      });
+      form.setFieldsValue({
+        name: user.name || "",
+        email: user.email || "",
+        phone: user.phone || "",
+        // address: user.address || "",
+      });
+    }
+  }, [user, form]);
+
+  const onFinish = async (values: any) => {
+    setLoading(true);
+    try {
+      const payload = { ...values };
+
+      // Conditionally add password fields if the change password modal is open
+      if (isChangePasswordModalOpen) {
+        payload.oldPassword = passwordForm.getFieldValue("currentPassword");
+        payload.password = passwordForm.getFieldValue("newPassword");
+      }
+
+      const response = await updateUser({ id: user?.id, ...payload }).unwrap();
+
+      message.success("Profile updated successfully");
+      router.refresh();
+      setIsChangePasswordModalOpen(false);
+      passwordForm.resetFields();
+    } catch (error: any) {
+      if (error.status === 403) {
+        message.error("Old password is incorrect");
+      } else {
+        message.error((error as any).message || "An error occurred");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const showChangePasswordModal = () => {
+    setIsChangePasswordModalOpen(true);
+  };
+
+  const handleCancel = () => {
+    setIsChangePasswordModalOpen(false);
+    passwordForm.resetFields();
   };
 
   return (
     <div className="w-full">
       <Header name="User Settings" />
-      <div className="overflow-x-auto mt-5 shadow-md">
-        <table className="min-w-full bg-white rounded-lg">
-          <thead className="bg-gray-800 text-white">
-            <tr>
-              <th className="text-left py-3 px-4 uppercase font-semibold text-sm">
-                Setting
-              </th>
-              <th className="text-left py-3 px-4 uppercase font-semibold text-sm">
-                Value
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {userSettings.map((setting, index) => (
-              <tr className="hover:bg-blue-50" key={setting.label}>
-                <td className="py-2 px-4">{setting.label}</td>
-                <td className="py-2 px-4">
-                  {setting.type === "toggle" ? (
-                    <label className="inline-flex relative items-center cursor-pointer">
-                      <input
-                        type="checkbox"
-                        className="sr-only peer"
-                        checked={setting.value as boolean}
-                        onChange={() => handleToggleChange(index)}
-                      />
-                      <div
-                        className="w-11 h-6 bg-gray-200 rounded-full peer peer-focus:ring-blue-400 peer-focus:ring-4 
-                        transition peer-checked:after:translate-x-full peer-checked:after:border-white 
-                        after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white 
-                        after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all
-                        peer-checked:bg-blue-600"
-                      ></div>
-                    </label>
-                  ) : (
-                    <input
-                      type="text"
-                      className="px-4 py-2 border rounded-lg text-gray-500 focus:outline-none focus:border-blue-500"
-                      value={setting.value as string}
-                      onChange={(e) => {
-                        const settingsCopy = [...userSettings];
-                        settingsCopy[index].value = e.target.value;
-                        setUserSettings(settingsCopy);
-                      }}
-                    />
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        <div className="flex justify-end mt-4 p-4">
+      <div className="mt-5 p-4">
+        <Card title="Update Profile" className="shadow-md rounded-2xl">
+          <Form
+            form={form}
+            layout="vertical"
+            name="updateProfileForm"
+            onFinish={onFinish}
+            initialValues={initialValues}
+          >
+            <Form.Item label="Name" name="name">
+              <Input />
+            </Form.Item>
+            <Form.Item label="Email" name="email">
+              <Input disabled />
+            </Form.Item>
+            <Form.Item label="Phone" name="phone">
+              <Input />
+            </Form.Item>
+            {/* <Form.Item label="Address" name="address">
+              <Input />
+            </Form.Item> */}
+            <Form.Item className="flex justify-end">
+              <Button type="link" onClick={showChangePasswordModal}>
+                Change Password
+              </Button>
+              <Button type="primary" htmlType="submit" loading={loading}>
+                Update Profile
+              </Button>
+            </Form.Item>
+          </Form>
+        </Card>
+
+        <Modal
+          title="Change Password"
+          open={isChangePasswordModalOpen}
+          onCancel={handleCancel}
+          footer={null}
+        >
+          <Form
+            form={passwordForm}
+            layout="vertical"
+            name="changePasswordForm"
+            onFinish={onFinish}
+            initialValues={{}}
+          >
+            <Form.Item
+              label="Current Password"
+              name="currentPassword"
+              rules={[
+                {
+                  required: true,
+                  message: "Please input your current password!",
+                },
+              ]}
+            >
+              <Input.Password />
+            </Form.Item>
+
+            <Form.Item
+              label="New Password"
+              name="newPassword"
+              rules={[
+                {
+                  required: true,
+                  message: "Please input your new password!",
+                },
+              ]}
+            >
+              <Input.Password />
+            </Form.Item>
+
+            <Form.Item
+              name="confirmPassword"
+              label="Confirm Password"
+              dependencies={["newPassword"]}
+              hasFeedback
+              rules={[
+                {
+                  required: true,
+                  message: "Please confirm your password!",
+                },
+                ({ getFieldValue }) => ({
+                  validator(_, value) {
+                    if (!value || getFieldValue("newPassword") === value) {
+                      return Promise.resolve();
+                    }
+                    return Promise.reject(
+                      new Error(
+                        "The two passwords that you entered do not match!"
+                      )
+                    );
+                  },
+                }),
+              ]}
+            >
+              <Input.Password />
+            </Form.Item>
+
+            <Form.Item>
+              <Button type="primary" htmlType="submit" loading={loading}>
+                Change Password
+              </Button>
+            </Form.Item>
+          </Form>
+        </Modal>
+
+        <div className="flex justify-end mt-4">
           <Button icon={<LogoutOutlined />} onClick={logout} danger>
             Logout
           </Button>
